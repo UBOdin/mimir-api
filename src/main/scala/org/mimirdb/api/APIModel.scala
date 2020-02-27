@@ -1,6 +1,7 @@
 package org.mimirdb.api
 
 import play.api.libs.json._
+import org.apache.spark.sql.types.DataType
 
 case class Tuple (
             /* name */
@@ -20,7 +21,15 @@ case class Schema (
                   `type`: String,
             /* base type name of the element */
                   baseType: String
-)
+) {
+  def this(name: String, dt: DataType) = {
+    this(name, dt.typeName, dt.typeName)
+  }
+  def sparkType: DataType = 
+  {
+    DataType.fromJson("\""+`type`+"\"")
+  }
+}
 
 object Schema {
   implicit val format: Format[Schema] = Json.format

@@ -120,10 +120,10 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/query/data"           => input.as[QueryMimirRequest]
                     case "/schema"               => input.as[SchemaForQueryRequest]
                     case "/annotations/feedback" => {
-                      throw new RuntimeException("Feedback No Longer Supported")
+                      throw new UnsupportedOperationException("Feedback No Longer Supported")
                     }
                     case "/adaptive/create" => {
-                      throw new RuntimeException("Adaptive Schemas No Longer Exist")
+                      throw new UnsupportedOperationException("Adaptive Schemas No Longer Exist")
                     }
                   }
                   handler.handle
@@ -198,7 +198,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     Json.toJson(LensList(CreateLens.supportedLenses))
                   }
                   case "/adaptive" => {
-                    throw new RuntimeException("Adaptive Schemas No Longer Exist")
+                    throw new UnsupportedOperationException("Adaptive Schemas No Longer Exist")
                   }
                 }
               os.write(Json.stringify(response).getBytes)

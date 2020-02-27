@@ -50,17 +50,35 @@ case class LoadRequest (
             /* optionally provide an output name */
                   resultName: Option[String]
 ) extends Request {
-  def handle = 
-    Json.toJson(LoadResponse(LoadDataset(
+
+  lazy val output = 
+    resultName.getOrElse {
+      val lensNameBase = (
+        file 
+        + format 
+        + inferTypes.toString 
+        + detectHeaders.toString 
+        + humanReadableName.toString 
+        + backendOption.toString 
+        + dependencies.toString
+      ).hashCode()
+      val hint = humanReadableName.getOrElse { format }.replaceAll("[^a-zA-Z]", "")
+      "DATASOURCE_" + hint + "_" + (lensNameBase.toString().replace("-", ""))
+    }
+
+  def handle = {
+    LoadDataset(
       file, 
+      output,
       format, 
       inferTypes, 
       detectHeaders, 
       humanReadableName, 
       backendOption.map { tup => tup.name -> tup.value }, 
-      dependencies,
-      resultName
-    )))
+      dependencies
+    )
+    Json.toJson(LoadResponse(output))
+  }
 }
 
 object LoadRequest {
@@ -78,12 +96,14 @@ case class UnloadRequest (
                   backendOption: Seq[Tuple]
 ) extends Request {
   def handle = 
-    Json.toJson(UnloadResponse(UnloadDataset(
-      input,
-      file,
-      format,
-      backendOption.map { tup => tup.name -> tup.value } 
-    )))
+    Json.toJson(UnloadResponse(
+      UnloadDataset(
+        input,
+        file,
+        format,
+        backendOption.map { tup => tup.name -> tup.value } 
+      ).map { _.toString }
+    ))
 }
 
 object UnloadRequest {
@@ -105,15 +125,23 @@ case class CreateLensRequest (
             /* optional name for the result table */
                   resultName: Option[String]
 ) extends Request {
-  def handle = 
-    Json.toJson(CreateLensResponse(CreateLens(
+
+  lazy val output = 
+    resultName.getOrElse {
+      val lensNameBase = (input.toString + `type` + params.toString).hashCode()
+      "LENS_" + `type` + "_" + (lensNameBase.toString().replace("-", ""))
+    }
+
+  def handle = {
+    CreateLens(
       input,
+      output,
       params,
       `type`,
-      materialize,
-      humanReadableName,
-      resultName
-    )))
+      humanReadableName
+    )
+    Json.toJson(CreateLensResponse(output))
+  }
 }
 
 object CreateLensRequest {
@@ -129,12 +157,21 @@ case class CreateViewRequest (
             /* optional name for the result table */
                   resultName: Option[String]
 )  extends Request {
-  def handle = 
-    Json.toJson(CreateViewResponse(CreateView(
-      input, 
+
+  lazy val output = 
+    resultName.getOrElse {
+      val lensNameBase = (input.toString + query).hashCode()
+      "VIEW_" + (lensNameBase.toString().replace("-", ""))
+    }
+
+  def handle = {
+    CreateView(
       query,
-      resultName
-    )))
+      output, 
+      input
+    )
+    Json.toJson(CreateViewResponse(output))
+  }
 }
 
 object CreateViewRequest {
@@ -187,10 +224,12 @@ case class QueryMimirRequest (
 ) extends Request {
   def handle = {
     val inputSubstitutionQuery = query.replaceAll("\\{\\{\\s*input\\s*\\}\\}", input.toString) 
+    if(includeReasons) {
+      throw new UnsupportedOperationException("IncludeReasons is no longer supported")
+    }
     Json.toJson(Query(
       inputSubstitutionQuery,
-      includeUncertainty,
-      includeReasons
+      includeUncertainty
     ))
   }
 }

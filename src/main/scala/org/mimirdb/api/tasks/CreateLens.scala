@@ -9,19 +9,13 @@ object CreateLens
   def supportedLenses = Seq[String]()
 
   def apply(
-    /* input for lens */
-      input: String,
-    /* configuration parameters */
+      sourceTable: String,
+      outputTable: String,
       params: JsValue,
-    /* type name of lens */
-      t: String,
-    /* materialize input before creating lens */
-      materialize: Boolean,
-    /* optional human-readable name */
+      lensType: String,
       humanReadableName: Option[String],
-    /* optional name for the result table */
-      resultName: Option[String],
-
       sparkSession: SparkSession = MimirAPI.sparkSession
-  ): String = ???
+  ){
+    ???
+  }
 }

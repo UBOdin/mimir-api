@@ -11,14 +11,16 @@ object CreateSample
 
   def apply(
     /* query string to get schema for - table name */
-      source: String,
+      sourceTable: String,
     /* target table to define as the sampling view */
-      target: String,
+      targetTable: String,
     /* mode configuration */
       samplingMode: SamplingMode,
     /* seed - optional long */
       seed: Option[Long],
-  ): Unit = ???
+  ){
+    ???
+  }
 
   trait SamplingMode
   {
@@ -104,7 +106,7 @@ object CreateSample
    *                     sampling the value. Non-specified values will not be 
    *                     included in the sample.
    **/
-  case class SampleStratifiedOn(column:String, strata:Map[Any,Double]) extends SamplingMode
+  case class SampleStratifiedOn(column:String, t: DataType, strata:Map[Any,Double]) extends SamplingMode
   {
     override def toString = s"ON $column WITH STRATA ${strata.map { case (v,p) => s"$v -> $p"}.mkString(" | ")}"
 
@@ -130,7 +132,7 @@ object CreateSample
         strata
           .toSeq
           .map { case (v, p) => JsObject(Map[String,JsValue](
-              "value" -> SparkPrimitive.encode(v),
+              "value" -> SparkPrimitive.encode(v, t),
               "probability" -> JsNumber(p)
             ))
           }
@@ -145,13 +147,14 @@ object CreateSample
     def parseJson(json:Map[String, JsValue]): Option[SampleStratifiedOn] =
     {
       if(json("mode").as[String].equals(MODE)){
-
+        val t = DataType.fromJson(json("type").toString)
         Some(SampleStratifiedOn(
           json("column").as[String],
+          t,
           json("strata")
             .as[Seq[Map[String,JsValue]]]
             .map { stratum => 
-              SparkPrimitive.decode(stratum("value")) -> 
+              SparkPrimitive.decode(stratum("value"), t) -> 
                 stratum("probability").as[Double]
             }
             .toMap

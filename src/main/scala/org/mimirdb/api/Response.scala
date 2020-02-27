@@ -110,10 +110,12 @@ object DataContainer {
       def reads(data: JsValue): JsResult[DataContainer] =
       {
         val parsed = data.as[Map[String,JsValue]]
+        val schema = parsed("schema").as[Seq[Schema]]
         JsSuccess(
           DataContainer(
-            parsed("schema").as[Seq[Schema]],
-            parsed("data").as[Seq[Seq[JsValue]]].map { _.map { SparkPrimitive.decode(_) } },
+            schema,
+            parsed("data").as[Seq[Seq[JsValue]]].map { 
+              _.zip(schema).map { case (dat, sch) => SparkPrimitive.decode(_, sch.sparkType) } },
             parsed("prov").as[Seq[String]],
             parsed("colTaint").as[Seq[Seq[Boolean]]],
             parsed("rowTaint").as[Seq[Boolean]],
@@ -126,7 +128,11 @@ object DataContainer {
       def writes(data: DataContainer): JsValue =
         Json.obj(
           "schema" -> data.schema,
-          "data" -> data.data.map { _.map { SparkPrimitive.encode(_) } },
+          "data" -> Json.arr(data.data.map { row => 
+            Json.arr(row.zip(data.schema).map { case (dat, sch) => 
+              SparkPrimitive.encode(dat, sch.sparkType) 
+            }) 
+          }),
           "prov" -> data.prov,
           "colTaint" -> data.colTaint,
           "rowTaint" -> data.rowTaint,
