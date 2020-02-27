@@ -38,15 +38,13 @@ object MimirAPI extends LazyLogging {
 
   var sparkSession: SparkSession = null
 
-  def initSpark = {
+  def initLocalSpark = {
     sparkSession = 
       SparkSession.builder
         .appName("Mimir-Caveat-Test")
         .master("local[*]")
         .getOrCreate()
   }
-
-
 
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
@@ -117,12 +115,8 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/lens/create"          => input.as[CreateLensRequest]
                     case "/view/create"          => input.as[CreateViewRequest]
                     case "/view/sample"          => input.as[CreateSampleRequest]
-                    case "/annotations/noschema" => input.as[ExplainSubsetWithoutSchemaRequest]
-                    case "/annotations/schema"   => input.as[ExplainSchemaRequest]
-                    case "/annotations/cell"     => input.as[ExplainCellSchemaRequest]
-                    case "/annotations/subset"   => input.as[ExplainSubsetRequest]
-                    case "/annotations/all"      => input.as[ExplainEverythingAllRequest]
-                    case "/annotations/summary"  => input.as[ExplainEverythingRequest]
+                    case "/annotations/cell"     => input.as[ExplainCellRequest]
+                    case "/annotations/all"      => input.as[ExplainEverythingRequest]
                     case "/query/data"           => input.as[QueryMimirRequest]
                     case "/schema"               => input.as[SchemaForQueryRequest]
                     case "/annotations/feedback" => {

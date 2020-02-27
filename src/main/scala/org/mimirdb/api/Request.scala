@@ -141,42 +141,7 @@ object CreateViewRequest {
   implicit val format: Format[CreateViewRequest] = Json.format
 }
 
-case class ExplainSubsetWithoutSchemaRequest (
-            /* query to explain */
-                  query: String,
-                  rows: Seq[String],
-                  cols: Seq[String]
-) extends Request {
-  def handle = Json.toJson(ExplainResponse(Explain.coarsely(
-    query,
-    rows = rows,
-    cols = cols,
-    schemaCaveats = false
-  )))
-}
-
-object ExplainSubsetWithoutSchemaRequest {
-  implicit val format: Format[ExplainSubsetWithoutSchemaRequest] = Json.format
-}
-
-
-case class ExplainSchemaRequest (
-            /* query to explain */
-                  query: String,
-                  cols: Seq[String]
-) extends Request {
-  def handle = Json.toJson(ExplainResponse(Explain.coarsely(
-    query,
-    cols = cols
-  )))
-}
-
-object ExplainSchemaRequest {
-  implicit val format: Format[ExplainSchemaRequest] = Json.format
-}
-
-
-case class ExplainCellSchemaRequest (
+case class ExplainCellRequest (
             /* query to explain */
                   query: String,
             /* rowid of cell */
@@ -184,47 +149,15 @@ case class ExplainCellSchemaRequest (
             /* column of cell */
                   col: String
 ) extends Request {
-  def handle = Json.toJson(ExplainReasonsResponse(Explain(
+  def handle = Json.toJson(ExplainResponse(Explain(
     query,
     rows = Seq(row),
     cols = Seq(col)
   )))
 }
 
-object ExplainCellSchemaRequest {
-  implicit val format: Format[ExplainCellSchemaRequest] = Json.format
-}
-
-
-case class ExplainSubsetRequest (
-            /* query to explain */
-                  query: String,
-                  rows: Seq[String],
-                  cols: Seq[String]
-) extends Request {
-  def handle = Json.toJson(ExplainResponse(Explain.coarsely(
-    query,
-    rows = rows,
-    cols = cols
-  )))
-}
-
-object ExplainSubsetRequest {
-  implicit val format: Format[ExplainSubsetRequest] = Json.format
-}
-
-
-case class ExplainEverythingAllRequest (
-            /* query to explain */
-                  query: String
-) extends Request {
-  def handle = Json.toJson(ExplainReasonsResponse(Explain(
-    query
-  )))
-}
-
-object ExplainEverythingAllRequest {
-  implicit val format: Format[ExplainEverythingAllRequest] = Json.format
+object ExplainCellRequest {
+  implicit val format: Format[ExplainCellRequest] = Json.format
 }
 
 
@@ -232,7 +165,7 @@ case class ExplainEverythingRequest (
             /* query to explain */
                   query: String
 ) extends Request {
-  def handle = Json.toJson(ExplainResponse(Explain.coarsely(
+  def handle = Json.toJson(ExplainResponse(Explain(
     query
   )))
 }

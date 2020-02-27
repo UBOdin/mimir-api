@@ -87,20 +87,11 @@ object CreateAdaptiveSchemaResponse {
 
 
 case class ExplainResponse (
-                  reasons: Seq[CaveatSet]
+                  reasons: Seq[Caveat]
 ) extends Response
 
 object ExplainResponse {
   implicit val format: Format[ExplainResponse] = Json.format
-}
-
-
-case class ExplainReasonsResponse (
-                  reasons: Seq[Caveat]
-) extends Response
-
-object ExplainReasonsResponse {
-  implicit val format: Format[ExplainReasonsResponse] = Json.format
 }
 
 
