@@ -21,8 +21,8 @@ case class CodeEvalRequest (
   def handle = {
     Json.toJson(
       language match {
-        case "R"     => EvalR(source)
-        case "scala" => EvalScala(source)
+        case "R"     => Eval.R(source)
+        case "scala" => Eval.Scala(source)
       }
     )
   }

@@ -22,9 +22,6 @@ case class Schema (
             /* base type name of the element */
                   baseType: String
 ) {
-  def this(name: String, dt: DataType) = {
-    this(name, dt.typeName, dt.typeName)
-  }
   def sparkType: DataType = 
   {
     DataType.fromJson("\""+`type`+"\"")
@@ -32,6 +29,8 @@ case class Schema (
 }
 
 object Schema {
+  def apply(name: String, dt: DataType): Schema = 
+    Schema(name, dt.typeName, dt.typeName)
   implicit val format: Format[Schema] = Json.format
 }
 

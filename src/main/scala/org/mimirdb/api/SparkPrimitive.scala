@@ -5,6 +5,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.CalendarInterval
 import java.util.{ Base64, Calendar }
 import java.sql.{ Date, Timestamp }
+import scala.util.matching.Regex
 
 object SparkPrimitive
 {
@@ -33,8 +34,45 @@ object SparkPrimitive
     val min = cal.get(Calendar.MINUTE)
     val sec = cal.get(Calendar.SECOND)
     val ms  = cal.get(Calendar.MILLISECOND)
-    f"$y%04d-$m%02d-$d%02d $hr%02d:$min%02d:$sec%02d.$ms%04d"
+    f"$y%04d-$m%02d-$d%02d $hr%02d:$min%02d:$sec%02d.$ms%03d"
   }
+
+  val DateString = "([0-9]{4})-([0-9]{2})-([0-9]{2})".r
+  val TimestampString = "([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9.]+)".r
+
+  def decodeDate(date: String): Date = 
+    date match {
+      case DateString(y, m, d) => {
+        val cal = Calendar.getInstance()
+        cal.set(
+          y.toInt, 
+          m.toInt, 
+          d.toInt, 
+          0, 0, 0
+        )
+        new Date(cal.getTimeInMillis)
+      }
+      case _ => throw new IllegalArgumentException(s"Invalid Date: '$date'")
+    }
+
+  def decodeTimestamp(timestamp: String): Timestamp = 
+    timestamp match {
+      case TimestampString(y, m, d, hr, min, sec) => {
+        val cal = Calendar.getInstance()
+        val secWithMsec = sec.toFloat
+        cal.set(
+          y.toInt, 
+          m.toInt, 
+          d.toInt, 
+          hr.toInt,
+          min.toInt,
+          secWithMsec.toInt
+        )
+        cal.set(((secWithMsec - secWithMsec.toInt) * 1000).toInt, Calendar.MILLISECOND)
+        new Timestamp(cal.getTimeInMillis)
+      }
+      case _ => throw new IllegalArgumentException(s"Invalid Timestamp: '$timestamp'")
+    }
 
   def encode(k: Any, t: DataType): JsValue =
   {
@@ -45,15 +83,34 @@ object SparkPrimitive
       case DateType             => JsString(formatDate(k.asInstanceOf[Date]))
       case TimestampType        => JsString(formatTimestamp(k.asInstanceOf[Timestamp]))
       case CalendarIntervalType => JsString(k.asInstanceOf[CalendarInterval].toString)
-      case DoubleType           => ???
-      case FloatType            => ???
-      case ByteType             => ???
-      case IntegerType          => ???
-      case LongType             => ???
-      case ShortType            => ???
+      case DoubleType           => JsNumber(k.asInstanceOf[Double])
+      case FloatType            => JsNumber(k.asInstanceOf[Float])
+      case ByteType             => JsNumber(k.asInstanceOf[Byte])
+      case IntegerType          => JsNumber(k.asInstanceOf[Integer]:Int)
+      case LongType             => JsNumber(k.asInstanceOf[Long])
+      case ShortType            => JsNumber(k.asInstanceOf[Short])
       case NullType             => JsNull
-      case _                    => ???
+      case _ if k != null       => JsString(k.toString)
+      case _                    => JsNull
     }
   }
-  def decode(k: JsValue, t: DataType): Any = ???
+  def decode(k: JsValue, t: DataType): Any = 
+  {
+    t match {  
+      case StringType           => k.as[String]
+      case BinaryType           => base64Decode(k.as[String])
+      case BooleanType          => k.as[Boolean]
+      case DateType             => decodeDate(k.as[String])
+      case TimestampType        => decodeTimestamp(k.as[String])
+      case CalendarIntervalType => CalendarInterval.fromString(k.as[String])
+      case DoubleType           => k.as[Double]
+      case FloatType            => k.as[Float]
+      case ByteType             => k.as[Byte]
+      case IntegerType          => k.as[Int]:Integer
+      case LongType             => k.as[Long]
+      case ShortType            => k.as[Short]
+      case NullType             => JsNull
+      case _                    => throw new IllegalArgumentException(s"Unsupported type for decode: $t")
+    }
+  }
 }

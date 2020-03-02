@@ -4,9 +4,14 @@ import org.mimirdb.api.CodeEvalResponse
 import org.apache.spark.sql.SparkSession
 import org.mimirdb.api.MimirAPI
 
-object EvalScala
+object Eval
 {
-  def apply(
+  def R(
+    source: String, 
+    sparkSession: SparkSession = MimirAPI.sparkSession
+  ): CodeEvalResponse = ???
+
+  def Scala(
     source: String,
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): CodeEvalResponse = ???
