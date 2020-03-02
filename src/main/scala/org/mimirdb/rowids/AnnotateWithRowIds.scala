@@ -1,12 +1,13 @@
 package org.mimirdb.rowids
 
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.catalyst.AliasIdentifier
 import org.apache.spark.sql.catalyst.analysis._
+import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable}
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.plans.JoinType
-import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable}
-import org.apache.spark.sql.catalyst.AliasIdentifier
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -19,16 +20,30 @@ import com.typesafe.scalalogging.LazyLogging
 
 object AnnotateWithRowIds
 {
-  val DEFAULT_ATTRIBUTE = "__MIMIR_ROWID"
+  val ATTRIBUTE = "__MIMIR_ROWID"
+
+  def apply(df: DataFrame, rowIdAttribute: String = ATTRIBUTE): DataFrame =
+  {
+    val annotatedPlan = 
+      new AnnotateWithRowIds(df.queryExecution.sparkSession, rowIdAttribute)(
+        df.queryExecution.analyzed
+      )
+    new DataFrame(
+      df.queryExecution.sparkSession,
+      annotatedPlan,
+      RowEncoder(annotatedPlan.schema)
+    )
+  }
 }
 
 class AnnotateWithRowIds(
   session: SparkSession,
-  rowIdAttribute: String = AnnotateWithRowIds.DEFAULT_ATTRIBUTE
+  rowIdAttribute: String = AnnotateWithRowIds.ATTRIBUTE
 )
   extends LazyLogging
 {
   val ANNOTATION = UnresolvedAttribute(rowIdAttribute)
+
 
   /**
    * Return a plan with an additional column containing a unique identifier

@@ -1,9 +1,11 @@
 package org.mimirdb.api.tasks
 
-import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.{ SparkSession, DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.mimirdb.api.{ DataContainer, Schema, MimirAPI } 
 import org.mimirdb.implicits._
+import org.mimirdb.rowids.AnnotateWithRowIds
+import org.mimirdb.caveats.{ Constants => Caveats }
 
 object Query
 {
@@ -21,16 +23,42 @@ object Query
   {
     var df = query
     val schema = getSchema(df)
+
+    df = AnnotateWithRowIds(df)
+
     if(includeUncertainty){ df = df.trackCaveats }
+    
+    val postAnnotationSchema = 
+      getSchema(df)
+        .zipWithIndex
+        .map { case (attribute, idx) => attribute.name -> idx }
+        .toMap
+
+    val fieldIndices = 
+      schema.map { attribute => postAnnotationSchema(attribute.name) }
+    val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE)
+
     val results = df.cache().collect()
+
+    val (colTaint, rowTaint): (Seq[Seq[Boolean]], Seq[Boolean]) = 
+      if(includeUncertainty){
+        results.map { row =>
+          val annotation = row.getAs[Row](Caveats.ANNOTATION_ATTRIBUTE)
+          val columns = annotation.getAs[Row](Caveats.ATTRIBUTE_FIELD)
+          (
+            schema.map { attribute => row.getAs[Boolean](attribute.name) },
+            annotation.getAs[Boolean](Caveats.ROW_FIELD)
+          )
+        }.toSeq.unzip[Seq[Boolean], Boolean]
+      } else { (Seq[Seq[Boolean]](), Seq[Boolean]()) }
 
     DataContainer(
       schema,
-      results.map { _.toSeq },
-      ???,
-      ???,
-      ???,
-      ???
+      results.map { row => fieldIndices.map { row.get(_) } }.toSeq,
+      results.map { _.getInt(identifierAnnotation).toString }.toSeq,
+      colTaint, 
+      rowTaint,
+      Seq()
     )
   }
 
