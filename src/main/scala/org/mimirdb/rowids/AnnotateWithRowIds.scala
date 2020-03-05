@@ -1,6 +1,7 @@
 package org.mimirdb.rowids
 
 import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.types.LongType
 import org.apache.spark.sql.catalyst.AliasIdentifier
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable}
@@ -42,33 +43,48 @@ class AnnotateWithRowIds(
 )
   extends LazyLogging
 {
-  val ANNOTATION = UnresolvedAttribute(rowIdAttribute)
-
-
   /**
    * Return a plan with an additional column containing a unique identifier
    * for each row in the input.  The column will be an Array with a variable
    * number of fields.
    */
   def apply(plan: LogicalPlan): LogicalPlan =
+    recur(plan)._1
+
+
+  def passthrough(plan: LogicalPlan): (LogicalPlan, Attribute) =
   {
-    val ret: LogicalPlan = plan match {
+    val ret = plan.mapChildren { apply(_) }
+    (
+      ret, 
+      getAnnotation(ret)
+    )
+  }
+
+
+  def recur(plan: LogicalPlan): (LogicalPlan, Attribute) = 
+  {
+    val ret: (LogicalPlan, Attribute) = plan match {
 
       /*********************************************************/
-      case _ if planIsAnnotated(plan) => plan
+      case _ if planIsAnnotated(plan) => (plan, getAnnotation(plan))
 
       /*********************************************************/
-      case _:ReturnAnswer => plan.mapChildren { apply(_) }
+      case _:ReturnAnswer => passthrough(plan)
 
       /*********************************************************/
-      case _:Subquery     => plan.mapChildren { apply(_) }
+      case _:Subquery     => passthrough(plan)
 
       /*********************************************************/
       case Project(
           projectList: Seq[NamedExpression], 
           child: LogicalPlan) => 
       {
-        Project(projectList :+ ANNOTATION, apply(child))
+        val (rewrite, annotation) = recur(child)
+        (
+          Project(projectList :+ annotation, rewrite),
+          annotation
+        )
       }
 
       /*********************************************************/
@@ -83,7 +99,7 @@ class AnnotateWithRowIds(
       /*********************************************************/
       case Filter(
           condition: Expression, 
-          child: LogicalPlan) => plan.mapChildren { apply(_) }
+          child: LogicalPlan) => passthrough(plan)
 
       /*********************************************************/
       case Intersect(
@@ -99,33 +115,52 @@ class AnnotateWithRowIds(
 
       /*********************************************************/
       case Union(children: Seq[LogicalPlan]) => 
-        Union(
-          children.zipWithIndex.map { case (child, idx) => 
-            annotate(apply(child), Literal(idx), ANNOTATION)
-          }
-        )
+      {
+        val newAnnotation = annotationAttribute()
+        val ret =
+          Union(
+            children.zipWithIndex.map { case (child, idx) => 
+              val (rewrite, annotation) = recur(child)
+              annotate(rewrite, newAnnotation.exprId, Literal(idx), annotation)
+            }
+          )
+        (ret, newAnnotation)
+      }
 
       /*********************************************************/
       case Join(
           left: LogicalPlan,
           right: LogicalPlan,
           joinType: JoinType,
-          condition: Option[Expression]) => 
+          condition: Option[Expression],
+          hint: JoinHint
+      ) => 
       {
+        val (leftRewrite, leftAnnotation) = recur(left)
+        val (rightRewrite, rightAnnotation) = recur(right)
         val lhs = 
           Project(
-            left.output :+ Alias(ANNOTATION, "LHS_"+rowIdAttribute)(),
-            apply(left)
+            left.output :+ Alias(leftAnnotation, "LHS_"+rowIdAttribute)(),
+            leftRewrite
           )
         val rhs = 
           Project(
-            right.output :+ Alias(ANNOTATION, "RHS_"+rowIdAttribute)(),
-            apply(left)
+            right.output :+ Alias(rightAnnotation, "RHS_"+rowIdAttribute)(),
+            rightRewrite
           )
-        annotate(
-          Join(lhs, rhs, joinType, condition),
-          UnresolvedAttribute("LHS_"+rowIdAttribute),
-          UnresolvedAttribute("RHS_"+rowIdAttribute)
+        val newAnnotation = annotationAttribute()
+
+        (
+          annotate(
+            Project(
+              plan.output :+ newAnnotation,
+              Join(lhs, rhs, joinType, condition, hint)
+            ),
+            newAnnotation.exprId,
+            UnresolvedAttribute("LHS_"+rowIdAttribute),
+            UnresolvedAttribute("RHS_"+rowIdAttribute)
+          ), 
+          newAnnotation
         )
 
       }
@@ -136,7 +171,7 @@ class AnnotateWithRowIds(
           storage: CatalogStorageFormat,
           provider: Option[String],
           child: LogicalPlan,
-          overwrite: Boolean) => plan.mapChildren { apply(_) }
+          overwrite: Boolean) => passthrough(plan)
 
       /*********************************************************/
       case View(
@@ -147,7 +182,7 @@ class AnnotateWithRowIds(
         // we need to strip the view reference.
         // If the view was created with identifiers, the planIsAnnotated case
         // above will catch it.
-        apply(child)
+        recur(child)
       }
 
       /*********************************************************/
@@ -164,7 +199,7 @@ class AnnotateWithRowIds(
       case Sort(
           order: Seq[SortOrder], 
           global: Boolean, 
-          child: LogicalPlan) => plan.mapChildren { apply(_) }
+          child: LogicalPlan) => passthrough(plan)
 
       /*********************************************************/
       case Range(
@@ -188,7 +223,7 @@ class AnnotateWithRowIds(
         // use the grouping attributes as the annotation
         // descend into the children just in case an identifier is needed
         // elsewhere.
-        annotate(plan.mapChildren { apply(_) }, groupingExpressions:_*)
+        annotate(apply(plan), groupingExpressions:_*)
       }
 
       /*********************************************************/
@@ -221,17 +256,17 @@ class AnnotateWithRowIds(
 
       /*********************************************************/
       case GlobalLimit(limitExpr: Expression, child: LogicalPlan) => 
-        plan.mapChildren { apply(_) }
+        passthrough(plan)
 
       /*********************************************************/
       case LocalLimit(limitExpr: Expression, child: LogicalPlan) => 
-        plan.mapChildren { apply(_) }
+        passthrough(plan)
 
       /*********************************************************/
       case SubqueryAlias(identifier: AliasIdentifier, child: LogicalPlan) => {
         // strip off the identifier, since we're changing the logical meaning
         // of the plan.
-        apply(child)
+        recur(child)
       }
 
       /*********************************************************/
@@ -240,14 +275,14 @@ class AnnotateWithRowIds(
           upperBound: Double,
           withReplacement: Boolean,
           seed: Long,
-          child: LogicalPlan) => plan.mapChildren { apply(_) }
+          child: LogicalPlan) => passthrough(plan)
 
       /*********************************************************/
       case Distinct(child: LogicalPlan) => 
       {
         // The annotation attribute will break the distinct operator, so rewrite
         // it as a deduplicate and annotate that.
-        apply(Deduplicate(
+        recur(Deduplicate(
           child.output,
           child
         ))
@@ -257,20 +292,20 @@ class AnnotateWithRowIds(
       case Repartition(
           numPartitions: Int, 
           shuffle: Boolean, 
-          child: LogicalPlan) => plan.mapChildren { apply(_) }
+          child: LogicalPlan) => passthrough(plan)
 
       /*********************************************************/
       case RepartitionByExpression(
           partitionExpressions: Seq[Expression],
           child: LogicalPlan,
-          numPartitions: Int) => plan.mapChildren { apply(_) }
+          numPartitions: Int) => passthrough(plan)
 
       /*********************************************************/
       case OneRowRelation() => annotate(plan, Literal(1))
 
       /*********************************************************/
       case Deduplicate(keys: Seq[Attribute], child: LogicalPlan) => 
-        plan.mapChildren { apply(_) }
+        passthrough(plan)
 
       /*********************************************************/
       case leaf:LeafNode => 
@@ -289,7 +324,11 @@ class AnnotateWithRowIds(
         // plan execution.  Instead, it's preferable to manually identify 
         // identifier attributes in the 
 
-        WithSemiStableIdentifier(leaf, rowIdAttribute, session)
+        val newAnnotation = annotationAttribute()
+        (
+          WithSemiStableIdentifier(leaf, newAnnotation, session),
+          newAnnotation
+        )
       }
     }
     logger.trace(s"ROWID ANNOTATE\n$plan  ---vvvvvvv---\n$ret\n\n")
@@ -298,14 +337,34 @@ class AnnotateWithRowIds(
   }
 
   def planIsAnnotated(plan: LogicalPlan): Boolean =
-      plan.output.map { _.name }.exists { _.equals(rowIdAttribute) }
+      plan.output.exists { _.name.equals(rowIdAttribute) }
 
-  private def annotate(plan: LogicalPlan, fields: Expression*): LogicalPlan =
+  def getAnnotation(plan: LogicalPlan): Attribute =
+    plan.output.find { _.name.equals(rowIdAttribute) }.get
+
+  def annotationAttribute(id: ExprId = NamedExpression.newExprId): Attribute =
+    AttributeReference(
+      rowIdAttribute,
+      LongType,
+      false
+    )(id)
+
+  private def annotate(plan: LogicalPlan, fields: Expression*): (LogicalPlan, Attribute) =
+  {
+    val newAnnotation = annotationAttribute()
+    (
+      annotate(plan, newAnnotation.exprId, fields:_*),
+      newAnnotation
+    )
+  }
+
+
+  private def annotate(plan: LogicalPlan, id:ExprId, fields: Expression*): LogicalPlan =
   {
     Project(
       plan.output
           .filter { !_.name.equals(rowIdAttribute) } :+
-        MergeRowIds(rowIdAttribute, fields:_*),
+        MergeRowIds(rowIdAttribute, id, fields:_*),
       plan
     )
   }
