@@ -3,7 +3,7 @@ package org.mimirdb.api.tasks
 import org.apache.spark.sql.{ SparkSession, DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.mimirdb.api.{ DataContainer, Schema, MimirAPI } 
-import org.mimirdb.implicits._
+import org.mimirdb.caveats.implicits._
 import org.mimirdb.rowids.AnnotateWithRowIds
 import org.mimirdb.caveats.{ Constants => Caveats }
 
@@ -22,18 +22,24 @@ object Query
   ): DataContainer =
   {
     var df = query
+
+    /////// We need the schema before any annotations to produce the right outputs
     val schema = getSchema(df)
 
+    /////// Add a __MIMIR_ROWID attribute
     df = AnnotateWithRowIds(df)
 
+    /////// If requested, add a __CAVEATS attribute
     if(includeUncertainty){ df = df.trackCaveats }
     
+    /////// Create a mapping from field name to position in the output tuples
     val postAnnotationSchema = 
       getSchema(df)
         .zipWithIndex
         .map { case (attribute, idx) => attribute.name -> idx }
         .toMap
 
+    /////// 
     val fieldIndices = 
       schema.map { attribute => postAnnotationSchema(attribute.name) }
     val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE)
