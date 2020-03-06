@@ -11,18 +11,22 @@ import org.apache.spark.sql.catalyst.plans.logical._
 object WithSemiStableIdentifier
 {
 
-  def apply(plan: LogicalPlan, identifierAttributeName: String, session: SparkSession, offset:Long = 1): LogicalPlan =
+  def apply(plan: LogicalPlan, attribute: Attribute, session: SparkSession, offset:Long = 1): LogicalPlan =
   {
-    val PARTITION_ID     = identifierAttributeName+"_PARTITION_ID"
-    val PARTITION_OFFSET = identifierAttributeName+"_PARTITION_OFFSET"
-    val INTERNAL_ID      = identifierAttributeName+"_INTERNAL_ID"
-    val HASH_ID          = identifierAttributeName+"_HASH_ID"
+    val PARTITION_ID     = AttributeReference(attribute.name+"_PARTITION_ID", LongType, true)()
+    val PARTITION_OFFSET = AttributeReference(attribute.name+"_PARTITION_OFFSET", LongType, false)()
+    val INTERNAL_ID      = AttributeReference(attribute.name+"_INTERNAL_ID", LongType, false)()
+    val HASH_ID          = AttributeReference(attribute.name+"_HASH_ID", LongType, false)()
+    val COUNT_ATTR       = AttributeReference(attribute.name+"_COUNT", LongType, false)()
+
+    def ResolvedAlias(expr: Expression, attr: Attribute): NamedExpression =
+      Alias(expr, attr.name)(attr.exprId)
 
     val planWithPartitionedIdentifierAttributes = 
       Project(
         plan.output ++ Seq(
-          Alias(SparkPartitionID(), PARTITION_ID)(),
-          Alias(MonotonicallyIncreasingID(), INTERNAL_ID)()
+          ResolvedAlias(SparkPartitionID(), PARTITION_ID),
+          ResolvedAlias(MonotonicallyIncreasingID(), INTERNAL_ID)
         ),
         plan
       )
@@ -53,39 +57,39 @@ object WithSemiStableIdentifier
      */
     val planToComputeFirstPerPartitionIdentifier = 
       Project(Seq(
-        UnresolvedAttribute(PARTITION_ID), 
-        Alias(
+        PARTITION_ID, 
+        ResolvedAlias(
           Add(
             Subtract(
               Subtract(
                 WindowExpression(
                   AggregateExpression(
-                    Sum(UnresolvedAttribute("cnt")),
+                    Sum(COUNT_ATTR),
                     Complete,false),
                   WindowSpecDefinition(
                     Seq(), 
-                    Seq(SortOrder(UnresolvedAttribute(PARTITION_ID), Ascending)), 
+                    Seq(SortOrder(PARTITION_ID, Ascending)), 
                     UnspecifiedFrame)
                 ), 
-                UnresolvedAttribute("cnt")),
-              UnresolvedAttribute(INTERNAL_ID)
+                COUNT_ATTR),
+              INTERNAL_ID
             ),
             Literal(offset)
-          ),"cnt")()
+          ),COUNT_ATTR)
         ), 
         Sort(
-          Seq(SortOrder(UnresolvedAttribute(PARTITION_ID), Ascending)), 
+          Seq(SortOrder(PARTITION_ID, Ascending)), 
           true,   
           Aggregate(
-            Seq(UnresolvedAttribute(PARTITION_ID)),
+            Seq(PARTITION_ID),
             Seq(
-              UnresolvedAttribute(PARTITION_ID), 
-              Alias(AggregateExpression(
+              PARTITION_ID, 
+              ResolvedAlias(AggregateExpression(
                   Count(Seq(Literal(1))),Complete,false
-                ),"cnt")(), 
-              Alias(AggregateExpression(
-                  First(UnresolvedAttribute(INTERNAL_ID),Literal(false)),Complete,false
-                ),INTERNAL_ID)()
+                ), COUNT_ATTR), 
+              ResolvedAlias(AggregateExpression(
+                  First(INTERNAL_ID,Literal(false)),Complete,false
+                ),INTERNAL_ID)
             ),
           planWithPartitionedIdentifierAttributes)
         )
@@ -114,17 +118,16 @@ object WithSemiStableIdentifier
       )
 
     Project(
-      plan.output :+ Alias(MergeRowIds(
+      plan.output :+ ResolvedAlias(MergeRowIds(
         (If(
-          IsNull(UnresolvedAttribute(PARTITION_ID)),
-          UnresolvedAttribute(INTERNAL_ID),
+          IsNull(PARTITION_ID),
+          INTERNAL_ID,
           Add(
-            UnresolvedAttribute(INTERNAL_ID),
-            lookupFirstIdentifier(UnresolvedAttribute(PARTITION_ID))
-          ),
-
+            INTERNAL_ID,
+            lookupFirstIdentifier(PARTITION_ID)
+          )
         ) +: plan.output):_*
-      ), identifierAttributeName)(),
+      ), attribute),
       planWithPartitionedIdentifierAttributes
     )
   }

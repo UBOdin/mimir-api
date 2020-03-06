@@ -82,7 +82,11 @@ object SparkPrimitive
       case BooleanType          => JsBoolean(k.asInstanceOf[Boolean])
       case DateType             => JsString(formatDate(k.asInstanceOf[Date]))
       case TimestampType        => JsString(formatTimestamp(k.asInstanceOf[Timestamp]))
-      case CalendarIntervalType => JsString(k.asInstanceOf[CalendarInterval].toString)
+      case CalendarIntervalType => Json.obj(
+                                      "months"       -> k.asInstanceOf[CalendarInterval].months,
+                                      "days"         -> k.asInstanceOf[CalendarInterval].days,
+                                      "microseconds" -> k.asInstanceOf[CalendarInterval].microseconds
+                                    )
       case DoubleType           => JsNumber(k.asInstanceOf[Double])
       case FloatType            => JsNumber(k.asInstanceOf[Float])
       case ByteType             => JsNumber(k.asInstanceOf[Byte])
@@ -102,7 +106,10 @@ object SparkPrimitive
       case BooleanType          => k.as[Boolean]
       case DateType             => decodeDate(k.as[String])
       case TimestampType        => decodeTimestamp(k.as[String])
-      case CalendarIntervalType => CalendarInterval.fromString(k.as[String])
+      case CalendarIntervalType => {
+        val fields = k.as[Map[String,JsValue]]
+        new CalendarInterval(fields("months").as[Int], fields("days").as[Int], fields("microseconds").as[Int])
+      }
       case DoubleType           => k.as[Double]
       case FloatType            => k.as[Float]
       case ByteType             => k.as[Byte]

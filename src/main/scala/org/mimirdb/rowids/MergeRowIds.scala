@@ -8,6 +8,6 @@ object MergeRowIds
     if(exprs.size == 1) { exprs(0) }
     else { new Murmur3Hash(exprs) }
 
-  def apply(name: String, exprs: Expression*): NamedExpression = 
-    Alias(apply(exprs:_*), name)()
+  def apply(name: String, id: ExprId, exprs: Expression*): NamedExpression = 
+    Alias(apply(exprs:_*), name)(id)
 }
