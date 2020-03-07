@@ -50,13 +50,16 @@ object Query
         .map { case (attribute, idx) => attribute.name -> idx }
         .toMap
 
-    /////// 
+    /////// Compute attribute positions for later extraction
     val fieldIndices = 
       schema.map { attribute => postAnnotationSchema(attribute.name) }
     val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE)
 
+    /////// Actually compute the final result
     val results = df.cache().collect()
 
+    /////// If necessary, extract which rows/cells are affected by caveats from
+    /////// the result table.
     val (colTaint, rowTaint): (Seq[Seq[Boolean]], Seq[Boolean]) = 
       if(includeCaveats){
         results.map { row =>
@@ -69,6 +72,7 @@ object Query
         }.toSeq.unzip[Seq[Boolean], Boolean]
       } else { (Seq[Seq[Boolean]](), Seq[Boolean]()) }
 
+    /////// Dump the final results.
     DataContainer(
       schema,
       results.map { row => fieldIndices.map { row.get(_) } }.toSeq,
