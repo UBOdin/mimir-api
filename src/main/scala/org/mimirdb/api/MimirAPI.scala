@@ -27,7 +27,14 @@ import java.io.FileNotFoundException
 import java.io.EOFException
 import org.mimirdb.caveats.annotate.AnnotationException
 
-import org.mimirdb.api.tasks._
+import org.mimirdb.data.{
+  Catalog,
+  JDBCMetadataBackend,
+  StagingProvider,
+  LocalFSStagingProvider
+}
+
+import org.mimirdb.api.request._
 
 
 
@@ -37,6 +44,7 @@ object MimirAPI extends LazyLogging {
   val DEFAULT_API_PORT = 8089
 
   var sparkSession: SparkSession = null
+  var catalog: Catalog = null
 
   def initLocalSpark = {
     sparkSession = 
@@ -44,8 +52,9 @@ object MimirAPI extends LazyLogging {
         .appName("Mimir-Caveat-Test")
         .master("local[*]")
         .getOrCreate()
+    catalog = 
+      new Catalog("vizier.db", sparkSession)
   }
-
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
     val server = new Server(port)
@@ -195,7 +204,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
               val response = 
                 route match {
                   case "/lens" => {
-                    Json.toJson(LensList(CreateLens.supportedLenses))
+                    Json.toJson(LensList(CreateLensRequest.supportedLenses))
                   }
                   case "/adaptive" => {
                     throw new UnsupportedOperationException("Adaptive Schemas No Longer Exist")

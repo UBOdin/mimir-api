@@ -1,4 +1,4 @@
-package org.mimirdb.api
+package org.mimirdb.spark
 
 import play.api.libs.json._
 import org.apache.spark.sql.types._

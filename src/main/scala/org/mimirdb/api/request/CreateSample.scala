@@ -1,10 +1,13 @@
-package org.mimirdb.api.tasks
+package org.mimirdb.api.request
 
 import play.api.libs.json._
 import org.apache.spark.sql.catalyst.plans.logical.{ LogicalPlan, Filter } 
 import org.apache.spark.sql.functions.{ rand, udf, col }
 import org.apache.spark.sql.types.DataType
-import org.mimirdb.api.SparkPrimitive
+import org.mimirdb.spark.SparkPrimitive
+import org.mimirdb.api.{ Request, Response }
+
+
 
 object CreateSample
 {
@@ -164,5 +167,46 @@ object CreateSample
       }
     }
   }
+}
+
+
+
+
+case class CreateSampleRequest (
+            /* query string to get schema for - table name */
+                  source: String,
+            /* mode configuration */
+                  samplingMode: CreateSample.SamplingMode,
+            /* seed - optional long */
+                  seed: Option[Long],
+            /* optional name for the result table */
+                  resultName: Option[String]
+) extends Request {
+  def handle = {
+    val target = 
+      resultName.getOrElse {
+        s"SAMPLE_${(source+samplingMode.toString+seed.toString).hashCode().toString().replace("-", "")}"
+      }
+    CreateSample(
+      source, 
+      target,
+      samplingMode,
+      seed
+    )
+    Json.toJson(CreateSampleResponse(target))
+  }
+}
+
+object CreateSampleRequest {
+  implicit val format: Format[CreateSampleRequest] = Json.format
+}
+
+case class CreateSampleResponse (
+            /* name of resulting view */
+                  viewName: String
+) extends Response
+
+object CreateSampleResponse {
+  implicit val format: Format[CreateSampleResponse] = Json.format
 }
 

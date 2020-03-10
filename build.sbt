@@ -41,6 +41,9 @@ libraryDependencies ++= Seq(
   // Play JSON
   "com.typesafe.play"             %%  "play-json"                % "2.8.1",
 
+  // Metadata Backends
+  "org.xerial"                    %   "sqlite-jdbc"              % "3.16.1",
+
   // Jetty
   "org.eclipse.jetty"             %    "jetty-http"              % "9.4.10.v20180503",
   "org.eclipse.jetty"             %    "jetty-io"                % "9.4.10.v20180503",

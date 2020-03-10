@@ -23,7 +23,6 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
   val tableSchemas: scala.collection.mutable.Map[String, Seq[(String, DataType)]] = mutable.Map()
   val manyManys = mutable.Set[String]()
 
-  def open() = 
   {
     this.synchronized({
       assert(openConnections >= 0)
@@ -89,11 +88,11 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
 
   def update(
     update: String,
-    args: Seq[Literal] = Seq()
+    args: Seq[(Any, DataType)] = Seq()
   ) {
     logger.trace(update)
     val stmt = conn.prepareStatement(update)
-    for((Literal(v, t), i) <- args.zipWithIndex){
+    for(((v, t), i) <- args.zipWithIndex){
       t match {
         case LongType => stmt.setLong(i + 1, v.asInstanceOf[Long])
         case DoubleType => stmt.setDouble(i + 1, v.asInstanceOf[Double])
@@ -132,7 +131,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
     if(ret.isEmpty) { None } else { Some(ret) }
   }
 
-  val ID_COLUMN = "MIMIR_String"
+  val ID_COLUMN = "MIMIR_ID"
 
   def registerMap(category: String, migrations: Seq[MapMigration]): MetadataMap =
   {
@@ -207,7 +206,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
             val create = s"CREATE TABLE `$category`("+
               (  
                 s"`$ID_COLUMN` string PRIMARY KEY NOT NULL" +:
-                schema.map { case (name, t) => s"`$name` `${t.simpleString}"}
+                schema.map { case (name, t) => s"`$name` `${t.simpleString}`"}
               ).mkString(",")+
             ")"
             val stmt = conn.createStatement()
@@ -252,6 +251,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
   }
   def putToMap(category: String, resource: Metadata.MapResource)
   {
+    logger.debug(s"Map Put: $category <- $resource")
     val fields = tableSchemas.get(category).get
     update(
       s"INSERT OR REPLACE INTO `$category`("+
@@ -259,16 +259,15 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
             ID_COLUMN +: fields.map { "`"+_._1+"`" }
           ).mkString(",")+
         ") VALUES ("+( 0 until (fields.length+1) ).map { _ => "?" }.mkString(",")+")",
-      Literal(resource._1, StringType) +: 
+      (resource._1 -> StringType) +: 
         resource._2.zip(fields.map { _._2 })
-                   .map { case (v, t) => Literal(v, t) }
     )
   }
   def rmFromMap(category: String, resource: String)
   {
     update(
       s"DELETE FROM `$category` WHERE `$ID_COLUMN` = ?",
-      Seq(Literal(resource, StringType))
+      Seq(resource -> StringType)
     )
   }
   def updateMap(category: String, resource: String, fields: Map[String, Any])
@@ -278,7 +277,8 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
     val fieldSeq:Seq[(String, Any)] = fields.toSeq
     update(
       s"UPDATE `$category` SET ${fieldSeq.map { "`"+_._1+"` = ?" }.mkString(", ")} WHERE `$ID_COLUMN` = ?",
-      fieldSeq.map { field => Literal(field._2, schema(field._1)) } :+ Literal(resource, StringType)
+      fieldSeq.map { field => field._2 -> schema(field._1) } :+ 
+        (resource -> StringType)
     )
   }
 
@@ -319,7 +319,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
   {
     update(
       s"INSERT INTO `$category`(LHS, RHS) VALUES (?, ?)",
-      Seq(Literal(lhs, StringType), Literal(rhs, StringType))
+      Seq(lhs -> StringType, rhs -> StringType)
     )
   }
   def getManyManyByLHS(category: String,lhs: String): Seq[String] =
@@ -340,21 +340,21 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
   {
     update(
       s"DELETE FROM `$category` WHERE LHS = ?",
-      Seq(Literal(lhs, StringType))
+      Seq(lhs -> StringType)
     )
   }
   def rmByRHSFromManyMany(category: String,rhs: String)
   {
     update(
       s"DELETE FROM `$category` WHERE RHS = ?",
-      Seq(Literal(rhs, StringType))
+      Seq(rhs -> StringType)
     )
   }
   def rmFromManyMany(category: String,lhs: String,rhs: String): Unit = 
   {
     update(
       s"DELETE FROM `$category` WHERE LHS = ? AND RHS = ?",
-      Seq(Literal(lhs, StringType), Literal(rhs, StringType))
+      Seq(lhs -> StringType, rhs -> StringType)
     )
   }
 }

@@ -4,8 +4,6 @@ import java.sql._
 
 abstract class MetadataBackend {
 
-
-  def open(): Unit
   def close(): Unit
 
   def registerMap(

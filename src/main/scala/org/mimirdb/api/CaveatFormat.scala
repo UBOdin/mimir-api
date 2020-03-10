@@ -4,6 +4,7 @@ import play.api.libs.json._
 import org.mimirdb.caveats.{ Caveat }
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.types.DataType
+import org.mimirdb.spark.SparkPrimitive
 
 
 object CaveatFormat

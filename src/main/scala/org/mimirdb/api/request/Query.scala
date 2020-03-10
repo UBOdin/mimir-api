@@ -1,15 +1,118 @@
-package org.mimirdb.api.tasks
+package org.mimirdb.api.request
 
 import org.apache.spark.sql.{ SparkSession, DataFrame, Row }
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.execution.{ ExtendedMode => SelectedExplainMode }
-import org.mimirdb.api.{ DataContainer, Schema, MimirAPI } 
+import org.apache.spark.sql.SparkSession
+
+import play.api.libs.json._
+
+import org.mimirdb.api.{ Request, Response, Schema }
+import org.mimirdb.api.MimirAPI
+import org.mimirdb.caveats.{ Caveat, CaveatSet }
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.rowids.AnnotateWithRowIds
 import org.mimirdb.caveats.{ Constants => Caveats }
+import org.mimirdb.spark.SparkPrimitive
+import org.mimirdb.api.CaveatFormat._
 
 import com.typesafe.scalalogging.LazyLogging
 
+case class QueryMimirRequest (
+            /* input for query */
+                  input: String,
+            /* query string - sql */
+                  query: String,
+            /* include taint in response */
+                  includeUncertainty: Boolean,
+            /* include reasons in response */
+                  includeReasons: Boolean
+) extends Request {
+  def handle = {
+    val inputSubstitutionQuery = query.replaceAll("\\{\\{\\s*input\\s*\\}\\}", input.toString) 
+    if(includeReasons) {
+      throw new UnsupportedOperationException("IncludeReasons is no longer supported")
+    }
+    Json.toJson(Query(
+      inputSubstitutionQuery,
+      includeUncertainty
+    ))
+  }
+}
+
+object QueryMimirRequest {
+  implicit val format: Format[QueryMimirRequest] = Json.format
+}
+
+
+case class SchemaForQueryRequest (
+            /* query string to get schema for - sql */
+                  query: String
+) extends Request {
+  def handle = Json.toJson(SchemaList(Query.getSchema(query)))
+}
+
+object SchemaForQueryRequest {
+implicit val format: Format[SchemaForQueryRequest] = Json.format
+}
+
+case class DataContainer (
+                  schema: Seq[Schema],
+                  data: Seq[Seq[Any]],
+                  prov: Seq[String],
+                  colTaint: Seq[Seq[Boolean]],
+                  rowTaint: Seq[Boolean],
+                  reasons: Seq[Seq[Caveat]]
+) extends Response
+
+object DataContainer {
+  implicit val format: Format[DataContainer] = Format(
+    new Reads[DataContainer] {
+      def reads(data: JsValue): JsResult[DataContainer] =
+      {
+        val parsed = data.as[Map[String,JsValue]]
+        val schema = parsed("schema").as[Seq[Schema]]
+        val sparkSchema = schema.map { _.sparkType }
+        JsSuccess(
+          DataContainer(
+            schema,
+            parsed("data").as[Seq[Seq[JsValue]]].map { 
+              _.zip(sparkSchema).map { case (dat, sch) => SparkPrimitive.decode(_, sch) } },
+            parsed("prov").as[Seq[String]],
+            parsed("colTaint").as[Seq[Seq[Boolean]]],
+            parsed("rowTaint").as[Seq[Boolean]],
+            parsed("reasons").as[Seq[Seq[Caveat]]]
+          )
+        )
+      }
+    },
+    new Writes[DataContainer] { 
+      def writes(data: DataContainer): JsValue = {
+        val sparkSchema = data.schema.map { _.sparkType }
+        Json.obj(
+          "schema" -> data.schema,
+          "data" -> Json.arr(data.data.map { row => 
+            Json.arr(row.zip(sparkSchema).map { case (dat, sch) => 
+              SparkPrimitive.encode(dat, sch) 
+            }) 
+          }),
+          "prov" -> data.prov,
+          "colTaint" -> data.colTaint,
+          "rowTaint" -> data.rowTaint,
+          "reasons" -> data.reasons
+        )
+      }
+    }
+  )
+}
+
+case class SchemaList (
+    schema: Seq[Schema]
+) extends Response
+
+object SchemaList {
+  implicit val format: Format[SchemaList] = Json.format
+}
 
 object Query
   extends LazyLogging

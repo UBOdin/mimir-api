@@ -1,11 +1,11 @@
-package org.mimirdb.api.tasks
+package org.mimirdb.api.request
 
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 
 import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.api.{ Schema, DataContainer }
+import org.mimirdb.api.Schema
 
 import org.mimirdb.caveats.implicits._ 
 

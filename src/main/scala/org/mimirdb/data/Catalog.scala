@@ -4,7 +4,7 @@ import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.apache.spark.sql.types._
 import play.api.libs.json._
 import com.typesafe.scalalogging.LazyLogging
-
+import java.sql.SQLException
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -52,112 +52,11 @@ class Catalog(
 
   val views = metadata.registerMap("MIMIR_VIEWS", Seq(
     InitMap(Seq(
-      "DEFINITION" -> StringType,
+      "TYPE"         -> StringType,
+      "CONSTRUCTOR"  -> StringType,
+      "DEPENDENCIES" -> StringType
     ))
   ))
-
-  val tables = metadata.registerMap("MIMIR_TABLES", Seq(
-    InitMap(Seq(
-      "SOURCE"        -> StringType,
-      "FORMAT"        -> StringType,
-      "SPARK_OPTIONS" -> MapType(StringType, StringType),
-
-    ))
-  ))
-
-  /**
-   * Connect the specified URL to Mimir as a table.
-   *
-   * Note: This function does NOT stage data into a storage backend.
-   * 
-   * @param url           The URL to connect
-   * @param format        The data loader to use
-   * @param tableName     The name to give the URL
-   * @param sparkOptions   Optional: Any pass-through parameters to provide the spark dataloader
-   * @param mimirOptions   Optional: Any data loading parameters for Mimir itself (currently unused)
-   */
-  def linkTable(
-    sourceFile: String, 
-    format: String, 
-    targetTable: String, 
-    sparkOptions: Map[String,String] = Map(), 
-    stageSourceURL: Boolean = false,
-    replaceExisting: Boolean = true
-  ) {
-    if(tables.exists(targetTable)){
-      if(replaceExisting){
-        tables.rm(targetTable)
-      } else {
-        throw new Exception(s"Can't LOAD ${targetTable} because it already exists.")
-      }
-    }
-    // Some parameters may change during the loading process.  Var-ify them
-    var url = sourceFile
-    var storageFormat = format
-    var finalSparkOptions = 
-      Catalog.defaultLoadOptions
-             .getOrElse(format, Map()) ++ sparkOptions
-
-    // Build a preliminary configuration of Mimir-specific metadata
-    val mimirOptions = scala.collection.mutable.Map[String, JsValue]()
-
-    val stagingIsMandatory = (
-         sourceFile.startsWith("http://")
-      || sourceFile.startsWith("https://")
-    )
-    // Do some pre-processing / default configuration for specific formats
-    //  to make the API a little friendlier.
-    storageFormat match {
-
-      // The Google Sheets loader expects to see only the last two path components of 
-      // the sheet URL.  Rewrite full URLs if the user wants.
-      case FileFormat.GOOGLE_SHEETS => {
-        url = url.split("/").reverse.take(2).reverse.mkString("/")
-      }
-      
-      // For everything else do nothing
-      case _ => {}
-    }
-
-    if(stageSourceURL || stagingIsMandatory) {
-      // Preserve the original URL and configurations in the mimirOptions
-      mimirOptions("preStagedUrl") = JsString(url)
-      mimirOptions("preStagedSparkOptions") = Json.toJson(finalSparkOptions)
-      mimirOptions("preStagedFormat") = JsString(storageFormat)
-      val stagedConfig  = stage(url, finalSparkOptions, storageFormat, targetTable)
-      url               = stagedConfig._1
-      finalSparkOptions = stagedConfig._2
-      storageFormat     = stagedConfig._3
-    }
-
-    // Not sure when exactly cache invalidation is needed within Spark.  It was in the old 
-    // data loader, but it would only get called when the URL needed to be staged.  Since 
-    // we're not staging here, might be safe to skip?  TODO: Ask Mike.
-    // 
-    // MimirSpark.get.sparkSession.sharedState.cacheManager.recacheByPath(
-    //   MimirSpark.get.sparkSession, 
-    //   url
-    // )
-
-    // Try to create the dataframe to make sure everything (parameters, etc...) are ok
-    val df = makeDataFrame(
-      url = url,
-      format = storageFormat,
-      sparkOptions = finalSparkOptions
-    )
-    // Cache the result
-    cache.put(targetTable, df)
-
-    // Save the parameters
-    tables.put(
-      targetTable, Seq(
-        url,
-        storageFormat,
-        Json.toJson(finalSparkOptions),
-        new JsObject(mimirOptions)
-      )
-    )
-  }
 
   def stage(
     url: String, 
@@ -173,9 +72,14 @@ class Catalog(
         format
       )
     } else {
+      var parser = spark.read.format(format)
+      for((option, value) <- sparkOptions){
+        parser = parser.option(option, value)
+      }
+      var tempDf = parser.load(url)
       (
         staging.stage(
-          makeDataFrame(url, format, sparkOptions),
+          parser.load(url),
           bulkStorageFormat,
           Some(tableName)
         ),
@@ -185,37 +89,86 @@ class Catalog(
     }
   }
 
-  def makeDataFrame(
-    url: String, 
-    format: String, 
-    sparkOptions: Map[String, String]
-  ): DataFrame = 
-  {
-    var parser = spark.read.format(format)
-    for((option, value) <- sparkOptions){
-      parser = parser.option(option, value)
+  def put[T <: Constructor](
+    name: String, 
+    constructor: T, 
+    dependencies: Set[String], 
+    replaceIfExists: Boolean = true
+  )(implicit format: Format[T]): DataFrame = {
+    if(!replaceIfExists && views.exists(name)){
+      throw new SQLException(s"View $name already exists")
     }
-    logger.trace(s"Creating dataframe for $format file from $url")
-    // parser = parser.schema(RAToSpark.mimirSchemaToStructType(customSchema))
-    return parser.load(url)
+
+    val context = 
+      dependencies
+        .toSeq
+        .map { dep => dep -> get(dep) }
+        .toMap 
+
+    val df = constructor.construct(spark, context)
+
+    cache.put(name, df)
+
+    views.put(
+      name,
+      Seq(
+        constructor.deserializer.toString,
+        Json.toJson(constructor).toString,
+        Json.toJson(dependencies.toSeq).toString
+      )
+    )
+
+    return df
   }
 
-  def loadDataframe(table: String): Option[DataFrame] =
+
+  def get(name: String): DataFrame = 
   {
-    logger.trace(s"Loading $table")
-         // If we have a record of the table (Some(tableDefinition))
-    tables.get(table)
-          // Then load the dataframe normally
-          .map { tableDefinition => 
-            makeDataFrame(
-              url = tableDefinition._2(0).asInstanceOf[String],
-              format = tableDefinition._2(1).asInstanceOf[String],
-              sparkOptions = tableDefinition._2(2).asInstanceOf[JsObject].as[Map[String, String]]
-            )
-          }
-          // and persist it in cache
-          .map { df => cache.put(table, df); df }
-          // otherwise fall through return None
+    if(cache contains name){
+      return cache(name)
+    }
+
+    val (_, components) = views.get(name).get
+    val deserializerClassName = 
+      components(0).asInstanceOf[String]
+    val constructorJson = 
+      Json.parse(components(1).asInstanceOf[String])
+    val dependencies = 
+      Json.parse(components(2).asInstanceOf[String])
+        .as[Seq[String]]
+        .map { dep => dep -> get(dep) }
+        .toMap
+
+    val deserializerClass = 
+      Class.forName(deserializerClassName)
+    val deserializer: ConstructorCodec = 
+      deserializerClass
+           .getField("MODULE$")
+           .get(deserializerClass)
+           .asInstanceOf[ConstructorCodec]
+    val constructor = deserializer(constructorJson)
+
+    val df = constructor.construct(spark, dependencies)
+
+    cache.put(name, df)
+
+    return df
+  }
+
+  def getOption(name: String): Option[DataFrame] = 
+    cache.get(name) match {
+      case s:Some[_] => s
+      case None => 
+        if(views.exists(name)) { Some(get(name)) }
+        else { None }
+    }
+
+  def exists(name: String): Boolean =
+    getOption(name) != None
+
+  def flush(name: String)
+  {
+    cache.remove(name)
   }
 }
 

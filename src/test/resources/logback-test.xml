@@ -8,10 +8,13 @@
   </appender>
   
   <!--+++++++++++++++++++++++  Caveats  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.caveats"          level="ERROR" />
+  <logger name="org.mimirdb.caveats"                   level="ERROR" />
 
-  <!--++++++++++++++++++++++++  Tasks  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.api.tasks.Query$" level="DEBUG" />
+  <!--+++++++++++++++++++++++  Request  +++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.api.request.Query$"        level="DEBUG" />
+
+  <!--++++++++++++++++++++++++  Data  ++++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.data.JDBCMetadataBackend"  level="TRACE" />
   
   <root level="ERROR">
     <appender-ref ref="STDOUT" />
