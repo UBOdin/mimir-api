@@ -22,8 +22,8 @@ object Sample
   }
 
   val parsers = Seq[Map[String,JsValue] => Option[Mode]](
-    SampleStratifiedOn.parseJson,
-    SampleRowsUniformly.parseJson
+    StratifiedOn.parseJson,
+    Uniform.parseJson
   )
 
   def modeFromJson(v: JsValue): Mode =
@@ -44,7 +44,7 @@ object Sample
   )
 
 
-  case class SampleRowsUniformly(probability:Double) extends Mode
+  case class Uniform(probability:Double) extends Mode
   {
     override def toString = s"WITH PROBABILITY $probability"
 
@@ -53,19 +53,19 @@ object Sample
 
 
     def toJson: JsValue = JsObject(Map[String,JsValue](
-      "mode" -> JsString(SampleRowsUniformly.MODE),
+      "mode" -> JsString(Uniform.MODE),
       "probability" -> JsNumber(probability)
     ))
   }
 
-  object SampleRowsUniformly
+  object Uniform
   {
     val MODE = "uniform_probability"
 
-    def parseJson(json:Map[String, JsValue]): Option[SampleRowsUniformly] =
+    def parseJson(json:Map[String, JsValue]): Option[Uniform] =
     {
       if(json("mode").as[String].equals(MODE)){
-        Some(SampleRowsUniformly(json("probability").as[Double]))
+        Some(Uniform(json("probability").as[Double]))
       } else {
         None
       }
@@ -91,7 +91,7 @@ object Sample
    *                     sampling the value. Non-specified values will not be 
    *                     included in the sample.
    **/
-  case class SampleStratifiedOn(column:String, strata:Seq[(JsValue,Double)]) extends Mode
+  case class StratifiedOn(column:String, strata:Seq[(JsValue,Double)]) extends Mode
   {
     override def toString = s"ON $column WITH STRATA ${strata.map { case (v,p) => s"$v -> $p"}.mkString(" | ")}"
 
@@ -108,7 +108,7 @@ object Sample
     }
 
     def toJson: JsValue = Json.obj(
-      "mode" -> JsString(SampleStratifiedOn.MODE),
+      "mode" -> JsString(StratifiedOn.MODE),
       "column" -> JsString(column),
       "strata" -> JsArray(
         strata
@@ -121,14 +121,14 @@ object Sample
     )
   }
 
-  object SampleStratifiedOn
+  object StratifiedOn
   {
     val MODE = "stratified_on"
 
-    def parseJson(json:Map[String, JsValue]): Option[SampleStratifiedOn] =
+    def parseJson(json:Map[String, JsValue]): Option[StratifiedOn] =
     {
       if(json("mode").as[String].equals(MODE)){
-        Some(SampleStratifiedOn(
+        Some(StratifiedOn(
           json("column").as[String],
           json("strata")
             .as[Seq[Map[String,JsValue]]]

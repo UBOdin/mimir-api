@@ -1,7 +1,7 @@
 package org.mimirdb.api
 
 import org.apache.spark.sql.{ SparkSession, DataFrame, Column }
-import org.mimirdb.data.Catalog
+import org.mimirdb.data.{ Catalog, LoadConstructor }
 
 object SharedSparkTestInstance
 {
@@ -20,6 +20,17 @@ object SharedSparkTestInstance
       }
       if(MimirAPI.catalog == null){
         MimirAPI.catalog = new Catalog("target/test.db", spark, "target/staged_files")
+
+        // And load up an example test dataset
+        MimirAPI.catalog.put(
+          "TEST_R",
+          LoadConstructor(
+            url = "test_data/r.csv",
+            format = "csv",
+            sparkOptions = Map("header" -> "true")
+          ),
+          Set()
+        )
       }
     }
   }

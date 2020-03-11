@@ -5,7 +5,7 @@ import org.mimirdb.lenses.implementation._
 object Lenses
 {
   val implementations = scala.collection.mutable.Map[String, Lens](
-    "INFER_TYPES" -> TypeInferenceLens
+    "TYPE_INFERENCE" -> TypeInferenceLens
   )
 
   def supportedLenses = implementations.keys.toSeq
