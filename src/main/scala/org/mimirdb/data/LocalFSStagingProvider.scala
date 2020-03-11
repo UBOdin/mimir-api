@@ -59,16 +59,23 @@ class LocalFSStagingProvider(
     }
   }
 
+  def ensureBasePath
+  {
+    if(!basePath.exists){ basePath.mkdirs }
+  }
+
   def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): String = 
   {
+    ensureBasePath
     val file = makeName(fileExtension, nameHint)
     transferBytes(input, new FileOutputStream(file))
     return file.toString
   }
   def stage(url: URL, nameHint: Option[String]): String =
   {
+    ensureBasePath
     val pathComponents = url.getPath.split("/")
-    val nameComponents = pathComponents.reverse.head.split(".")
+    val nameComponents = pathComponents.reverse.head.split("\\.")
     val extension = 
       if(nameComponents.size > 1) { nameComponents.reverse.head }
       else { "data" } // default to generic 'data' if there's no extension
@@ -76,6 +83,7 @@ class LocalFSStagingProvider(
   }
   def stage(input: DataFrame, format: String, nameHint:Option[String]): String =
   {
+    ensureBasePath
     val targetFile = makeName(format, nameHint).toString
     input.write
          .format(format)

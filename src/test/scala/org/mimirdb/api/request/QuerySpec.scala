@@ -48,7 +48,6 @@ class QuerySpec
       schemaOf("SELECT * FROM QuerySpec") must beEqualTo(
         Seq(Schema("id", "long"), Schema("val", "long"), Schema("str", "string"))
       )
-
     }
   }
 

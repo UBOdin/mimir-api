@@ -1,6 +1,7 @@
 package org.mimirdb.api
 
 import org.apache.spark.sql.{ SparkSession, DataFrame, Column }
+import org.mimirdb.data.Catalog
 
 object SharedSparkTestInstance
 {
@@ -11,6 +12,17 @@ object SharedSparkTestInstance
       .getOrCreate()
   lazy val df = /* R(A int, B int, C int) */
     spark.range(0, 5)
+
+  def initAPI {
+    this.synchronized {
+      if(MimirAPI.sparkSession == null){
+        MimirAPI.sparkSession = spark
+      }
+      if(MimirAPI.catalog == null){
+        MimirAPI.catalog = new Catalog("target/test.db", spark, "target/staged_files")
+      }
+    }
+  }
 }
 
 trait SharedSparkTestInstance

@@ -12,18 +12,20 @@ import org.mimirdb.data.{
   DataFrameConstructor, 
   DataFrameConstructorCodec 
 }
+import org.mimirdb.lenses.Lenses
 
 case class LoadConstructor(
   url: String,
   format: String,
-  sparkOptions: Map[String, String]
+  sparkOptions: Map[String, String],
+  lenses: Seq[(String, JsValue, String)] = Seq()
 )
   extends DataFrameConstructor
   with LazyLogging
 {
   def construct(
     spark: SparkSession, 
-    context: Map[String, DataFrame]
+    context: Map[String, DataFrame] = Map()
   ): DataFrame =
   {
     var parser = spark.read.format(format)
@@ -31,7 +33,29 @@ case class LoadConstructor(
       parser = parser.option(option, value)
     }
     logger.trace(s"Creating dataframe for $format file from $url")
-    return parser.load(url)
+    return lenses.foldLeft(parser.load(url)) {
+      (df, lens) => Lenses(lens._1).create(df, lens._2, lens._3)
+    }
+
+  }
+
+  def withLens(
+    spark: SparkSession, 
+    lens: String, 
+    contextText: String,
+    initialConfig: JsValue = JsNull
+  ) =
+  {
+    LoadConstructor(
+      url,
+      format,
+      sparkOptions,
+      lenses :+ (
+        lens, 
+        Lenses(lens).train(construct(spark), initialConfig), 
+        contextText
+      )
+    )
   }
 }
 
@@ -83,8 +107,7 @@ case class LoadRequest (
     var url = file
     var storageFormat = format
     var finalSparkOptions = 
-      Catalog.defaultLoadOptions
-             .getOrElse(format, Map()) ++ sparkOptions
+      Catalog.defaultLoadOptions(format, detectHeaders) ++ sparkOptions
 
     // Build a preliminary configuration of Mimir-specific metadata
     val mimirOptions = scala.collection.mutable.Map[String, JsValue]()
@@ -118,12 +141,23 @@ case class LoadRequest (
       storageFormat     = stagedConfig._3
     }
 
-    // And finally save the dataframe constructor
-    MimirAPI.catalog.put(output, LoadConstructor(
+    var loadConstructor = LoadConstructor(
       url = url,
       format = storageFormat,
       sparkOptions = finalSparkOptions
-    ), Set())
+    )
+
+    // Infer types if necessary
+    if(inferTypes){
+      loadConstructor = loadConstructor.withLens(
+        MimirAPI.sparkSession, 
+        "INFER_TYPES", 
+        humanReadableName.getOrElse { file }
+      )
+    }
+
+    // And finally save the dataframe constructor
+    MimirAPI.catalog.put(output, loadConstructor, Set())
 
     return Json.toJson(LoadResponse(output))
   }

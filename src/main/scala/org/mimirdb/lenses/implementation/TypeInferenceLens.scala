@@ -28,6 +28,7 @@ object TypeInferenceLens
            .map { attribute =>
               mappedTypes.get(attribute) match {
                 case Some(t) => input(attribute).castWithCaveat(t, context)
+                                                .as(attribute)
                 case None => input(attribute)
               }
       }:_*

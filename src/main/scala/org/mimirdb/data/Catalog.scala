@@ -43,12 +43,15 @@ class Catalog(
 {
   val cache = scala.collection.mutable.Map[String, DataFrame]()
 
-  def this(sqlitedb: String, spark: SparkSession) = 
+  def this(sqlitedb: String, spark: SparkSession, downloads:String) = 
     this(
       new JDBCMetadataBackend("sqlite", sqlitedb),
-      new LocalFSStagingProvider("vizier_downloads"),
+      new LocalFSStagingProvider(downloads),
       spark
     )
+
+  def this(sqlitedb: String, spark: SparkSession) = 
+    this(sqlitedb, spark, "vizier_downloads")
 
   val views = metadata.registerMap("MIMIR_VIEWS", Seq(
     InitMap(Seq(
@@ -186,19 +189,24 @@ object Catalog
   private val defaultLoadCSVOptions = Map(
     "ignoreLeadingWhiteSpace"-> "true",
     "ignoreTrailingWhiteSpace"-> "true", 
-    "mode" -> "DROPMALFORMED", 
-    "header" -> "false"
+    "mode" -> "DROPMALFORMED"
   )
   
   private val defaultLoadGoogleSheetOptions = Map(
       "serviceAccountId" -> "vizier@api-project-378720062738.iam.gserviceaccount.com",
       "credentialPath" -> "test/data/api-project-378720062738-5923e0b6125f")
   
-  val defaultLoadOptions = Map[String, Map[String,String]](
-    FileFormat.CSV                    -> defaultLoadCSVOptions,
-    FileFormat.CSV_WITH_ERRORCHECKING -> defaultLoadCSVOptions,
-    FileFormat.GOOGLE_SHEETS -> defaultLoadGoogleSheetOptions
-  )
+  def defaultLoadOptions(
+    format: FileFormat.T, 
+    header: Boolean
+  ): Map[String,String] = 
+  {
+    format match {
+      case FileFormat.CSV | FileFormat.CSV_WITH_ERRORCHECKING =>
+        defaultLoadCSVOptions ++ Map("header" -> header.toString)
+      case FileFormat.GOOGLE_SHEETS => defaultLoadGoogleSheetOptions
+    }
+  }
 
   val usesDatasourceErrors = Set(
     FileFormat.CSV_WITH_ERRORCHECKING

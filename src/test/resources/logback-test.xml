@@ -14,7 +14,7 @@
   <logger name="org.mimirdb.api.request.Query$"        level="DEBUG" />
 
   <!--++++++++++++++++++++++++  Data  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.data.JDBCMetadataBackend"  level="TRACE" />
+  <logger name="org.mimirdb.data.JDBCMetadataBackend"  level="ERROR" />
   
   <root level="ERROR">
     <appender-ref ref="STDOUT" />
