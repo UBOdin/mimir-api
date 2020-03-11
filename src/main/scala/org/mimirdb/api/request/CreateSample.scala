@@ -1,42 +1,32 @@
 package org.mimirdb.api.request
 
+import java.sql.SQLException
+import scala.util.Random
 import play.api.libs.json._
+import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.apache.spark.sql.catalyst.plans.logical.{ LogicalPlan, Filter } 
 import org.apache.spark.sql.functions.{ rand, udf, col }
 import org.apache.spark.sql.types.DataType
 import org.mimirdb.spark.SparkPrimitive
-import org.mimirdb.api.{ Request, Response }
+import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.data.{ Constructor => DataFrameConstructor }
 
 
-
-object CreateSample
+object Sample
 {
 
-  def apply(
-    /* query string to get schema for - table name */
-      sourceTable: String,
-    /* target table to define as the sampling view */
-      targetTable: String,
-    /* mode configuration */
-      samplingMode: SamplingMode,
-    /* seed - optional long */
-      seed: Option[Long],
-  ){
-    ???
-  }
-
-  trait SamplingMode
+  trait Mode
   {
-    def apply(plan: LogicalPlan, seed: Long): LogicalPlan
+    def apply(plan: DataFrame, seed: Long): DataFrame
     def toJson: JsValue
   }
 
-  val parsers = Seq[Map[String,JsValue] => Option[SamplingMode]](
+  val parsers = Seq[Map[String,JsValue] => Option[Mode]](
     SampleStratifiedOn.parseJson,
     SampleRowsUniformly.parseJson
   )
 
-  def modeFromJson(v: JsValue): SamplingMode =
+  def modeFromJson(v: JsValue): Mode =
   {
     val config = v.as[Map[String,JsValue]]
     for(parser <- parsers){
@@ -48,26 +38,18 @@ object CreateSample
     throw new RuntimeException(s"Invalid Sampling Mode: $v")
   }
 
-  implicit val modeFormat = Format[SamplingMode](
-    new Reads[SamplingMode]{ def reads(v: JsValue) = JsSuccess(modeFromJson(v)) },
-    new Writes[SamplingMode]{ def writes(mode: SamplingMode) = mode.toJson }
+  implicit val modeFormat = Format[Mode](
+    new Reads[Mode]{ def reads(v: JsValue) = JsSuccess(modeFromJson(v)) },
+    new Writes[Mode]{ def writes(mode: Mode) = mode.toJson }
   )
 
 
-  case class SampleRowsUniformly(probability:Double) extends SamplingMode
+  case class SampleRowsUniformly(probability:Double) extends Mode
   {
     override def toString = s"WITH PROBABILITY $probability"
 
-    def apply(plan: LogicalPlan, seed: Long): LogicalPlan = 
-    {
-      // Adapted from Spark's df.stat.sampleBy method
-      val r = rand(seed)
-      val f = udf { (x: Double) => x < probability }
-      Filter(
-        f(r).expr,
-        plan
-      )
-    }
+    def apply(df: DataFrame, seed: Long): DataFrame = 
+      df.sample(probability, seed)
 
 
     def toJson: JsValue = JsObject(Map[String,JsValue](
@@ -109,38 +91,34 @@ object CreateSample
    *                     sampling the value. Non-specified values will not be 
    *                     included in the sample.
    **/
-  case class SampleStratifiedOn(column:String, t: DataType, strata:Map[Any,Double]) extends SamplingMode
+  case class SampleStratifiedOn(column:String, strata:Seq[(JsValue,Double)]) extends Mode
   {
     override def toString = s"ON $column WITH STRATA ${strata.map { case (v,p) => s"$v -> $p"}.mkString(" | ")}"
 
-
-    def apply(plan: LogicalPlan, seed: Long): LogicalPlan =
+    def apply(df: DataFrame, seed: Long): DataFrame = 
     {
-      // Adapted from Spark's df.stat.sampleBy method
-      val c = col(column)
-      val r = rand(seed)
-      val f = udf { (stratum: Any, x: Double) =>
-                x < strata.getOrElse(stratum, 0.0)
-              }
-      Filter(
-        f(c, r).expr,
-        plan
+      val t = df.schema.fields.find { _.name.equals(column) }.get.dataType
+      df.stat.sampleBy(
+        column, 
+        strata.map { stratum => 
+          SparkPrimitive.decode(stratum._1, t) -> stratum._2 
+        }.toMap, 
+        seed
       )
     }
 
-    def toJson: JsValue = JsObject(Map[String,JsValue](
+    def toJson: JsValue = Json.obj(
       "mode" -> JsString(SampleStratifiedOn.MODE),
       "column" -> JsString(column),
       "strata" -> JsArray(
         strata
-          .toSeq
-          .map { case (v, p) => JsObject(Map[String,JsValue](
-              "value" -> SparkPrimitive.encode(v, t),
+          .map { case (v, p) => Json.obj(
+              "value" -> v,
               "probability" -> JsNumber(p)
-            ))
+            )
           }
       )
-    ))
+    )
   }
 
   object SampleStratifiedOn
@@ -150,17 +128,13 @@ object CreateSample
     def parseJson(json:Map[String, JsValue]): Option[SampleStratifiedOn] =
     {
       if(json("mode").as[String].equals(MODE)){
-        val t = DataType.fromJson(json("type").toString)
         Some(SampleStratifiedOn(
           json("column").as[String],
-          t,
           json("strata")
             .as[Seq[Map[String,JsValue]]]
             .map { stratum => 
-              SparkPrimitive.decode(stratum("value"), t) -> 
-                stratum("probability").as[Double]
+              stratum("value") -> stratum("probability").as[Double]
             }
-            .toMap
         ))
       } else {
         None
@@ -176,29 +150,32 @@ case class CreateSampleRequest (
             /* query string to get schema for - table name */
                   source: String,
             /* mode configuration */
-                  samplingMode: CreateSample.SamplingMode,
+                  samplingMode: Sample.Mode,
             /* seed - optional long */
                   seed: Option[Long],
             /* optional name for the result table */
                   resultName: Option[String]
-) extends Request {
+) extends Request with DataFrameConstructor {
+
+  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
+    samplingMode.apply(context(source), seed.getOrElse { new Random().nextLong })
+
   def handle = {
-    val target = 
+    if(!MimirAPI.catalog.exists(source)){
+      throw new SQLException("Table $source does not exist")
+    }
+    val output = 
       resultName.getOrElse {
         s"SAMPLE_${(source+samplingMode.toString+seed.toString).hashCode().toString().replace("-", "")}"
       }
-    CreateSample(
-      source, 
-      target,
-      samplingMode,
-      seed
-    )
-    Json.toJson(CreateSampleResponse(target))
+    MimirAPI.catalog.put(output, this, Set(source))
+    Json.toJson(CreateSampleResponse(output))
   }
 }
 
 object CreateSampleRequest {
   implicit val format: Format[CreateSampleRequest] = Json.format
+  def apply(j: JsValue) = j.as[CreateSampleRequest]
 }
 
 case class CreateSampleResponse (
