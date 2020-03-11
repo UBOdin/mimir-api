@@ -15,6 +15,7 @@ import org.mimirdb.rowids.AnnotateWithRowIds
 import org.mimirdb.caveats.{ Constants => Caveats }
 import org.mimirdb.spark.SparkPrimitive
 import org.mimirdb.api.CaveatFormat._
+import org.mimirdb.util.TimerUtils
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -116,6 +117,7 @@ object SchemaList {
 
 object Query
   extends LazyLogging
+  with TimerUtils
 {
   def apply(
     query: String,
@@ -159,7 +161,9 @@ object Query
     val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE)
 
     /////// Actually compute the final result
-    val results = df.cache().collect()
+    val results = logTime("QUERY", df.toString) {
+      df.cache().collect()
+    }
 
     /////// If necessary, extract which rows/cells are affected by caveats from
     /////// the result table.

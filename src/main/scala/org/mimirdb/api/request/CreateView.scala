@@ -1,10 +1,10 @@
 package org.mimirdb.api.request
 
 import play.api.libs.json._
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{ DataFrame, SparkSession }
 
-import org.mimirdb.api.{ Request, Response }
-import org.mimirdb.api.MimirAPI
+import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 
 case class CreateViewRequest (
             /* temporary view definitions for use in creating the view */
@@ -13,7 +13,7 @@ case class CreateViewRequest (
                   query: String,
             /* optional name for the result table */
                   resultName: Option[String]
-)  extends Request {
+)  extends Request with DataFrameConstructor {
 
   lazy val output = 
     resultName.getOrElse {
@@ -21,11 +21,21 @@ case class CreateViewRequest (
       "VIEW_" + (lensNameBase.toString().replace("-", ""))
     }
 
+  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
+  {
+    // Create temp views so that we can reference mimir tables by name
+    // TODO: ensure that this isn't a race condition!
+    for((userFacingName, internalName) <- input){
+      context(internalName).createTempView(userFacingName)
+    }
+    spark.sql(query)
+  }
+
   def handle = {
-    create(
-      query,
+    MimirAPI.catalog.put(
       output, 
-      input
+      this,
+      input.values.toSet
     )
     Json.toJson(CreateViewResponse(output))
   }
@@ -39,8 +49,9 @@ case class CreateViewRequest (
   }
 }
 
-object CreateViewRequest {
+object CreateViewRequest extends DataFrameConstructorCodec {
   implicit val format: Format[CreateViewRequest] = Json.format
+  def apply(j: JsValue) = j.as[CreateViewRequest]
 }
 
 case class CreateViewResponse (

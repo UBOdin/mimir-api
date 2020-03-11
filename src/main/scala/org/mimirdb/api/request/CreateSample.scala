@@ -9,7 +9,7 @@ import org.apache.spark.sql.functions.{ rand, udf, col }
 import org.apache.spark.sql.types.DataType
 import org.mimirdb.spark.SparkPrimitive
 import org.mimirdb.api.{ Request, Response, MimirAPI }
-import org.mimirdb.data.{ Constructor => DataFrameConstructor }
+import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 
 
 object Sample
@@ -173,7 +173,7 @@ case class CreateSampleRequest (
   }
 }
 
-object CreateSampleRequest {
+object CreateSampleRequest extends DataFrameConstructorCodec {
   implicit val format: Format[CreateSampleRequest] = Json.format
   def apply(j: JsValue) = j.as[CreateSampleRequest]
 }

@@ -6,14 +6,19 @@ import com.typesafe.scalalogging.LazyLogging
 
 import org.mimirdb.api.{ Request, Response, Tuple }
 import org.mimirdb.api.MimirAPI
-import org.mimirdb.data.{ Catalog, FileFormat, Constructor, ConstructorCodec }
+import org.mimirdb.data.{ 
+  Catalog, 
+  FileFormat, 
+  DataFrameConstructor, 
+  DataFrameConstructorCodec 
+}
 
 case class LoadConstructor(
   url: String,
   format: String,
   sparkOptions: Map[String, String]
 )
-  extends Constructor
+  extends DataFrameConstructor
   with LazyLogging
 {
   def construct(
@@ -31,10 +36,10 @@ case class LoadConstructor(
 }
 
 object LoadConstructor
-  extends ConstructorCodec
+  extends DataFrameConstructorCodec
 {
   implicit val format: Format[LoadConstructor] = Json.format
-  def apply(v: JsValue): Constructor = v.as[LoadConstructor]
+  def apply(v: JsValue): DataFrameConstructor = v.as[LoadConstructor]
 }
 
 case class LoadRequest (

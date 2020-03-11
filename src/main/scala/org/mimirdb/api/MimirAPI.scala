@@ -35,7 +35,7 @@ import org.mimirdb.data.{
 }
 
 import org.mimirdb.api.request._
-
+import org.mimirdb.lenses.Lenses
 
 
 object MimirAPI extends LazyLogging {
@@ -204,7 +204,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
               val response = 
                 route match {
                   case "/lens" => {
-                    Json.toJson(LensList(CreateLensRequest.supportedLenses))
+                    Json.toJson(LensList(Lenses.supportedLenses))
                   }
                   case "/adaptive" => {
                     throw new UnsupportedOperationException("Adaptive Schemas No Longer Exist")

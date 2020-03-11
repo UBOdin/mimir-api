@@ -3,7 +3,7 @@ package org.mimirdb.data
 import play.api.libs.json.{ JsValue, Format }
 import org.apache.spark.sql.{ SparkSession, DataFrame } 
 
-trait Constructor 
+trait DataFrameConstructor 
 {
   def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame
 
@@ -11,7 +11,7 @@ trait Constructor
   def deserializer = getClass.getName + "$"
 }
 
-trait ConstructorCodec
+trait DataFrameConstructorCodec
 {
-  def apply(j: JsValue): Constructor
+  def apply(j: JsValue): DataFrameConstructor
 }

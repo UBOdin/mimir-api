@@ -3,9 +3,9 @@ package org.mimirdb.api.request
 import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
 
-import org.mimirdb.api.{ Request, Response }
-import org.mimirdb.api.MimirAPI
-
+import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
+import org.mimirdb.lenses.{ Lenses, LensConstructor }
 
 case class CreateLensRequest (
             /* input for lens */
@@ -20,7 +20,9 @@ case class CreateLensRequest (
                   humanReadableName: Option[String],
             /* optional name for the result table */
                   resultName: Option[String]
-) extends Request {
+) 
+  extends Request 
+{
 
   lazy val output = 
     resultName.getOrElse {
@@ -29,30 +31,24 @@ case class CreateLensRequest (
     }
 
   def handle = {
-    construct(
-      input,
+    val df = MimirAPI.catalog.get(input)
+    val config = Lenses(`type`).train(df, params)
+    MimirAPI.catalog.put(
       output,
-      params,
-      `type`,
-      humanReadableName
+      LensConstructor(
+        `type`, 
+        input, 
+        config, 
+        "in " +humanReadableName.getOrElse { input }
+      ),
+      Set(input)
     )
     Json.toJson(CreateLensResponse(output))
   }
-
-  def construct(
-      sourceTable: String,
-      outputTable: String,
-      params: JsValue,
-      lensType: String,
-      humanReadableName: Option[String],
-      sparkSession: SparkSession = MimirAPI.sparkSession
-  ){
-    ???
-  }
 }
 
-object CreateLensRequest {
-  val supportedLenses = Seq[String]()
+object CreateLensRequest 
+{
   implicit val format: Format[CreateLensRequest] = Json.format
 }
 

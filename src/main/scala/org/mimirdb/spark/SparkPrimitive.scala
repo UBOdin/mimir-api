@@ -120,4 +120,9 @@ object SparkPrimitive
       case _                    => throw new IllegalArgumentException(s"Unsupported type for decode: $t")
     }
   }
+
+  implicit def dataTypeFormat: Format[DataType] = Format(
+    new Reads[DataType] { def reads(j: JsValue) = JsSuccess(DataType.fromJson(j.toString)) },
+    new Writes[DataType] { def writes(t: DataType) = JsString(t.typeName) }
+  )
 }

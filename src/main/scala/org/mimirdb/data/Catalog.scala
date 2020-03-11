@@ -89,7 +89,7 @@ class Catalog(
     }
   }
 
-  def put[T <: Constructor](
+  def put[T <: DataFrameConstructor](
     name: String, 
     constructor: T, 
     dependencies: Set[String], 
@@ -141,11 +141,11 @@ class Catalog(
 
     val deserializerClass = 
       Class.forName(deserializerClassName)
-    val deserializer: ConstructorCodec = 
+    val deserializer: DataFrameConstructorCodec = 
       deserializerClass
            .getField("MODULE$")
            .get(deserializerClass)
-           .asInstanceOf[ConstructorCodec]
+           .asInstanceOf[DataFrameConstructorCodec]
     val constructor = deserializer(constructorJson)
 
     val df = constructor.construct(spark, dependencies)
