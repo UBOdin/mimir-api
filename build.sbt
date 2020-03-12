@@ -29,9 +29,10 @@ libraryDependencies ++= Seq(
   // Mimir
   "org.mimirdb"                   %% "mimir-caveats"             % "0.1-SNAPSHOT",
 
-  // Logging 
+  // API
   "com.typesafe.scala-logging"    %%  "scala-logging"            % "3.9.2",
   "ch.qos.logback"                %   "logback-classic"          % "1.2.3",
+  "org.rogach"                    %%  "scallop"                  % "3.4.0",
 
   // Testing
   "org.specs2"                    %%  "specs2-core"              % "4.8.2" % "test",

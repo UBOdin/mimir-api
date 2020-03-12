@@ -45,19 +45,47 @@ object MimirAPI extends LazyLogging {
 
   var sparkSession: SparkSession = null
   var catalog: Catalog = null
+  var server: Server = null
 
-  def initLocalSpark = {
-    sparkSession = 
-      SparkSession.builder
-        .appName("Mimir-Caveat-Test")
-        .master("local[*]")
-        .getOrCreate()
-    catalog = 
-      new Catalog("vizier.db", sparkSession)
+  def main(args: Array[String])
+  {
+    val conf = new MimirConfig(args);
+    conf.verify
+
+    // Initialize Spark
+    sparkSession = InitSpark.local
+
+    // Initialize the catalog
+    { 
+      val metadata = conf.metadata().split(":").toList match {
+        case "sqlite" :: Nil => 
+          new JDBCMetadataBackend("sqlite", "vizier.db")
+        case "sqlite" :: rest => 
+          new JDBCMetadataBackend("sqlite", rest.mkString(":"))
+        case _ => throw new IllegalArgumentException(s"Unknown metadata provider: ${conf.metadata}")
+      }
+      val staging = new LocalFSStagingProvider(conf.staging())
+      catalog = new Catalog(metadata, staging, sparkSession)
+    }
+
+    // Start the server
+    runServer(conf.port())
+
+    // And sleep until done
+    println(s"Mimir API Server Started on http://localhost:${conf.port()}/...")
+     while(isRunning){
+       Thread.sleep(90000)
+       
+     }
+     Thread.sleep(1000)
+     server.stop();
   }
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
-    val server = new Server(port)
+    if(server != null){ 
+      throw new RuntimeException("Can't have two Mimir servers running in one JVM")
+    }
+    server = new Server(port)
     val http_config = new HttpConfiguration();
     server.addConnector(new ServerConnector( server,  new HttpConnectionFactory(http_config)) );
     
@@ -81,15 +109,6 @@ object MimirAPI extends LazyLogging {
     
     server.setHandler(handlerList);
     server.start()
-     
-    println(s"Mimir API Server Started on http://localhost:$port/...")
-     while(isRunning){
-       Thread.sleep(90000)
-       
-     }
-     Thread.sleep(1000)
-     server.stop();
-    
   }
   
   def buildSwaggerUI(): ContextHandler = {
