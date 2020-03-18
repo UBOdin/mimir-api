@@ -2,7 +2,6 @@ package org.mimirdb.data
 
 import org.specs2.mutable.Specification
 import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.data.LoadConstructor
 
 class CatalogSpec 
   extends Specification

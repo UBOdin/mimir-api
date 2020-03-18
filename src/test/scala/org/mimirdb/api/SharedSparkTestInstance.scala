@@ -15,6 +15,12 @@ object SharedSparkTestInstance
   lazy val df = /* R(A int, B int, C int) */
     spark.range(0, 5)
 
+  def loadCSV(name: String, url: String, header: Boolean = true)
+  {
+    MimirAPI.catalog.put(name, LoadConstructor(url = url, format = "csv", 
+      sparkOptions = Map("header" -> header.toString)), Set())
+  }
+
   def initAPI {
     this.synchronized {
       if(MimirAPI.sparkSession == null){
@@ -24,26 +30,11 @@ object SharedSparkTestInstance
         MimirAPI.catalog = new Catalog("target/test.db", spark, "target/staged_files")
 
         // And load up some example test data
-        MimirAPI.catalog.put(
-          "TEST_R",
-          LoadConstructor(
-            url = "test_data/r.csv",
-            format = "csv",
-            sparkOptions = Map("header" -> "true")
-          ),
-          Set()
-        )
+        loadCSV("TEST_R", "test_data/r.csv")
+        loadCSV("GEO", "test_data/geo.csv")
+        loadCSV("SEQ", "test_data/seq.csv")
 
-        MimirAPI.catalog.put(
-          "GEO",
-          LoadConstructor(
-            url = "test_data/geo.csv",
-            format = "csv",
-            sparkOptions = Map("header" -> "true")
-          ),
-          Set()
-        )
-
+        // Finally, initialize geocoding with the test harness
         Lenses.initGeocoding(
           Seq(TestCaseGeocoder),
           MimirAPI.catalog
@@ -58,4 +49,6 @@ trait SharedSparkTestInstance
 {
   lazy val spark = SharedSparkTestInstance.spark
   lazy val df = SharedSparkTestInstance.df
+
+  def dataset(name:String) = MimirAPI.catalog.get(name)
 }
