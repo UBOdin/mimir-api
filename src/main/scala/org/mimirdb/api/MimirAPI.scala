@@ -26,17 +26,18 @@ import java.sql.SQLException
 import java.io.FileNotFoundException
 import java.io.EOFException
 import org.mimirdb.caveats.annotate.AnnotationException
-
 import org.mimirdb.data.{
   Catalog,
   JDBCMetadataBackend,
   StagingProvider,
   LocalFSStagingProvider
 }
-
 import org.mimirdb.api.request._
 import org.mimirdb.lenses.Lenses
-
+import org.mimirdb.lenses.implementation.{
+  GoogleGeocoder,
+  OSMGeocoder
+}
 
 object MimirAPI extends LazyLogging {
   
@@ -67,6 +68,14 @@ object MimirAPI extends LazyLogging {
       val staging = new LocalFSStagingProvider(conf.staging())
       catalog = new Catalog(metadata, staging, sparkSession)
     }
+
+    // Initialize Geocoders (if configuration options available)
+    val geocoders = 
+      Seq(
+        conf.googleAPIKey.map { new GoogleGeocoder(_) }.toOption,
+        conf.osmServer.map { new OSMGeocoder(_) }.toOption
+      ).flatten
+    if(!geocoders.isEmpty){ Lenses.initGeocoding(geocoders, catalog) }
 
     // Start the server
     runServer(conf.port())

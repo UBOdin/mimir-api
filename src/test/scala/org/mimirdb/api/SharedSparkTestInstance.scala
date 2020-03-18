@@ -2,6 +2,8 @@ package org.mimirdb.api
 
 import org.apache.spark.sql.{ SparkSession, DataFrame, Column }
 import org.mimirdb.data.{ Catalog, LoadConstructor }
+import org.mimirdb.lenses.Lenses
+import org.mimirdb.lenses.implementation.TestCaseGeocoder
 
 object SharedSparkTestInstance
 {
@@ -21,7 +23,7 @@ object SharedSparkTestInstance
       if(MimirAPI.catalog == null){
         MimirAPI.catalog = new Catalog("target/test.db", spark, "target/staged_files")
 
-        // And load up an example test dataset
+        // And load up some example test data
         MimirAPI.catalog.put(
           "TEST_R",
           LoadConstructor(
@@ -31,6 +33,22 @@ object SharedSparkTestInstance
           ),
           Set()
         )
+
+        MimirAPI.catalog.put(
+          "GEO",
+          LoadConstructor(
+            url = "test_data/geo.csv",
+            format = "csv",
+            sparkOptions = Map("header" -> "true")
+          ),
+          Set()
+        )
+
+        Lenses.initGeocoding(
+          Seq(TestCaseGeocoder),
+          MimirAPI.catalog
+        )
+
       }
     }
   }

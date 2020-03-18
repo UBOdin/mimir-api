@@ -92,6 +92,22 @@ class Catalog(
     }
   }
 
+  def stageAndPut(
+    name: String,
+    df: DataFrame,
+    format: String = bulkStorageFormat,
+    replaceIfExists: Boolean = true
+  )
+  {
+    val url = staging.stage(df, format, Some(name))
+    put(
+      name, 
+      LoadConstructor(url, format, Map(), Seq()),
+      Set(),
+      replaceIfExists
+    )
+  }
+
   def put[T <: DataFrameConstructor](
     name: String, 
     constructor: T, 

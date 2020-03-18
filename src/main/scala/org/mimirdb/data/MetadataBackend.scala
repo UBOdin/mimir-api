@@ -1,6 +1,7 @@
 package org.mimirdb.data
 
 import java.sql._
+import org.apache.spark.sql.DataFrame
 
 abstract class MetadataBackend {
 

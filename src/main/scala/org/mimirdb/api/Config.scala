@@ -16,5 +16,11 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     descr = "The port to host the API on",
     default = Some(MimirAPI.DEFAULT_API_PORT)
   )
+  val googleAPIKey = opt[String]("google-api-key", 
+    descr = "Your Google API Key (for Geocoding)"
+  )
+  val osmServer = opt[String]("osm-server",
+    descr = "Your Open Street Maps server (for Geocoding)"
+  )
 
 }
