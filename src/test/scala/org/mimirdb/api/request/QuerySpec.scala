@@ -94,6 +94,10 @@ class QuerySpec
           Seq(true, true, true, false, false)
         )
       }
+      
+      query("SELECT COUNT(*) FROM QuerySpecCaveat") { result =>
+        result.data.map { _(0) } must beEqualTo(Seq(5))
+      }
     }
 
   }
