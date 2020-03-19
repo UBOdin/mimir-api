@@ -126,8 +126,10 @@ class Catalog(
 
     val df = constructor.construct(spark, context)
 
+    // Retain the data frame locally
     cache.put(name, df)
 
+    // 
     views.put(
       name,
       Seq(
@@ -188,6 +190,13 @@ class Catalog(
   def flush(name: String)
   {
     cache.remove(name)
+  }
+
+  def populateSpark
+  {
+    for(view <- views.keys){
+      get(view).createOrReplaceTempView(view)
+    }
   }
 }
 

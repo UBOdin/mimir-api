@@ -5,8 +5,7 @@ import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 
 import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.api.Schema
-
+import org.mimirdb.api.{ MimirAPI, Schema } 
 import org.mimirdb.caveats.implicits._ 
 
 
@@ -19,6 +18,8 @@ class QuerySpec
 
   def beforeAll 
   {
+    SharedSparkTestInstance.initAPI
+
     {
       val q = df.select( 
         $"id", 
@@ -34,6 +35,7 @@ class QuerySpec
       )
       q.createOrReplaceTempView("QuerySpecCaveat")
     }
+
   }
 
   def query[T](query: String, includeUncertainty: Boolean = true)
@@ -99,7 +101,14 @@ class QuerySpec
         result.data.map { _(0) } must beEqualTo(Seq(5))
       }
     }
-
+    "Query a catalog table" >> 
+    {
+      val table = "QUERY_R"
+      SharedSparkTestInstance.loadCSV("QUERY_R", "test_data/r.csv")
+      query("SELECT COUNT(*) FROM QUERY_R") { result =>
+        result.data.map { _(0) } must beEqualTo(Seq(7))
+      } 
+    }
   }
 
 }

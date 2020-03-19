@@ -99,10 +99,13 @@ object WithSemiStableIdentifier
       new DataFrame(
         session,
         planToComputeFirstPerPartitionIdentifier,
-        RowEncoder(planToComputeFirstPerPartitionIdentifier.schema)
+        RowEncoder(StructType(Seq(
+          StructField(PARTITION_ID.name, PARTITION_ID.dataType),
+          StructField(COUNT_ATTR.name, COUNT_ATTR.dataType),
+        )))
       ).cache()
        .collect()
-       .map { row => row.getInt(0) -> row.getLong(1) }
+       .map { row => row.getLong(0) -> row.getLong(1) }
        .toMap
 
     def lookupFirstIdentifier(partition: Expression) =

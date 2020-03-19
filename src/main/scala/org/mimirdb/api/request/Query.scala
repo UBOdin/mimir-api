@@ -124,7 +124,10 @@ object Query
     includeCaveats: Boolean,
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): DataContainer = 
+  {
+    MimirAPI.catalog.populateSpark
     apply(sparkSession.sql(query), includeCaveats)
+  }
 
   def apply(
     query: DataFrame,
