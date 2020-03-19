@@ -1,7 +1,7 @@
 package org.mimirdb.rowids
 
 import org.apache.spark.sql.{ SparkSession, DataFrame }
-import org.apache.spark.sql.types.LongType
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.AliasIdentifier
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable}
@@ -22,6 +22,7 @@ import com.typesafe.scalalogging.LazyLogging
 object AnnotateWithRowIds
 {
   val ATTRIBUTE = "__MIMIR_ROWID"
+  val TYPE = StructField(ATTRIBUTE, LongType)
 
   def apply(df: DataFrame, rowIdAttribute: String = ATTRIBUTE): DataFrame =
   {
@@ -32,7 +33,7 @@ object AnnotateWithRowIds
     new DataFrame(
       df.queryExecution.sparkSession,
       annotatedPlan,
-      RowEncoder(annotatedPlan.schema)
+      RowEncoder(StructType(df.schema.fields :+ TYPE))
     )
   }
 }
@@ -223,7 +224,14 @@ class AnnotateWithRowIds(
         // use the grouping attributes as the annotation
         // descend into the children just in case an identifier is needed
         // elsewhere.
-        annotate(apply(plan), groupingExpressions:_*)
+        annotate(
+          Aggregate(
+            groupingExpressions,
+            aggregateExpressions,
+            apply(child)
+          ), 
+          groupingExpressions:_*
+        )
       }
 
       /*********************************************************/
