@@ -12,17 +12,10 @@ import org.apache.spark.sql.catalyst.plans.JoinType
 
 import com.typesafe.scalalogging.LazyLogging
 
-// import org.mimirdb.spark.expressionLogic.{
-//   foldOr, 
-//   foldIf,
-//   attributesOfExpression,
-//   aggregateBoolOr
-// }
-
 object AnnotateWithRowIds
 {
   val ATTRIBUTE = "__MIMIR_ROWID"
-  val TYPE = StructField(ATTRIBUTE, LongType)
+  val FIELD_TYPE = StructField(ATTRIBUTE, LongType)
 
   def apply(df: DataFrame, rowIdAttribute: String = ATTRIBUTE): DataFrame =
   {
@@ -33,7 +26,7 @@ object AnnotateWithRowIds
     new DataFrame(
       df.queryExecution.sparkSession,
       annotatedPlan,
-      RowEncoder(StructType(df.schema.fields :+ TYPE))
+      RowEncoder(StructType(df.schema.fields :+ FIELD_TYPE))
     )
   }
 }
