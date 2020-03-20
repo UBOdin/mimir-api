@@ -8,7 +8,8 @@ object Lenses
   val implementations = scala.collection.mutable.Map[String, Lens](
     "TYPE_INFERENCE"   -> TypeInferenceLens,
     "MISSING_KEY"      -> MissingKeyLens,
-    "MERGE_ATTRIBUTES" -> MergeAttributesLens
+    "MERGE_ATTRIBUTES" -> MergeAttributesLens,
+    "REPAIR_KEY"       -> RepairKeyLens
   )
 
   def supportedLenses = implementations.keys.toSeq
