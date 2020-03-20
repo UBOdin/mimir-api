@@ -6,8 +6,9 @@ import org.mimirdb.data.Catalog
 object Lenses
 {
   val implementations = scala.collection.mutable.Map[String, Lens](
-    "TYPE_INFERENCE" -> TypeInferenceLens,
-    "MISSING_KEY"    -> MissingKeyLens
+    "TYPE_INFERENCE"   -> TypeInferenceLens,
+    "MISSING_KEY"      -> MissingKeyLens,
+    "MERGE_ATTRIBUTES" -> MergeAttributesLens
   )
 
   def supportedLenses = implementations.keys.toSeq
