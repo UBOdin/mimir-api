@@ -26,7 +26,7 @@ case class CreateViewRequest (
     // Create temp views so that we can reference mimir tables by name
     // TODO: ensure that this isn't a race condition!
     for((userFacingName, internalName) <- input){
-      context(internalName).createTempView(userFacingName)
+      context(internalName).createOrReplaceTempView(userFacingName)
     }
     spark.sql(query)
   }

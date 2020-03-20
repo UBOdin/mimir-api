@@ -77,6 +77,7 @@ object SparkPrimitive
   def encode(k: Any, t: DataType): JsValue =
   {
     t match {
+      case _ if k == null       => JsNull
       case StringType           => JsString(k.toString)
       case BinaryType           => JsString(base64Encode(k.asInstanceOf[Array[Byte]]))
       case BooleanType          => JsBoolean(k.asInstanceOf[Boolean])

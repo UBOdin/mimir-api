@@ -2,6 +2,8 @@ package org.mimirdb.data
 
 import org.specs2.mutable.Specification
 import org.mimirdb.api.SharedSparkTestInstance
+import org.mimirdb.api.request.DataContainer
+import org.mimirdb.api.request.Query
 
 class CatalogSpec 
   extends Specification
@@ -10,6 +12,10 @@ class CatalogSpec
 
   lazy val catalog = new Catalog("target/catalog.db", spark)
 
+  def query[T](query: String, includeUncertainty: Boolean = true)
+              (op: DataContainer => T): T = 
+    op(Query(query, includeUncertainty, spark))
+  
   "The Catalog" >> {
 
     "Serialize and Deserialize Constructors" >>
@@ -26,10 +32,26 @@ class CatalogSpec
 
       catalog.flush(table)
       val reloaded = catalog.get(table)
+        .collect().map { _.toSeq }
 
-      reloaded must be equalTo(reloaded)
+      reloaded must be equalTo(original)
     }
-
+    
+    "Query a catalog table" >> 
+    {
+      val table = "QUERY_R"
+      catalog.put(table,
+        LoadConstructor(
+          "test_data/r.csv",
+          "csv",
+          Map()
+        ),
+        Set[String]()
+      )
+      query("SELECT COUNT(*) FROM QUERY_R") { result =>
+        result.data.map { _(0) } must beEqualTo(Seq(7))
+      } 
+    }
   }
 
 }

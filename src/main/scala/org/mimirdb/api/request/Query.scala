@@ -92,11 +92,11 @@ object DataContainer {
         val sparkSchema = data.schema.map { _.sparkType }
         Json.obj(
           "schema" -> data.schema,
-          "data" -> Json.arr(data.data.map { row => 
-            Json.arr(row.zip(sparkSchema).map { case (dat, sch) => 
+          "data" -> data.data.map { row => 
+            row.zip(sparkSchema).map { case (dat, sch) => 
               SparkPrimitive.encode(dat, sch) 
-            }) 
-          }),
+            }
+          },
           "prov" -> data.prov,
           "colTaint" -> data.colTaint,
           "rowTaint" -> data.rowTaint,
@@ -176,8 +176,8 @@ object Query
           val annotation = row.getAs[Row](Caveats.ANNOTATION_ATTRIBUTE)
           val columnAnnotations = annotation.getAs[Row](Caveats.ATTRIBUTE_FIELD)
           (
-            schema.map { attribute => columnAnnotations.getAs[Boolean](attribute.name) },
-            annotation.getAs[Boolean](Caveats.ROW_FIELD)
+            schema.map { attribute => !columnAnnotations.getAs[Boolean](attribute.name) },
+            !annotation.getAs[Boolean](Caveats.ROW_FIELD)
           )
         }.toSeq.unzip[Seq[Boolean], Boolean]
       } else { (Seq[Seq[Boolean]](), Seq[Boolean]()) }
@@ -186,7 +186,7 @@ object Query
     DataContainer(
       schema,
       results.map { row => fieldIndices.map { row.get(_) } }.toSeq,
-      results.map { _.getLong(identifierAnnotation).toString }.toSeq,
+      results.map { _.get(identifierAnnotation).toString }.toSeq,
       colTaint, 
       rowTaint,
       Seq()
@@ -204,7 +204,9 @@ object Query
   def getSchema(
     query: String,
     sparkSession: SparkSession = MimirAPI.sparkSession
-  ): Seq[Schema] = 
+  ): Seq[Schema] = { 
+    MimirAPI.catalog.populateSpark
     getSchema(sparkSession.sql(query))
+  }
 
 }

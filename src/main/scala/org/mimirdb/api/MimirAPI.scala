@@ -67,6 +67,7 @@ object MimirAPI extends LazyLogging {
       }
       val staging = new LocalFSStagingProvider(conf.staging())
       catalog = new Catalog(metadata, staging, sparkSession)
+      catalog.populateSpark
     }
 
     // Initialize Geocoders (if configuration options available)

@@ -22,5 +22,8 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
   val osmServer = opt[String]("osm-server",
     descr = "Your Open Street Maps server (for Geocoding)"
   )
-
+  val dataDir = opt[String]("data-dir",
+    descr = "A directory to store metadata files in.",
+    default = Some("vizier-data")
+  )
 }

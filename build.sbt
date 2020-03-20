@@ -23,6 +23,7 @@ resolvers += "MimirDB" at "https://maven.mimirdb.info/"
 resolvers += Resolver.typesafeRepo("releases")
 resolvers += DefaultMavenRepository
 resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
+resolvers += Resolver.mavenLocal
 
 // Custom Dependencies
 libraryDependencies ++= Seq(
