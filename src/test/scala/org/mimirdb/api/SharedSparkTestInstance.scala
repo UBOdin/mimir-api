@@ -15,10 +15,21 @@ object SharedSparkTestInstance
   lazy val df = /* R(A int, B int, C int) */
     spark.range(0, 5)
 
-  def loadCSV(name: String, url: String, header: Boolean = true)
+  def loadCSV(name: String, url: String, header: Boolean = true, typeInference: Boolean = false)
   {
-    MimirAPI.catalog.put(name, LoadConstructor(url = url, format = "csv", 
-      sparkOptions = Map("header" -> header.toString)), Set())
+    var constructor = LoadConstructor(
+                        url = url, 
+                        format = "csv", 
+                        sparkOptions = Map("header" -> header.toString)
+                      )
+    if(typeInference){
+      constructor = constructor.withLens(
+        MimirAPI.sparkSession, 
+        "TYPE_INFERENCE", 
+        "in "+name
+      )
+    }
+    MimirAPI.catalog.put(name, constructor, Set())
   }
 
   def initAPI {

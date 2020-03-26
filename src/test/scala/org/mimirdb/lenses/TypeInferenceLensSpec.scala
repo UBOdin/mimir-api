@@ -28,5 +28,6 @@ class TypeInferenceLensSpec
       Seq(ShortType, ShortType, ShortType)
     )
 
+    result.listCaveats(true, Set("B")) must haveSize(1)
   }
 }
