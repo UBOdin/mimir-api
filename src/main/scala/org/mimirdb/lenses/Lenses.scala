@@ -7,7 +7,9 @@ object Lenses
 {
   val implementations = scala.collection.mutable.Map[String, Lens](
     "TYPE_INFERENCE" -> TypeInferenceLens,
-    "MISSING_KEY"    -> MissingKeyLens
+    "MISSING_KEY"    -> MissingKeyLens,
+    "COMMENT"        -> CommentLens,
+    "MISSING_VALUE"  -> MissingValueLens
   )
 
   def supportedLenses = implementations.keys.toSeq
