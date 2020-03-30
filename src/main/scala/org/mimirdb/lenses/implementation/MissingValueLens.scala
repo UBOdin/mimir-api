@@ -9,6 +9,7 @@ import org.mimirdb.lenses.Lens
 import org.mimirdb.spark.SparkPrimitive.dataTypeFormat
 import org.apache.spark.ml.feature.Imputer
 import org.apache.spark.sql.Column
+import org.mimirdb.rowids.AnnotateWithRowIds
 
 case class MissingValueLensConfig(
   colsStrategy: Seq[(String,String)]
@@ -37,6 +38,22 @@ object MissingValueLensConfig
   
 }
 
+sealed trait MissingValueImputer {
+  def impute(input:DataFrame) : DataFrame
+}
+
+case class MeanMedianImputer(imputeCol:String, strategy:String) extends MissingValueImputer{
+  def impute(input:DataFrame) : DataFrame = {
+    val imputer = new Imputer().
+        setStrategy(strategy).
+        setMissingValue(0).
+        setInputCols(Array(imputeCol)).setOutputCols(Array(imputeCol));
+      val fieldRef = input(imputeCol)
+      val model = imputer.fit(input.filter(fieldRef.isNotNull))
+      model.transform(input)
+  }
+}
+
 object MissingValueLens
   extends Lens
 {
@@ -62,8 +79,15 @@ object MissingValueLens
         setMissingValue(0).
         setInputCols(Array(imputeCol)).setOutputCols(Array(imputeCol));
       val fieldRef = inputdf(imputeCol)
-      val model = imputer.fit(inputdf.filter(fieldRef.isNotNull))//.sample(.8))
-      model.transform(inputdf.caveatIf(s"$imputeCol was null and we imputed it with $strategy", fieldRef.isNull));
+      val caveatedDf = inputdf.select(fieldNames.map(ccol => 
+        if(ccol.equalsIgnoreCase(imputeCol)){ 
+          fieldRef.caveatIf(s"$imputeCol was null and we imputed it with $strategy", 
+              fieldRef.isNull.or(fieldRef.isNaN)).as(imputeCol)
+        } else {
+          col(ccol)
+        }):_*)
+      val model = imputer.fit(caveatedDf.filter(fieldRef.isNotNull))//.sample(.8))
+      model.transform(caveatedDf);
     }).select(fieldNames.map(col(_)):_*)
   }
 

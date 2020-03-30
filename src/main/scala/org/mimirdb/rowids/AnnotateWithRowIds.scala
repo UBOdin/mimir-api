@@ -143,16 +143,15 @@ class AnnotateWithRowIds(
             rightRewrite
           )
         val newAnnotation = annotationAttribute()
-
+        
         (
-          annotate(
-            Project(
+          Project(
               plan.output :+ newAnnotation,
-              Join(lhs, rhs, joinType, condition, hint)
-            ),
-            newAnnotation.exprId,
-            UnresolvedAttribute("LHS_"+rowIdAttribute),
-            UnresolvedAttribute("RHS_"+rowIdAttribute)
+              annotate(
+                Join(lhs, rhs, joinType, condition, hint),
+                newAnnotation.exprId,
+                UnresolvedAttribute("LHS_"+rowIdAttribute),
+                UnresolvedAttribute("RHS_"+rowIdAttribute))
           ), 
           newAnnotation
         )
