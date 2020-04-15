@@ -220,7 +220,7 @@ object Catalog
   )
   
   val stagingExemptProtocols = Set(
-    DataSourcePrortocol.S3A    
+    // DataSourceProtocol.S3A    
   )
 
   private val defaultLoadCSVOptions = Map(
