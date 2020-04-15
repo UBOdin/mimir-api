@@ -155,16 +155,13 @@ abstract class WebJsonGeocoder(
   with LazyLogging
 {
 
-  val latReader = getLat.read[Double]
-  val lonReader = getLat.read[Double]
-
   def apply(house: String, street: String, city: String, state: String): Seq[Double]=
   {
     val actualUrl = url(house, street, city, state)
     try {
       val json = Json.parse(HttpUtils.get(actualUrl))
-      val latitude = latReader.reads(json).get
-      val longitude = lonReader.reads(json).get
+      val latitude = getLat.read[Double].reads(json).get
+      val longitude = getLon.read[Double].reads(json).get
       return Seq( latitude, longitude )
     } catch {
       case ioe: Throwable =>  {

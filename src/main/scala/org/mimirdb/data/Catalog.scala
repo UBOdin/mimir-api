@@ -5,6 +5,7 @@ import org.apache.spark.sql.types._
 import play.api.libs.json._
 import com.typesafe.scalalogging.LazyLogging
 import java.sql.SQLException
+import java.net.URI
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -68,7 +69,14 @@ class Catalog(
     tableName: String
   ): (String, Map[String,String], String) =
   {
-    if(Catalog.safeForRawStaging(format)){
+    /*if(Catalog.stagingExemptProtocols(URI.create(url).getScheme)){
+      ( 
+        url,
+        sparkOptions,
+        format
+      )
+    } 
+    else*/ if(Catalog.safeForRawStaging(format)){
       ( 
         staging.stage(url, Some(tableName)),
         sparkOptions,
@@ -209,6 +217,10 @@ object Catalog
     FileFormat.EXCEL,
     FileFormat.XML,
     FileFormat.TEXT
+  )
+  
+  val stagingExemptProtocols = Set(
+    DataSourcePrortocol.S3A    
   )
 
   private val defaultLoadCSVOptions = Map(

@@ -7,6 +7,9 @@ import org.apache.spark.sql.functions._
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.{ MimirAPI, Schema } 
 import org.mimirdb.caveats.implicits._ 
+import org.mimirdb.lenses.LensConstructor
+import org.mimirdb.lenses.Lenses
+import play.api.libs.json.JsString
 
 
 class QuerySpec 
@@ -106,6 +109,27 @@ class QuerySpec
       val table = "QUERY_R"
       SharedSparkTestInstance.loadCSV("QUERY_R", "test_data/r.csv")
       query("SELECT COUNT(*) FROM QUERY_R") { result =>
+        result.data.map { _(0) } must beEqualTo(Seq(7))
+      } 
+    }
+    "Query a lens in the catalog" >> 
+    {
+      val table = "SEQ"
+      val output = "QUERY_MKL"
+      val missingKey = Lenses("MISSING_KEY")
+      val df = dataset(table)
+      val config = missingKey.train(df, JsString("KEY"))
+      MimirAPI.catalog.put(
+        output,
+        LensConstructor(
+          "MISSING_KEY",
+          table, 
+          config, 
+          "in " + table  
+        ),
+        Set(table)
+      )
+      query(s"SELECT * FROM $output LIMIT 10", true) { result =>
         result.data.map { _(0) } must beEqualTo(Seq(7))
       } 
     }

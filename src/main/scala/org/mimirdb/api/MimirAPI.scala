@@ -60,14 +60,13 @@ object MimirAPI extends LazyLogging {
     { 
       val metadata = conf.metadata().split(":").toList match {
         case "sqlite" :: Nil => 
-          new JDBCMetadataBackend("sqlite", "vizier.db")
+          new JDBCMetadataBackend("sqlite", s"${conf.dataDir()}vizier.db")
         case "sqlite" :: rest => 
           new JDBCMetadataBackend("sqlite", rest.mkString(":"))
         case _ => throw new IllegalArgumentException(s"Unknown metadata provider: ${conf.metadata}")
       }
       val staging = new LocalFSStagingProvider(conf.staging())
       catalog = new Catalog(metadata, staging, sparkSession)
-      catalog.populateSpark
     }
 
     // Initialize Geocoders (if configuration options available)
@@ -78,9 +77,15 @@ object MimirAPI extends LazyLogging {
       ).flatten
     if(!geocoders.isEmpty){ Lenses.initGeocoding(geocoders, catalog) }
 
+    //populate spark after lens initialization
+    catalog.populateSpark
+    
     // Start the server
     runServer(conf.port())
 
+    //sparkSession.conf.set( "spark.sql.optimizer.excludedRules", "org.apache.spark.sql.catalyst.optimizer.CollapseProject")
+    //println(Query.apply("SELECT TKEY,A,B FROM LENS_MISSING_VALUE_521717238", true, sparkSession))
+    
     // And sleep until done
     println(s"Mimir API Server Started on http://localhost:${conf.port()}/...")
      while(isRunning){

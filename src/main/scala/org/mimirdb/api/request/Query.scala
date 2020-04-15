@@ -176,8 +176,8 @@ object Query
           val annotation = row.getAs[Row](Caveats.ANNOTATION_ATTRIBUTE)
           val columnAnnotations = annotation.getAs[Row](Caveats.ATTRIBUTE_FIELD)
           (
-            schema.map { attribute => !columnAnnotations.getAs[Boolean](attribute.name) },
-            !annotation.getAs[Boolean](Caveats.ROW_FIELD)
+            schema.map { attribute => columnAnnotations.getAs[Boolean](attribute.name) },
+            annotation.getAs[Boolean](Caveats.ROW_FIELD)
           )
         }.toSeq.unzip[Seq[Boolean], Boolean]
       } else { (Seq[Seq[Boolean]](), Seq[Boolean]()) }
