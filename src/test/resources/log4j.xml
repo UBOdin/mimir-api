@@ -9,12 +9,12 @@
       </layout>
   </appender>
  
-  <logger name="org.mimirdb.caveats.annotate.CaveatExistsInPlan"><level value="TRACE"/></logger>
+  <logger name="org.mimirdb.caveats.annotate.CaveatExistsInPlan"><level value="ERROR"/></logger>
   <logger name="org.mimirdb.data.Catalog"><level value="ERROR"/></logger>
   <logger name="org.mimirdb.lenses.CaveatedCast$"><level value="ERROR"/></logger>
   <logger name="org.mimirdb.lenses.implementation.MissingValueLens$"><level value="ERROR"/></logger>
   <logger name="org.mimirdb.api.request.CreateLensRequest"><level value="ERROR"/></logger>
-  <logger name="org.mimirdb.api.request.Query$"><level value="TRACE"/></logger>
+  <logger name="org.mimirdb.api.request.Query$"><level value="ERROR"/></logger>
 
   <root>
     <level value="ERROR" />

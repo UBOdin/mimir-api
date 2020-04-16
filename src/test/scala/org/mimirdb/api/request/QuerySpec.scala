@@ -130,7 +130,7 @@ class QuerySpec
         Set(table)
       )
       query(s"SELECT * FROM $output LIMIT 10", true) { result =>
-        result.data.map { _(0) } must beEqualTo(Seq(7))
+        result.data.map { _(0) }.toSeq must beEqualTo((1 until 11).toSeq)
       } 
     }
   }
