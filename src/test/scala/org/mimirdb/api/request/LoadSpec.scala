@@ -19,14 +19,14 @@ class LoadSpec
 
     "load local files" >> {
       val request = LoadRequest(
-                      "test_data/r.csv",
-                      "csv",
-                      false,
-                      true,
-                      Some("A TEST OF THE THING"),
-                      Seq(),
-                      Seq(),
-                      None
+                      file              = "test_data/r.csv",
+                      format            = "csv",
+                      inferTypes        = false,
+                      detectHeaders     = true,
+                      humanReadableName = Some("A TEST OF THE THING"),
+                      backendOption     = Seq(),
+                      dependencies      = Seq(),
+                      resultName        = None
                     )
       val response = request.handle.as[LoadResponse]
 
@@ -42,14 +42,14 @@ class LoadSpec
 
     "load remote files" >> {
       val request = LoadRequest(
-                      "https://odin.cse.buffalo.edu/public_data/r.csv",
-                      "csv",
-                      false,
-                      true,
-                      Some("ANOTHER TEST OF THE THING"),
-                      Seq(),
-                      Seq(),
-                      None
+                      file              = "https://odin.cse.buffalo.edu/public_data/r.csv",
+                      format            = "csv",
+                      inferTypes        = false,
+                      detectHeaders     = true,
+                      humanReadableName = Some("ANOTHER TEST OF THE THING"),
+                      backendOption     = Seq(),
+                      dependencies      = Seq(),
+                      resultName        = None
                     )
       val response = request.handle.as[LoadResponse]
 
@@ -65,21 +65,24 @@ class LoadSpec
     "load files with type inference" >> {
 
       val request = LoadRequest(
-                      "test_data/r.csv",
-                      "csv",
-                      true, 
-                      true,
-                      Some("STILL MORE THING TESTS"),
-                      Seq(),
-                      Seq(),
-                      None
+                      file              = "test_data/r.csv",
+                      format            = "csv",
+                      inferTypes        = true, 
+                      detectHeaders     = true,
+                      humanReadableName = Some("STILL MORE THING TESTS"),
+                      backendOption     = Seq(),
+                      dependencies      = Seq(),
+                      resultName        = None
                     )
       val response = request.handle.as[LoadResponse]
 
+      val allRows = 
+        MimirAPI.catalog.get(response.name).collect()
       val dataRow = 
-        MimirAPI.catalog.get(response.name)
-                        .take(1)(0)
-      val firstCell = dataRow.get(dataRow.fieldIndex("A")).asInstanceOf[AnyRef]
+        allRows(0)
+      dataRow.schema.fieldNames.toSet must contain("A")
+      dataRow.fieldIndex("A") must be greaterThanOrEqualTo(0)
+      val firstCell = dataRow.getAs[AnyRef]("A")
       firstCell must beAnInstanceOf[java.lang.Short]
     }
 
