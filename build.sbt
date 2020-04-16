@@ -55,6 +55,13 @@ libraryDependencies ++= Seq(
   "org.eclipse.jetty"             %    "jetty-servlets"          % "9.4.10.v20180503",
   "org.eclipse.jetty"             %    "jetty-util"              % "9.4.10.v20180503",
   "org.eclipse.jetty"             %    "jetty-webapp"            % "9.4.10.v20180503",
+  
+  //Data Source Support
+  //"com.amazonaws"                 %    "aws-java-sdk-bundle"     % "1.11.375",
+  //"org.apache.hadoop"             %    "hadoop-aws"              % "3.2.0",
+  "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.234",
+  "com.amazonaws" 				  %   "aws-java-sdk-s3" 		 % "1.11.234",
+  "org.apache.hadoop"             %    "hadoop-aws"              % "2.8.2"
 )
 
 ////// Publishing Metadata //////

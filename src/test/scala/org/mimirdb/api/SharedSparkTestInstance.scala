@@ -37,6 +37,10 @@ object SharedSparkTestInstance
       if(MimirAPI.sparkSession == null){
         MimirAPI.sparkSession = spark
       }
+      if(MimirAPI.conf == null){
+        MimirAPI.conf = new MimirConfig(Seq())
+        MimirAPI.conf.verify()
+      }
       if(MimirAPI.catalog == null){
         MimirAPI.catalog = new Catalog("target/test.db", spark, "target/staged_files")
 
