@@ -4,3 +4,12 @@
 .classpath
 .project
 .settings/org.eclipse.core.resources.prefs
+/bin/
+
+vizier.db
+
+vizier_downloads/*
+
+*.crc
+
+*.model/

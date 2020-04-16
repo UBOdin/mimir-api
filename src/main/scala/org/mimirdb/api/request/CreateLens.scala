@@ -43,7 +43,7 @@ case class CreateLensRequest (
       ),
       Set(input)
     )
-    Json.toJson(CreateLensResponse(output))
+    Json.toJson(CreateLensResponse(output, config))
   }
 }
 
@@ -54,7 +54,8 @@ object CreateLensRequest
 
 case class CreateLensResponse (
             /* name of resulting lens */
-                  lensName: String
+                  lensName: String,
+                  config: JsValue
 ) extends Response
 
 object CreateLensResponse {

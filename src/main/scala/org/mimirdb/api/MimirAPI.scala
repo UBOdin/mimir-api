@@ -47,10 +47,11 @@ object MimirAPI extends LazyLogging {
   var sparkSession: SparkSession = null
   var catalog: Catalog = null
   var server: Server = null
+  var conf: MimirConfig = null
 
   def main(args: Array[String])
   {
-    val conf = new MimirConfig(args);
+    conf = new MimirConfig(args);
     conf.verify
 
     // Initialize Spark
