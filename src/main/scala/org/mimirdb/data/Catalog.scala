@@ -43,7 +43,7 @@ class Catalog(
 ) extends LazyLogging
 {
   val cache = scala.collection.mutable.Map[String, DataFrame]()
-
+ 
   def this(sqlitedb: String, spark: SparkSession, downloads:String) = 
     this(
       new JDBCMetadataBackend("sqlite", sqlitedb),
@@ -132,12 +132,12 @@ class Catalog(
         .map { dep => dep -> get(dep) }
         .toMap 
 
+    logger.debug(s"PUT $name:\n$constructor")
     val df = constructor.construct(spark, context)
 
     // Retain the data frame locally
     cache.put(name, df)
 
-    logger.debug(s"PUT $name:\n$constructor")
     logger.debug(s"... with dataframe:\n${df.queryExecution.analyzed.treeString}")
 
     // Save the view
