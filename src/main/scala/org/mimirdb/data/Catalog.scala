@@ -137,7 +137,10 @@ class Catalog(
     // Retain the data frame locally
     cache.put(name, df)
 
-    // 
+    logger.debug(s"PUT $name:\n$constructor")
+    logger.debug(s"... with dataframe:\n${df.queryExecution.analyzed.treeString}")
+
+    // Save the view
     views.put(
       name,
       Seq(

@@ -29,6 +29,7 @@ resolvers += Resolver.mavenLocal
 libraryDependencies ++= Seq(
   // Mimir
   "org.mimirdb"                   %% "mimir-caveats"             % "0.1-SNAPSHOT",
+  "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
   "com.typesafe.scala-logging"    %%  "scala-logging"            % "3.9.2",
