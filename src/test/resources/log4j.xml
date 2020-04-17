@@ -8,9 +8,13 @@
       value="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n" />
       </layout>
   </appender>
-
+ 
+  <logger name="org.mimirdb.caveats.annotate.CaveatExistsInPlan"><level value="TRACE"/></logger>
   <logger name="org.mimirdb.data.Catalog"><level value="ERROR"/></logger>
   <logger name="org.mimirdb.lenses.CaveatedCast$"><level value="ERROR"/></logger>
+  <logger name="org.mimirdb.lenses.implementation.MissingValueLens$"><level value="ERROR"/></logger>
+  <logger name="org.mimirdb.api.request.CreateLensRequest"><level value="ERROR"/></logger>
+  <logger name="org.mimirdb.api.request.Query$"><level value="TRACE"/></logger>
 
   <root>
     <level value="ERROR" />

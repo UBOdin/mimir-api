@@ -147,9 +147,16 @@ object Query
     logger.trace(s"----------- AFTER-ROWID -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
     /////// If requested, add a __CAVEATS attribute
-    if(includeCaveats){ df = df.trackCaveats }
+    /////// Either way, after we track the caveats, we no longer need the
+    /////// ApplyCaveat decorators
+    if(includeCaveats){ df = df.trackCaveats.stripCaveats }
+    else              { df = df.stripCaveats }
     
-    logger.trace(s"----------- AFTER-UNCERTAINTY -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
+    logger.trace("############ FOOO")
+    logger.trace(s"############ \n${df.queryExecution.analyzed.treeString}")
+
+    logger.trace(s"----------- AFTER-CAVEATS -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
+
 
     /////// Create a mapping from field name to position in the output tuples
     val postAnnotationSchema = 

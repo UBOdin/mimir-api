@@ -1,6 +1,7 @@
 package org.mimirdb.lenses.implementation
 
 import play.api.libs.json._
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.{ DataFrame, Row }
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
@@ -72,6 +73,7 @@ object MissingValueLensConfig
 
 object MissingValueLens
   extends Lens
+  with LazyLogging
 {
   def train(input: DataFrame, rawConfig: JsValue): JsValue = 
   {
@@ -95,29 +97,34 @@ object MissingValueLens
   def create(input: DataFrame, rawConfig: JsValue, context: String): DataFrame = 
   {
     val config = rawConfig.as[MissingValueLensConfig]
+    logger.trace(s"Creating missing value lens with config: $config")
     val fieldNames = input.schema.fieldNames
-    val completedf = config.colsStrategy.foldLeft(input)((inputdf, imputerConfig) => {
-      val imputeCol = imputerConfig.imputeCol
-      val schemaRev = input.schema(imputeCol)
-      val fieldRef = inputdf(imputeCol)
-      val caveatedDf = inputdf.select(fieldNames.map(ccol => 
-        if(ccol.equalsIgnoreCase(imputeCol)){ 
-          val frCond = schemaRev.dataType match { 
-            case x:NumericType => fieldRef.isNull.or(fieldRef.isNaN)
-            case _ => fieldRef.isNull
-          }
-          fieldRef.caveatIf(s"$imputeCol was null and we imputed it with ${imputerConfig.strategy}", 
-             frCond ).as(imputeCol) 
-        } else {
-          col(ccol)
-        }):_*)
-      val outdf = imputerConfig.imputer.impute(caveatedDf);
-      outdf
-    }).select(fieldNames.map(ocol =>
-      config.colsStrategy.find(_.imputeCol.equals(ocol)) match {
-        case Some(cs) => col(ocol).cast(input.schema(ocol).dataType)
-        case None => col(ocol)
-    }):_*)
+    val completedf = 
+      config.colsStrategy.foldLeft(input)((inputdf, imputerConfig) => {
+        logger.trace(s"Imputing with $imputerConfig")
+        val imputeCol = imputerConfig.imputeCol
+        val schemaRev = input.schema(imputeCol)
+        val fieldRef = inputdf(imputeCol)
+        logger.trace("Applying caveats")
+        val caveatedDf = inputdf.select(fieldNames.map(ccol => 
+          if(ccol.equalsIgnoreCase(imputeCol)){ 
+            val frCond = schemaRev.dataType match { 
+              case x:NumericType => fieldRef.isNull.or(fieldRef.isNaN)
+              case _ => fieldRef.isNull
+            }
+            fieldRef.caveatIf(s"$imputeCol was null and we imputed it with ${imputerConfig.strategy}", 
+               frCond ).as(imputeCol) 
+          } else {
+            col(ccol)
+          }):_*)
+        logger.trace("Imputing")
+        val outdf = imputerConfig.imputer.impute(caveatedDf);
+        outdf
+      }).select(fieldNames.map(ocol =>
+        config.colsStrategy.find(_.imputeCol.equals(ocol)) match {
+          case Some(cs) => col(ocol).cast(input.schema(ocol).dataType)
+          case None => col(ocol)
+      }):_*)
     completedf
   }
 
