@@ -17,6 +17,7 @@ import org.eclipse.jetty.server.handler.HandlerCollection
 import org.eclipse.jetty.server.Handler
 import org.eclipse.jetty.webapp.WebAppContext
 import javax.servlet.http.{HttpServlet, HttpServletRequest, HttpServletResponse}
+import scala.collection.JavaConversions._
 
 import org.apache.spark.sql.SparkSession
 import com.typesafe.scalalogging.LazyLogging
@@ -39,6 +40,10 @@ import org.mimirdb.lenses.implementation.{
   OSMGeocoder
 }
 
+import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
+//import org.apache.spark.ui.FixWebUi
+
+
 object MimirAPI extends LazyLogging {
   
   var isRunning = true
@@ -57,6 +62,9 @@ object MimirAPI extends LazyLogging {
     // Initialize Spark
     sparkSession = InitSpark.local
 
+    //Initialize GeoSpark
+    GeoSparkSQLRegistrator.registerAll(sparkSession)
+    
     // Initialize the catalog
     { 
       val metadata = conf.metadata().split(":").toList match {
@@ -97,10 +105,13 @@ object MimirAPI extends LazyLogging {
      server.stop();
   }
   
+  
+  
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
     if(server != null){ 
       throw new RuntimeException("Can't have two Mimir servers running in one JVM")
     }
+    //FixWebUi.fixSparkUi(sparkSession)
     server = new Server(port)
     val http_config = new HttpConfiguration();
     server.addConnector(new ServerConnector( server,  new HttpConnectionFactory(http_config)) );
@@ -141,7 +152,7 @@ object MimirAPI extends LazyLogging {
 class MimirVizierServlet() extends HttpServlet with LazyLogging {
     override def doPost(req : HttpServletRequest, resp : HttpServletResponse) = {
         val text = scala.io.Source.fromInputStream(req.getInputStream).mkString 
-        println(s"MimirAPI POST ${req.getPathInfo}\n$text")
+        logger.info(s"MimirAPI POST ${req.getPathInfo}\n$text")
         val routePattern = "\\/api\\/v2(\\/[a-zA-Z\\/]+)".r
         val os = resp.getOutputStream()
         resp.setHeader("Content-type", "text/json");
@@ -209,8 +220,12 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                   logger.error("MimirAPI POST ERROR: ", e)
                   Json.toJson(ErrorResponse(
                     e.getClass.getCanonicalName(),
-                    "An unknown error occurred...", 
-                    e.getStackTrace.map(_.toString).mkString("\n")
+                    "An error occurred...", 
+                    s"""|${e.getMessage()}
+                        |${e.getStackTrace.mkString("\n")}
+                        |${e.getMessage()}
+                        |${Option(e.getCause).getOrElse(e).getStackTrace.mkString("\n")}"""
+                        .stripMargin
                   ))
                 }
               }  
@@ -229,7 +244,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
         os.close() 
     }
     override def doGet(req : HttpServletRequest, resp : HttpServletResponse) = {
-      println(s"MimirAPI GET ${req.getPathInfo}")
+      logger.info(s"MimirAPI GET ${req.getPathInfo}")
         
       val routePattern = "\\/api\\/v2(\\/[a-zA-Z\\/]+)".r
         req.getPathInfo match {

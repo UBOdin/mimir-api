@@ -48,21 +48,29 @@ libraryDependencies ++= Seq(
   "org.xerial"                    %   "sqlite-jdbc"              % "3.16.1",
 
   // Jetty
-  "org.eclipse.jetty"             %    "jetty-http"              % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-io"                % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-security"          % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-server"            % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-servlet"           % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-servlets"          % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-util"              % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %    "jetty-webapp"            % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-http"               % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-io"                 % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-security"           % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-server"             % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-servlet"            % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-servlets"           % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-util"               % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-webapp"             % "9.4.10.v20180503",
   
   //Data Source Support
-  //"com.amazonaws"                 %    "aws-java-sdk-bundle"     % "1.11.375",
-  //"org.apache.hadoop"             %    "hadoop-aws"              % "3.2.0",
+  //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
+  //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
   "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.234",
-  "com.amazonaws" 				  %   "aws-java-sdk-s3" 		 % "1.11.234",
-  "org.apache.hadoop"             %    "hadoop-aws"              % "2.8.2"
+  "com.amazonaws" 				  %   "aws-java-sdk-s3" 	     % "1.11.234",
+  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.2",
+  
+  //Scala eval support
+  "org.scala-lang"                %   "scala-reflect"            % scalaVersion.value,
+  "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
+  
+  //GIS Support
+  "org.datasyslab"                %   "geospark"                 % "1.3.1",
+  "org.datasyslab"                %   "geospark-sql_2.3"         % "1.3.1",
 )
 
 ////// Publishing Metadata //////

@@ -53,10 +53,10 @@ object MissingValueLensConfig
     val modelUuid = UUID.randomUUID().toString()
     val colsStrategy = cols.map(mvcol => {
       val t = df.schema(mvcol).dataType
-      val modelPath = s"${MimirAPI.conf.dataDir()}${modelUuid}-${mvcol}.model"
+      val modelPath = s"${MimirAPI.conf.dataDir()}${File.separator}${modelUuid}-${mvcol}.model"
       t match {
         //case nt:NumericType => MissingValueImputerConfig(classOf[MeanMedianImputer].getSimpleName , mvcol, "mean", modelPath)
-        case BooleanType => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, mvcol, "GradientBoostedTreeBinary", modelPath)
+        //case BooleanType => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, mvcol, "GradientBoostedTreeBinary", modelPath)
         case x => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, mvcol, "NaiveBayes", modelPath)
       }
       
@@ -172,6 +172,7 @@ case class MeanMedianImputer(imputeCol:String, strategy:String, modelPath:String
 
 case class MulticlassImputer(imputeCol:String, strategy:String, modelPath:String) extends MissingValueImputer{
   def impute(input:DataFrame) : DataFrame = {
+    //println(s"impute: input: ----------------\n${input.schema.fields.map(fld => (fld.name, fld.dataType)).mkString("\n")}")
     val imputeddf = model(input).transform(input)
     imputeddf
   }
@@ -204,17 +205,22 @@ object MulticlassImputer {
       val stringIndexCaster = new CastForStringIndex().setInputCol(params.predictionCol).setOutputCol(params.predictionCol)
       val indexer = new StringIndexer().setInputCol(params.predictionCol).setOutputCol("label").setHandleInvalid(params.handleInvalid.toString())
       val labels = indexer.fit(trainingIndexable).labels
-      val (nullReplacers, tokenizers, hashingTFs) = featCols.flatMap(col => {
+      val (tokenizers, hashingTFs) = featCols.flatMap(col => {
         col.dataType match {
           case StringType => {
-            val nullReplacer = new ReplaceNullsForCollumn().setInputColumn(col.name).setOutputColumn(col.name).setReplacementColumn("''")
             val tokenizer = new RegexTokenizer().setInputCol(col.name).setOutputCol(s"${col.name}_words")
             val hashingTF = new HashingTF().setInputCol(tokenizer.getOutputCol).setOutputCol(s"${col.name}_features").setNumFeatures(20)
-            Some((nullReplacer, tokenizer, hashingTF))
+            Some((tokenizer, hashingTF))
           }
           case _ => None
         }
-      }).unzip3
+      }).unzip
+      val nullReplacers = featCols.flatMap(col => {
+        col.dataType match {
+          case StringType => Some(new ReplaceNullsForCollumn().setInputColumn(col.name).setOutputColumn(col.name).setReplacementColumn("''"))
+          case x:NumericType => Some(new ReplaceNullsForCollumn().setInputColumn(col.name).setOutputColumn(col.name).setReplacementColumn("0"))
+          case _ => None
+      }})
       val assmblerCols = featCols.flatMap(col => {
         col.dataType match {
           case StringType => Some(s"${col.name}_features")
@@ -222,7 +228,7 @@ object MulticlassImputer {
           case _ => None
         }
       })
-      val assembler = new VectorAssembler().setInputCols(assmblerCols.toArray).setOutputCol("rawFeatures")
+      val assembler = new VectorAssembler().setInputCols(assmblerCols.toArray).setOutputCol("rawFeatures").setHandleInvalid(params.handleInvalid.toString())
       val normlzr = new Normalizer().setInputCol("rawFeatures").setOutputCol("normFeatures").setP(1.0)
       val scaler = new StandardScaler().setInputCol("normFeatures").setOutputCol("features").setWithStd(true).setWithMean(false)
       (labels,(stringIndexCaster :: new StagePrinter("indexcast") :: indexer :: new StagePrinter("indexer") :: nullReplacers ++: tokenizers ++: hashingTFs ++: (new StagePrinter("tokhash") :: assembler :: new StagePrinter("assembler") :: normlzr :: new StagePrinter("norm") :: scaler :: Nil)))
@@ -242,7 +248,7 @@ object MulticlassImputer {
         val replaceNulls = new ReplaceNullsForCollumn().setInputColumn(params.predictionCol).setOutputColumn(params.predictionCol).setReplacementColumn(PREDICTED_LABEL_COL)
         val stages = featurePipelineStages ++: (new StagePrinter("features") :: classifier :: new StagePrinter("classifier") :: labelConverter :: new StagePrinter("labelconvert") :: replaceNulls :: Nil)
         val pipeline = new Pipeline().setStages(stages.toArray)
-        pipeline.fit(training.withColumn(params.predictionCol, training(params.predictionCol).cast(StringType)))
+        pipeline.fit(training)
       }),
    
       ("RandomForest", (trainingData, params) => {
@@ -356,7 +362,7 @@ class ReplaceNullsForCollumn(override val uid: String)
   def this() = this(Identifiable.randomUID("replacenullsforcollumn"))
   def copy(extra: ParamMap): ReplaceNullsForCollumn = defaultCopy(extra)
   override def transformSchema(schema: StructType): StructType = schema
-  def transform(df: Dataset[_]): DataFrame = df.withColumn($(outputColumn), when(df($(inputColumn)).isNull, expr($(replacementColumn))).otherwise(df($(inputColumn)))  )
+  def transform(df: Dataset[_]): DataFrame = df.withColumn($(outputColumn), when(df($(inputColumn)).isNull.or(df($(inputColumn)).isNaN), expr($(replacementColumn))).otherwise(df($(inputColumn)))  )
 }
   
 object ReplaceNullsForCollumn extends DefaultParamsReadable[ReplaceNullsForCollumn] {
@@ -377,6 +383,7 @@ class StagePrinter(val sname:String, override val uid: String)
   override def transformSchema(schema: StructType): StructType = schema
   def transform(df: Dataset[_]): DataFrame = {
     //println(s"\n------------------pipeline stage: ${$(stageName)}: \n${df.schema.fields.mkString("\n")}\n-----------------------------\n")
+    //df.show()
     df.select(col("*"))
   }
 }
