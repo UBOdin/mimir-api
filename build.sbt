@@ -60,17 +60,18 @@ libraryDependencies ++= Seq(
   //Data Source Support
   //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
-  "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.234",
-  "com.amazonaws" 				  %   "aws-java-sdk-s3" 	     % "1.11.234",
-  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.2",
+  "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  "com.amazonaws" 				  %   "aws-java-sdk-s3" 	     % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.2"    excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   
   //Scala eval support
   "org.scala-lang"                %   "scala-reflect"            % scalaVersion.value,
   "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
   
   //GIS Support
-  "org.datasyslab"                %   "geospark"                 % "1.3.1",
-  "org.datasyslab"                %   "geospark-sql_2.3"         % "1.3.1",
+  "org.datasyslab"                %  "geospark"                 % "1.4.0" excludeAll(ExclusionRule("com.amazonaws")),
+  "org.datasyslab"                %  "geospark-sql_3.0"         % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark-viz_3.0"         % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
 )
 
 ////// Publishing Metadata //////

@@ -41,6 +41,8 @@ import org.mimirdb.lenses.implementation.{
 }
 
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
+import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
+
 //import org.apache.spark.ui.FixWebUi
 
 
@@ -64,6 +66,8 @@ object MimirAPI extends LazyLogging {
 
     //Initialize GeoSpark
     GeoSparkSQLRegistrator.registerAll(sparkSession)
+    GeoSparkVizRegistrator.registerAll(sparkSession)
+    System.setProperty("geospark.global.charset", "utf8")
     
     // Initialize the catalog
     { 
@@ -221,10 +225,9 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                   Json.toJson(ErrorResponse(
                     e.getClass.getCanonicalName(),
                     "An error occurred...", 
-                    s"""|${e.getMessage()}
-                        |${e.getStackTrace.mkString("\n")}
-                        |${e.getMessage()}
-                        |${Option(e.getCause).getOrElse(e).getStackTrace.mkString("\n")}"""
+                    s"""|${getThrowableMessage(e)}
+                        |Caused by:
+                        |${getThrowableMessage(Option(e.getCause).getOrElse(e))}"""
                         .stripMargin
                   ))
                 }
@@ -276,5 +279,9 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             throw new Exception("request Not handled: " + req.getPathInfo)
           }
         }  
+    }
+    def getThrowableMessage(e:Throwable):String = {
+      s"""|${e.getMessage()}
+          |${e.getStackTrace.mkString("\n")}""".stripMargin
     }
   }
