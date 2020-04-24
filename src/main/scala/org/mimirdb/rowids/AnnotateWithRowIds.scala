@@ -88,7 +88,26 @@ class AnnotateWithRowIds(
           outer: Boolean,
           qualifier: Option[String],
           generatorOutput: Seq[Attribute],
-          child: LogicalPlan) => ???
+          child: LogicalPlan) => 
+      {
+        val (rewrite, oldAnnotation) = recur(child)
+        val generatorAnnotation = annotationAttribute(name = RowIdGenerator.ATTRIBUTE)
+        val newAnnotation = annotationAttribute()
+        // Wrap the generator in one that adds a RowId Attribute.
+        (
+          annotate(
+            Generate(
+              RowIdGenerator(generator),
+              unrequiredChildIndex,
+              outer,
+              qualifier,
+              generatorOutput :+ generatorAnnotation,
+              rewrite
+            ), newAnnotation.exprId, oldAnnotation, generatorAnnotation
+          ),
+          newAnnotation
+        )
+      }
 
       /*********************************************************/
       case Filter(
@@ -342,9 +361,9 @@ class AnnotateWithRowIds(
   def getAnnotation(plan: LogicalPlan): Attribute =
     plan.output.find { _.name.equals(rowIdAttribute) }.get
 
-  def annotationAttribute(id: ExprId = NamedExpression.newExprId): Attribute =
+  def annotationAttribute(id: ExprId = NamedExpression.newExprId, name:String = rowIdAttribute): Attribute =
     AttributeReference(
-      rowIdAttribute,
+      name,
       LongType,
       false
     )(id)
