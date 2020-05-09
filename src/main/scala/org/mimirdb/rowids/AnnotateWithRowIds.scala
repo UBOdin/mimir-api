@@ -235,7 +235,7 @@ class AnnotateWithRowIds(
         // use the grouping attributes as the annotation
         // descend into the children just in case an identifier is needed
         // elsewhere.
-        annotate(
+        annotateAgg(
           Aggregate(
             groupingExpressions,
             aggregateExpressions,
@@ -377,6 +377,14 @@ class AnnotateWithRowIds(
     )
   }
 
+  private def annotateAgg(plan: Aggregate, fields: Expression*): (LogicalPlan, Attribute) =
+  {
+    val newAnnotation = annotationAttribute()
+    (
+      annotateAgg(plan, newAnnotation.exprId, fields:_*),
+      newAnnotation
+    )
+  }
 
   private def annotate(plan: LogicalPlan, id:ExprId, fields: Expression*): LogicalPlan =
   {
@@ -384,6 +392,16 @@ class AnnotateWithRowIds(
       plan.output
           .filter { !_.name.equals(rowIdAttribute) } :+
         MergeRowIds(rowIdAttribute, id, fields:_*),
+      plan
+    )
+  }
+  
+  private def annotateAgg(plan: Aggregate, id:ExprId, fields: Expression*): LogicalPlan =
+  {
+    Project(
+      plan.output
+          .filter { !_.name.equals(rowIdAttribute) } :+
+        MergeRowIds(rowIdAttribute, id, fields.zipWithIndex.map(gbidx => plan.output(gbidx._2)):_*),
       plan
     )
   }

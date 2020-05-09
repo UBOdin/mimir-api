@@ -82,12 +82,21 @@ class GeoSparkSpec
           "SELECT ST_Envelope_Aggr(social_dist_geo.PT_SHAPE) AS BOUND FROM social_dist_geo",
           Some("social_dist_bound")
       ).handle 
-     
-      CreateViewRequest(Map(("social_dist_geo","social_dist_geo"), ("social_dist_bound","social_dist_bound")),
-      s"""SELECT PIXEL, PT_SHAPE FROM social_dist_geo
-         |LATERAL VIEW ST_Pixelize(ST_Transform(PT_SHAPE, 'epsg:4326','epsg:3857'), 256, 256, 
-         |                (SELECT ST_Transform(BOUND, 'epsg:4326','epsg:3857') 
-         |                 FROM social_dist_bound)) AS pixel""".stripMargin,
+      
+      CreateViewRequest(Map(("social_dist_bound","social_dist_bound")),
+          s"""SELECT ST_Transform(BOUND, 'epsg:4326','epsg:3857') AS TRANS_BOUND
+          FROM social_dist_bound""",
+         Some("social_dist_bound_trans")
+      ).handle 
+
+      
+      CreateViewRequest(Map(("social_dist_geo","social_dist_geo"), ("social_dist_bound","social_dist_bound"), ("social_dist_bound_trans","social_dist_bound_trans")),
+      s"""SELECT ST_Pixelize(ST_Transform(PT_SHAPE, 'epsg:4326','epsg:3857'), 256, 256, 
+          social_dist_bound_trans.TRANS_BOUND) AS PIXEL, 
+          social_dist_geo.PT_SHAPE 
+          FROM social_dist_geo
+          LEFT JOIN social_dist_bound_trans
+        """,
          Some("social_dist_pixel")
       ).handle 
       
