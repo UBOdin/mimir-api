@@ -7,6 +7,7 @@ import org.specs2.specification.BeforeAll
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.MimirAPI
 import org.mimirdb.rowids.AnnotateWithRowIds
+import org.mimir.util.LoggerUtils
 
 class ExplainSpec 
   extends Specification
@@ -33,7 +34,13 @@ class ExplainSpec
                     firstRowid.toString,
                     "B"
                   )
+    LoggerUtils.trace(
+				"org.mimirdb.caveats.enumerate.*",
+				"org.mimirdb.lenses.CaveatedCast"
+			){
     val result = request.handle.as[ExplainResponse]
     result.reasons must haveSize(1)
+    result.reasons(0).message must not be null
+    }
   }
 }
