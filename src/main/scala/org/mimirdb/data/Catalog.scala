@@ -69,14 +69,14 @@ class Catalog(
     tableName: String
   ): (String, Map[String,String], String) =
   {
-    /*if(Catalog.stagingExemptProtocols(URI.create(url).getScheme)){
+    if(Catalog.stagingExemptProtocols(URI.create(url).getScheme)){
       ( 
         url,
         sparkOptions,
         format
       )
     } 
-    else*/ if(Catalog.safeForRawStaging(format)){
+    else if(Catalog.safeForRawStaging(format)){
       ( 
         staging.stage(url, Some(tableName)),
         sparkOptions,

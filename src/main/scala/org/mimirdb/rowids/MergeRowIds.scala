@@ -8,7 +8,10 @@ object MergeRowIds
   def apply(exprs:Expression*): Expression = 
     exprs match {
       case Seq() => Literal(1l)
-      case Seq(singleton) => Cast(singleton, LongType)
+      case Seq(singleton) => singleton.dataType match {
+        case n:NumericType => Cast(singleton, LongType)
+        case _ => new Murmur3Hash(exprs)
+      }
       case _ => new Murmur3Hash(exprs)
     }
 

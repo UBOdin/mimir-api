@@ -193,12 +193,8 @@ object Query
     DataContainer(
       schema,
       results.map { row => fieldIndices.map { row.get(_) } }.toSeq,
-      results.map { 
-        _.get(identifierAnnotation) match {
-          case null => ""
-          case x => x.toString 
-        }
-      }.toSeq,
+      // use s"" instead of .toString below to handle nulls correctly
+      results.map { row => s"${row.get(identifierAnnotation)}" }.toSeq,
       colTaint, 
       rowTaint,
       Seq()
