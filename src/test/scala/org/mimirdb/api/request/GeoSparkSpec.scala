@@ -12,7 +12,6 @@ import org.mimirdb.lenses.Lenses
 import play.api.libs.json.JsString
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
-import org.mimirdb.api.request.CreateViewRequest
 import org.mimirdb.api.MimirAPI
 
 
