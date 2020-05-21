@@ -245,6 +245,7 @@ object Catalog
       case FileFormat.CSV | FileFormat.CSV_WITH_ERRORCHECKING =>
         defaultLoadCSVOptions ++ Map("header" -> header.toString)
       case FileFormat.GOOGLE_SHEETS => defaultLoadGoogleSheetOptions
+      case _ => Map()
     }
   }
 
