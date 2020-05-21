@@ -13,3 +13,6 @@ vizier_downloads/*
 *.crc
 
 *.model/
+/.bloop
+/.metals
+vizier-datavizier.db
