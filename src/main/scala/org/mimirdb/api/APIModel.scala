@@ -2,6 +2,9 @@ package org.mimirdb.api
 
 import play.api.libs.json._
 import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.geosparksql.UDT.GeometryUDT
+import org.apache.spark.sql.types.UDTRegistration
+import org.apache.spark.sql.SqlUDTRegistrationProxy
 
 case class Tuple (
             /* name */
@@ -23,7 +26,10 @@ case class Schema (
                   baseType: String
 ) {
   def sparkType: DataType = 
-    DataType.fromJson("\""+`type`+"\"")
+    `type` match {
+    case "geometry" => SqlUDTRegistrationProxy.getUDT(`type`)
+    case _ => DataType.fromJson("\""+`type`+"\"")
+  }
   override def toString: String =
     s"[$name:${`type`}]"
 }
