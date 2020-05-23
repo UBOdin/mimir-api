@@ -11,7 +11,10 @@ case class VizualScriptConstructor(
   extends DataFrameConstructor
 {
   def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
-    Vizual(script, context(input))
+  {
+    throw new RuntimeException("Vizual Scripts are temporarily disabled")
+    // Vizual(script, context(input))
+  }
 }
 
 object VizualScriptConstructor 
