@@ -115,10 +115,14 @@ object SchemaList {
   implicit val format: Format[SchemaList] = Json.format
 }
 
+class ResultTooBig extends Exception("The datsaet is too big to copy.  Try a sample or a LIMIT query instead.")
+
 object Query
   extends LazyLogging
   with TimerUtils
 {
+  val RESULT_THRESHOLD = 10000
+
   def apply(
     query: String,
     includeCaveats: Boolean,
@@ -172,7 +176,11 @@ object Query
 
     /////// Actually compute the final result
     val results = logTime("QUERY", df.toString) {
-      df.cache().collect()
+      val buffer = df.cache().take(RESULT_THRESHOLD+1)
+      if(buffer.size >= RESULT_THRESHOLD){ 
+        throw new ResultTooBig()
+      }
+      buffer
     }
 
     /////// If necessary, extract which rows/cells are affected by caveats from

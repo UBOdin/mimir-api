@@ -4,11 +4,10 @@ import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 
-import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.api.{ MimirAPI, Schema } 
+import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI, Schema } 
 import org.mimirdb.caveats.implicits._ 
-import org.mimirdb.lenses.LensConstructor
-import org.mimirdb.lenses.Lenses
+import org.mimirdb.lenses.{ Lenses, LensConstructor }
+import org.mimirdb.data.RangeConstructor
 import play.api.libs.json.JsString
 
 
@@ -132,6 +131,18 @@ class QuerySpec
       query(s"SELECT * FROM $output LIMIT 10", true) { result =>
         result.data.map { _(0) }.toSeq must beEqualTo((1 until 11).toSeq)
       } 
+    }
+    "Not explode when querying oversized datasets" >>
+    {
+      val table = "BIG_SEQ"
+      MimirAPI.catalog.put(
+        table,
+        RangeConstructor(0, Query.RESULT_THRESHOLD+10, 1),
+        Set()
+      )
+      query(s"SELECT * FROM $table") { 
+        result => ko
+      } must throwA[ResultTooBig]
     }
   }
 
