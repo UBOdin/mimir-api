@@ -2,16 +2,15 @@ package org.mimirdb.data
 
 import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, SparkSession }
-import org.mimirdb.vizual.{ Vizual, Command }
+import org.mimirdb.vizual.{ ExecOnSpark, Command }
 
 case class VizualScriptConstructor(
-  input: String,
   script: Seq[Command]
 )
   extends DataFrameConstructor
 {
   def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
-    Vizual(script, context(input))
+    ExecOnSpark(script, context)
 }
 
 object VizualScriptConstructor 

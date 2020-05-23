@@ -4,7 +4,7 @@ import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
 
 import org.mimirdb.api.{ Request, Response, MimirAPI }
-import org.mimirdb.vizual.{ Command, Script, Vizual }
+import org.mimirdb.vizual.{ Command, AddScriptToCatalog }
 import org.mimirdb.data.VizualScriptConstructor
 
 case class VizualRequest (
@@ -22,18 +22,8 @@ case class VizualRequest (
     }
 
   def handle = {
-    val df = MimirAPI.catalog.get(input)
-    val simplified = Vizual.simplify(script)
-    
-    MimirAPI.catalog.put(
-      output,
-      VizualScriptConstructor(
-        input,
-        simplified
-      ),
-      Set(input)
-    )
-    Json.toJson(VizualResponse(output, simplified))
+    AddScriptToCatalog(script, MimirAPI.catalog, output)
+    Json.toJson(VizualResponse(output, script))
   }
 }
 
