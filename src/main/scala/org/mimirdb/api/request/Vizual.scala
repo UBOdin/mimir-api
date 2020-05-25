@@ -4,13 +4,13 @@ import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
 
 import org.mimirdb.api.{ Request, Response, MimirAPI }
-import org.mimirdb.vizual.{ Command, AddScriptToCatalog }
-import org.mimirdb.data.VizualScriptConstructor
+import org.mimirdb.vizual.{ Command, VizualScriptConstructor }
 
 case class VizualRequest (
   input: String,
   script: Seq[Command],
-  resultName: Option[String]
+  resultName: Option[String],
+  compile: Option[Boolean]
 ) 
   extends Request 
 {
@@ -22,8 +22,22 @@ case class VizualRequest (
     }
 
   def handle = {
-    AddScriptToCatalog(script, MimirAPI.catalog, output)
-    Json.toJson(VizualResponse(output, script))
+    // ignore simplification code for the moment
+    val simplified = 
+      if(compile.getOrElse(false)){
+        throw new RuntimeException("Vizual compilation unsupported for now")
+      } else {
+        script
+      }
+
+    // Just add to the catalog and move on (we can get fancier later)
+    MimirAPI.catalog.put(
+      output,
+      VizualScriptConstructor(simplified, input),
+      Set(input),
+      true
+    )
+    Json.toJson(VizualResponse(output, simplified))
   }
 }
 
