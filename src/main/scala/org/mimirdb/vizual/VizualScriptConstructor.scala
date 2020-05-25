@@ -1,4 +1,4 @@
-package org.mimirdb.data
+package org.mimirdb.vizual
 
 import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, SparkSession }
@@ -11,6 +11,10 @@ case class VizualScriptConstructor(
 {
   def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
     ExecOnSpark(script, context)
+  {
+    throw new RuntimeException("Vizual Scripts are temporarily disabled")
+    // Vizual(script, context(input))
+  }
 }
 
 object VizualScriptConstructor 
