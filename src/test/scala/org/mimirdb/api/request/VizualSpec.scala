@@ -39,7 +39,7 @@ class VizualSpec
     command("""{
       "id": "deleteColumn", 
       "dataset" : "IGNORE_THIS_PARAMETER",
-      "column" : "A"
+      "column" : 0
     }""") { result =>
       result.columns.toSet must beEqualTo(Set("B", "C")) 
     }
@@ -96,7 +96,7 @@ class VizualSpec
     command("""{
       "id": "moveColumn", 
       "dataset" : "IGNORE_THIS_PARAMETER",
-      "column" : "A",
+      "column" : 0,
       "position" : 1
     }""") { result => 
       result.columns.toSeq must beEqualTo(Seq("B", "A", "C")) 
@@ -124,8 +124,8 @@ class VizualSpec
       "id": "projection",
       "dataset" : "IGNORE_THIS_PARAMETER",
       "columns" : [
-        { "columns_column" : "C", "columns_name" : "Carol" },
-        { "columns_column" : "B", "columns_name" : "Bob" }
+        { "columns_column" : 2, "columns_name" : "Carol" },
+        { "columns_column" : 1, "columns_name" : "Bob" }
       ]
     }""") { result => 
       result.columns.toSeq must beEqualTo(Seq("Carol", "Bob"))
@@ -141,7 +141,7 @@ class VizualSpec
     command("""{
       "id": "renameColumn", 
       "dataset" : "IGNORE_THIS_PARAMETER",
-      "column" : "B", 
+      "column" : 1, 
       "name" : "Bob"
     }""") { result => 
       result.columns.toSeq must beEqualTo(Seq("A", "Bob", "C"))
@@ -161,7 +161,7 @@ class VizualSpec
     command(s"""{
       "id": "updateCell", 
       "dataset" : "IGNORE_THIS_PARAMETER",
-      "column" : "A", 
+      "column" : 0, 
       "row" : $theChosenOne,
       "value" : "42"
     }""") { result => 
