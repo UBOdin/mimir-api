@@ -47,8 +47,8 @@ object VizualRequest
 }
 
 case class VizualResponse (
-            /* name of resulting lens */
-                  lensName: String,
+            /* name of resulting view */
+                  name: String,
             /* revised/simplified script */
                   script: Seq[Command]
 ) extends Response

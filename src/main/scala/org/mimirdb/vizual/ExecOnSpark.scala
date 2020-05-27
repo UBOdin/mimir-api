@@ -14,14 +14,10 @@ object ExecOnSpark
   def apply(input: DataFrame, command: Command): DataFrame =
   {
     command match {
-      case DeleteColumn(column) => 
+      case DeleteColumn(position) => 
         {
-          input.select(
-            input.columns
-                 .filter { !_.equalsIgnoreCase(column) }
-                 .map { input(_) }
-              :_*
-          )
+          val (pre, post) = input.columns.splitAt(position)
+          input.select((pre.toSeq ++ post.tail).map { input(_) }:_*)
         }
       case DeleteRow(rowid) => 
         {
@@ -75,11 +71,12 @@ object ExecOnSpark
             }
           }
         }
-      case MoveColumn(column, position) => 
+      case MoveColumn(from, position) => 
         {
-          val otherColumns = input.columns.filter { !_.equalsIgnoreCase(column) }
-          val (pre, post) = otherColumns.splitAt(position)
-          val finalSchema = (pre :+ column) ++ post
+          val (preFrom, postFrom) = input.columns.splitAt(from)
+          val otherColumns = preFrom ++ postFrom.tail
+          val (preTo, postTo) = otherColumns.splitAt(position)
+          val finalSchema = (preTo :+ postFrom.head) ++ postTo
 
           input.select( finalSchema.map { input(_) } :_* )
         }
@@ -113,18 +110,20 @@ object ExecOnSpark
         }
       case FilterColumns(columns) => 
         {
+          val input_columns = input.columns
           input.select(
             columns.map { c => 
-              input(c.columns_column).as(c.columns_name)
+              input(input_columns(c.columns_column)).as(c.columns_name)
             }:_*
           )
         }
-      case RenameColumn(column, name) => 
+      case RenameColumn(position, name) => 
         {
           val newSchema: Array[Column] =
             input.columns
-                 .map { c => if(c.equalsIgnoreCase(column)) { input(c).as(name) } 
-                             else { input(c) } }
+                 .zipWithIndex
+                 .map { case (c, i) => if(i == position) { input(c).as(name) } 
+                                       else { input(c) } }
           input.select(newSchema:_*)
         }
       case UpdateCell(column, row, value) => 
@@ -133,8 +132,9 @@ object ExecOnSpark
             val rowid = df(AnnotateWithRowIds.ATTRIBUTE)
             val columns = 
               input.schema
-                   .map { c => 
-                     if(c.name.equalsIgnoreCase(column)){
+                   .zipWithIndex
+                   .map { case (c, idx) => 
+                     if(idx == column){
                        when(rowid === lit(row), lit(value).cast(c.dataType))
                          .otherwise(df(c.name))
                          .as(c.name)

@@ -53,7 +53,7 @@ object Command
 }
 
 case class DeleteColumn(
-  column: String
+  column: Int
 ) extends Command
 object DeleteColumn
 { implicit val format: Format[DeleteColumn] = Json.format }
@@ -86,7 +86,7 @@ object InsertRow
 //////////////////////////
 
 case class MoveColumn(
-  column: String,
+  column: Int,
   position: Int
 ) extends Command
 object MoveColumn
@@ -104,7 +104,7 @@ object MoveRow
 //////////////////////////
 
 case class FilteredColumn(
-  columns_column: String,
+  columns_column: Int,
   columns_name: String
 ) 
 {
@@ -125,7 +125,7 @@ object FilterColumns
 //////////////////////////
 
 case class RenameColumn(
-  column: String,
+  column: Int,
   name: String
 ) extends Command
 object RenameColumn
@@ -143,7 +143,7 @@ object SortColumn
 //////////////////////////
 
 case class UpdateCell(
-  column: String,
+  column: Int,
   row: Long,
   value: String
 ) extends Command
