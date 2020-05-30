@@ -1,6 +1,9 @@
 package org.mimirdb.vizual
 
 import play.api.libs.json._
+import org.apache.spark.sql.Column
+import org.apache.spark.sql.functions._
+import org.mimirdb.rowids.AnnotateWithRowIds
 
 sealed trait Command
 object Command
@@ -142,10 +145,58 @@ object SortColumn
 
 //////////////////////////
 
+sealed trait RowSelection
+{
+  def isAllRows: Boolean = false
+  def predicate: Column
+  def apply(ifTrue: Column)(ifFalse: Column): Column = 
+    when(predicate, ifTrue).otherwise(ifFalse)
+}
+
+object RowSelection
+{
+  implicit val format = Format[RowSelection](
+    new Reads[RowSelection] {
+      def reads(j: JsValue): JsResult[RowSelection] =
+        j match { 
+          case x: JsNumber => JsSuccess(RowsById(Set(x.as[Long])))
+          case x: JsArray => JsSuccess(RowsById(x.as[Seq[Long]].toSet))
+          case JsNull => JsSuccess(AllRows())
+          case _ => JsError("Not a valid row selection")
+        }
+    },
+    new Writes[RowSelection] {
+      def writes(j: RowSelection): JsValue =
+        j match { 
+          case RowsById(rows) => Json.toJson(rows.toSeq)
+          case AllRows() => JsNull
+        }
+    }
+  )
+
+}
+
+case class RowsById(rows: Set[Long]) extends RowSelection
+{
+  def predicate = 
+    if(rows.isEmpty) { lit(false) }
+    else if(rows.size == 1) { col(AnnotateWithRowIds.ATTRIBUTE) === rows.head }
+    else { col(AnnotateWithRowIds.ATTRIBUTE).isin(rows.toSeq:_*)}
+}
+case class AllRows() extends RowSelection
+{
+  def predicate = lit(true)
+  override def apply(ifTrue: Column)(ifFalse: Column): Column = ifTrue
+  override def isAllRows = true
+}
+
 case class UpdateCell(
   column: Int,
-  row: Long,
+  row: Option[RowSelection],
   value: String
 ) extends Command
+{
+  def getRows = row.getOrElse { AllRows() }
+}
 object UpdateCell
 { implicit val format: Format[UpdateCell] = Json.format }
