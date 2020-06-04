@@ -38,7 +38,7 @@ object AnnotateImplicitHeuristics
         query.transformExpressionsUp { 
           case c@Cast(child, t, tzinfo) => {
             logger.trace(s"Rewriting cast: $c")
-            CaveatedCast(child, t, tzinfo = tzinfo)
+            CaveatedCast(child, t, family = tzinfo)
           }
         }
       }
