@@ -54,6 +54,7 @@ object SharedSparkTestInstance
         loadCSV("SEQ", "test_data/seq.csv")
 
         // Finally, initialize geocoding with the test harness
+        InitSpark.initPlugins(spark)
         Lenses.initGeocoding(
           Seq(TestCaseGeocoder),
           MimirAPI.catalog

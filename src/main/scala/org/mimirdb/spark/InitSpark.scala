@@ -4,6 +4,8 @@ import org.apache.spark.sql.SparkSession
 import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator
 import org.apache.spark.serializer.KryoSerializer
 import org.datasyslab.geosparkviz.core.Serde.GeoSparkVizKryoRegistrator
+import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
+import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
 
 object InitSpark
 {
@@ -18,6 +20,13 @@ object InitSpark
       .config("spark.kryo.registrator", classOf[GeoSparkVizKryoRegistrator].getName)
       .master("local[*]")
       .getOrCreate()
+  }
+
+  def initPlugins(sparkSession: SparkSession)
+  {
+    GeoSparkSQLRegistrator.registerAll(sparkSession)
+    GeoSparkVizRegistrator.registerAll(sparkSession)
+    System.setProperty("geospark.global.charset", "utf8")
   }
   
 }
