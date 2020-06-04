@@ -18,6 +18,7 @@ import org.mimirdb.api.CaveatFormat._
 import org.mimirdb.util.TimerUtils
 
 import com.typesafe.scalalogging.LazyLogging
+import org.mimirdb.lenses.AnnotateImplicitHeuristics
 
 case class QueryMimirRequest (
             /* input for query */
@@ -138,7 +139,17 @@ object Query
     includeCaveats: Boolean
   ): DataContainer =
   {
+
+    // The order of operations in this method is very methodically selected:
+    // - AnnotateWithRowIds MUST come before any operation that modifies UNION operators, since
+    //   the order of the children affects the identity of their elements.
+    // - AnnotateImplicitHeuristics MUST come before any operation that removes View markers (this
+    //   includes AnnotateWithRowIds and caveat.trackCaveats)
+
     var df = query
+
+    /////// Decorate any potentially erroneous heuristics
+    df = AnnotateImplicitHeuristics(df)
 
     /////// We need the schema before any annotations to produce the right outputs
     val schema = getSchema(df)
@@ -156,8 +167,8 @@ object Query
     if(includeCaveats){ df = df.trackCaveats.stripCaveats }
     else              { df = df.stripCaveats }
     
-    logger.trace("############ FOOO")
     logger.trace(s"############ \n${df.queryExecution.analyzed.treeString}")
+    logger.trace("############")
 
     logger.trace(s"----------- AFTER-CAVEATS -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
