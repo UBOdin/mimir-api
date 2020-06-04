@@ -5,6 +5,7 @@ import org.apache.spark.sql.{ DataFrame, SparkSession }
 
 import org.mimirdb.api.{ Request, Response, MimirAPI }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
+import org.mimirdb.lenses.AnnotateImplicitHeuristics
 
 case class CreateViewRequest (
             /* temporary view definitions for use in creating the view */
@@ -28,7 +29,9 @@ case class CreateViewRequest (
     for((userFacingName, internalName) <- input){
       context(internalName).createOrReplaceTempView(userFacingName)
     }
-    spark.sql(query)
+    var df = spark.sql(query)
+    df = AnnotateImplicitHeuristics(df)
+    return df 
   }
 
   def handle = {
@@ -38,14 +41,6 @@ case class CreateViewRequest (
       input.values.toSet
     )
     Json.toJson(CreateViewResponse(output))
-  }
-  def create(
-    query: String,
-    targetTable: String,
-    temporaryTables: Map[String,String] = Map(),
-    sparkSession: SparkSession = MimirAPI.sparkSession
-  ){ 
-    ???
   }
 }
 

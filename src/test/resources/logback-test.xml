@@ -8,17 +8,21 @@
   </appender>
   
   <!--+++++++++++++++++++++++  Caveats  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.caveats"                   level="ERROR" />
+  <logger name="org.mimirdb.caveats"                            level="ERROR" />
 
   <!--+++++++++++++++++++++++  Request  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.api.request.Query$"        level="ERROR" />
+  <logger name="org.mimirdb.api.request.Query$"                 level="ERROR" />
 
   <!--++++++++++++++++++++++++  Data  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.data.JDBCMetadataBackend"  level="ERROR" />
-  <logger name="org.mimirdb.data.Catalog"              level="ERROR" />
+  <logger name="org.mimirdb.data.JDBCMetadataBackend"           level="ERROR" />
+  <logger name="org.mimirdb.data.Catalog"                       level="ERROR" />
 
   <!--++++++++++++++++++++++++  Vizual  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.vizual.ExecOnSpark"        level="ERROR" />
+  <logger name="org.mimirdb.vizual.ExecOnSpark"                 level="ERROR" />
+
+  <!--++++++++++++++++++++++++  Lenses  ++++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.lenses.AnnotateImplicitHeuristics$" level="ERROR" />
+
   
   <root level="ERROR">
     <appender-ref ref="STDOUT" />

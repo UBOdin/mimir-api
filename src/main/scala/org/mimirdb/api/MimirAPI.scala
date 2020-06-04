@@ -41,8 +41,6 @@ import org.mimirdb.lenses.implementation.{
 }
 import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 
-import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
-import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
 import org.apache.spark.sql.AnalysisException
 
 //import org.apache.spark.ui.FixWebUi
@@ -67,9 +65,7 @@ object MimirAPI extends LazyLogging {
     sparkSession = InitSpark.local
 
     //Initialize GeoSpark
-    GeoSparkSQLRegistrator.registerAll(sparkSession)
-    GeoSparkVizRegistrator.registerAll(sparkSession)
-    System.setProperty("geospark.global.charset", "utf8")
+    InitSpark.initPlugins(sparkSession)
     
     // Initialize the catalog
     { 
