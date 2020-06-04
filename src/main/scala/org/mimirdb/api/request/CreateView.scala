@@ -2,10 +2,14 @@ package org.mimirdb.api.request
 
 import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, SparkSession }
+import org.apache.spark.sql.AnalysisException
 
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.api.{ Request, Response, MimirAPI, ErrorResponse, FormattedError }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
+import org.mimirdb.util.ErrorUtils
+
+
 
 case class CreateViewRequest (
             /* temporary view definitions for use in creating the view */
@@ -35,11 +39,19 @@ case class CreateViewRequest (
   }
 
   def handle = {
-    MimirAPI.catalog.put(
-      output, 
-      this,
-      input.values.toSet
-    )
+    try {
+      MimirAPI.catalog.put(
+        output, 
+        this,
+        input.values.toSet
+      )
+    } catch {
+      case e:AnalysisException => {
+        val msg =  ErrorUtils.prettyAnalysisEror(e, query)
+        println(s"##############\n$msg\n##############")
+        throw FormattedError(ErrorResponse(e,msg))
+      }
+    }
     Json.toJson(CreateViewResponse(output))
   }
 }
