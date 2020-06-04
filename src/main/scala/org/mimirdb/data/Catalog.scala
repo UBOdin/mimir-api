@@ -6,6 +6,8 @@ import play.api.libs.json._
 import com.typesafe.scalalogging.LazyLogging
 import java.sql.SQLException
 import java.net.URI
+import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
+import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -160,7 +162,13 @@ class Catalog(
       return cache(name)
     }
 
-    val (_, components) = views.get(name).get
+    val (_, components) = views.get(name).getOrElse {
+      throw new UnresolvedException(
+        UnresolvedRelation(Seq(name)),
+        "lookup"
+      )
+
+    }
     val deserializerClassName = 
       components(0).asInstanceOf[String]
     val constructorJson = 

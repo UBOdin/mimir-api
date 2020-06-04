@@ -39,9 +39,11 @@ import org.mimirdb.lenses.implementation.{
   GoogleGeocoder,
   OSMGeocoder
 }
+import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
+import org.apache.spark.sql.AnalysisException
 
 //import org.apache.spark.ui.FixWebUi
 
@@ -154,12 +156,16 @@ object MimirAPI extends LazyLogging {
 }
 
 class MimirVizierServlet() extends HttpServlet with LazyLogging {
-    override def doPost(req : HttpServletRequest, resp : HttpServletResponse) = {
+    def ellipsize(text: String, len: Int): String =
+      if(text.size > len){ text.substring(0, len-3)+"..." } else { text }
+
+    override def doPost(req : HttpServletRequest, responseObject : HttpServletResponse) = {
         val text = scala.io.Source.fromInputStream(req.getInputStream).mkString 
-        logger.info(s"MimirAPI POST ${req.getPathInfo}\n$text")
+        logger.info(s"MimirAPI POST ${req.getPathInfo}")
+        logger.debug(text)
         val routePattern = "\\/api\\/v2(\\/[a-zA-Z\\/]+)".r
-        val os = resp.getOutputStream()
-        resp.setHeader("Content-type", "text/json");
+        val os = responseObject.getOutputStream()
+        responseObject.setHeader("Content-type", "text/json");
         val response:JsValue = 
           req.getPathInfo match {
             case routePattern(route) => {
@@ -174,7 +180,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/lens/create"          => input.as[CreateLensRequest]
                     case "/view/create"          => input.as[CreateViewRequest]
                     case "/view/sample"          => input.as[CreateSampleRequest]
-                    case "/view/vizual"          => input.as[VizualRequest]
+                    case "/vizual/create"        => input.as[VizualRequest]
                     case "/annotations/cell"     => input.as[ExplainCellRequest]
                     case "/annotations/all"      => input.as[ExplainEverythingRequest]
                     case "/query/data"           => input.as[QueryMimirRequest]
@@ -188,6 +194,13 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                   }
                   handler.handle
               } catch {
+                case e@JsResultException(errors) =>
+                  Json.toJson(ErrorResponse(
+                    e.getClass().getCanonicalName(),
+                    s"Error(s) parsing API request\n${ellipsize(text, 100)}\n"+stringifyJsonParseErrors(errors).mkString("\n"),
+                    e.getStackTrace.map(_.toString).mkString("\n")
+                  ))
+
                 case e: EOFException => 
                   Json.toJson(ErrorResponse(
                     e.getClass.getCanonicalName(),
@@ -219,6 +232,14 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     e.getStackTrace.map(_.toString).mkString("\n")
                   ))
                 }
+                case e: AnalysisException => {
+                  logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+                  Json.toJson(ErrorResponse(
+                    e.getClass.getCanonicalName(),
+                    s"SQL Exception: ${e.getMessage}",
+                    e.getStackTrace.map(_.toString).mkString("\n")
+                  ))                  
+                }
         
                 case e: Throwable => {
                   logger.error("MimirAPI POST ERROR: ", e)
@@ -242,7 +263,9 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
               ))
             }
           } 
-        os.write(Json.stringify(response).getBytes)
+        val responseString = Json.stringify(response)
+        logger.trace(s"RESPONSE: $responseString")
+        os.write(responseString.getBytes)
         os.flush()
         os.close() 
     }

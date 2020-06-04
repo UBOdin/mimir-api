@@ -29,7 +29,7 @@ resolvers += Resolver.mavenLocal
 libraryDependencies ++= Seq(
   // Mimir
   "org.mimirdb"                   %% "mimir-caveats"             % "0.1-SNAPSHOT",
-  "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
+  // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
   "com.typesafe.scala-logging"    %%  "scala-logging"            % "3.9.2",
@@ -61,7 +61,7 @@ libraryDependencies ++= Seq(
   //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
   "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  "com.amazonaws" 				  %   "aws-java-sdk-s3" 	     % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.2"    excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   
   //Scala eval support

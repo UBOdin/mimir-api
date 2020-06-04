@@ -29,6 +29,17 @@ object AnnotateWithRowIds
       RowEncoder(StructType(df.schema.fields :+ FIELD_TYPE))
     )
   }
+  def withRowId(df: DataFrame, rowIdAttribute: String = ATTRIBUTE)(op: DataFrame => DataFrame): DataFrame =
+  {
+    val ret = op(apply(df, rowIdAttribute))
+    ret.select(
+      ret.schema
+         .fieldNames
+         .filter(!_.equals(rowIdAttribute))
+         .map { ret(_) }:_*
+    )    
+  }
+
 }
 
 class AnnotateWithRowIds(

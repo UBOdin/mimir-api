@@ -37,7 +37,6 @@ class QuerySpec
       )
       q.createOrReplaceTempView("QuerySpecCaveat")
     }
-
   }
 
   def query[T](query: String, includeUncertainty: Boolean = true)
@@ -143,6 +142,20 @@ class QuerySpec
       query(s"SELECT * FROM $table") { 
         result => ko
       } must throwA[ResultTooBig]
+    }
+    "Respond with sane ROWIDs" >> 
+    {
+      {
+        val ret = Query("SELECT * FROM QuerySpec", false)
+        // println(ret.prov)
+        ret.prov.toSet.size must be equalTo(ret.data.size)
+      }
+      {
+        val ret = Query("SELECT * FROM TEST_R", false)
+        // println(ret.prov)
+        ret.prov.toSet.size must be equalTo(ret.data.size)
+      }
+
     }
   }
 
