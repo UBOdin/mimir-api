@@ -7,8 +7,12 @@
     </encoder>
   </appender>
   <!--+++++++++++++++++++++++  API  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.api.MimirVizierServlet"    level="DEBUG" />
-  <logger name="org.mimirdb.api.MimirAPI$"             level="DEBUG" />
+  <logger name="org.mimirdb.api.MimirVizierServlet"                level="DEBUG" />
+  <logger name="org.mimirdb.api.MimirAPI$"                         level="DEBUG" />
+  <logger name="org.mimirdb.api.request.Query$"                    level="INFO" />
+
+  <!--+++++++++++++++++++++++  Lenses  +++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.lenses.implementation.CommentLens$"    level="INFO" />
     
   <root level="ERROR">
     <appender-ref ref="STDOUT" />

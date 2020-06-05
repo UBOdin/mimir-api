@@ -177,13 +177,13 @@ object Query
     val postAnnotationSchema = 
       getSchema(df)
         .zipWithIndex
-        .map { case (attribute, idx) => attribute.name -> idx }
+        .map { case (attribute, idx) => attribute.name.toLowerCase -> idx }
         .toMap
 
     /////// Compute attribute positions for later extraction
     val fieldIndices = 
-      schema.map { attribute => postAnnotationSchema(attribute.name) }
-    val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE)
+      schema.map { attribute => postAnnotationSchema(attribute.name.toLowerCase) }
+    val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE.toLowerCase)
 
     /////// Actually compute the final result
     val results = logTime("QUERY", df.toString) {
