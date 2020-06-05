@@ -236,6 +236,10 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     e.getStackTrace.map(_.toString).mkString("\n")
                   ))                  
                 }
+                case FormattedError(errorResponse) => {
+                  logger.debug(s"Internally Formatted Error: ${errorResponse.errorType}")
+                  Json.toJson(errorResponse)
+                }
         
                 case e: Throwable => {
                   logger.error("MimirAPI POST ERROR: ", e)
