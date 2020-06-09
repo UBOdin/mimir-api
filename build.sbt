@@ -25,6 +25,11 @@ resolvers += DefaultMavenRepository
 resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 resolvers += Resolver.mavenLocal
 
+excludeDependencies ++= Seq(
+  // Hadoop brings in another logging backend.  Kill it with fire.
+  ExclusionRule("org.slf4j", "slf4j-log4j12")
+)
+
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
