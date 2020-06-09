@@ -74,7 +74,7 @@ object DataContainer {
       {
         val parsed = data.as[Map[String,JsValue]]
         val schema = parsed("schema").as[Seq[Schema]]
-        val sparkSchema = schema.map { _.sparkType }
+        val sparkSchema = schema.map { _.t }
         JsSuccess(
           DataContainer(
             schema,
@@ -90,7 +90,7 @@ object DataContainer {
     },
     new Writes[DataContainer] { 
       def writes(data: DataContainer): JsValue = {
-        val sparkSchema = data.schema.map { _.sparkType }
+        val sparkSchema = data.schema.map { _.t }
         Json.obj(
           "schema" -> data.schema,
           "data" -> data.data.map { row => 
