@@ -17,7 +17,7 @@ class ExplainSpec
 
   def beforeAll = {
     SharedSparkTestInstance.initAPI
-    SharedSparkTestInstance.loadCSV("TYPED_R", "test_data/r.csv", typeInference = true)
+    SharedSparkTestInstance.loadCSV("TYPED_R", "test_data/error_r.csv", typeInference = true)
   }
 
   "ExplainCell" >> {

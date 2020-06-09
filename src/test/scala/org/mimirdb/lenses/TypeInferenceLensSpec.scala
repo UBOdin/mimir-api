@@ -15,11 +15,14 @@ class TypeInferenceLensSpec
 {
   import spark.implicits._
 
-  def beforeAll = SharedSparkTestInstance.initAPI
+  def beforeAll = {
+    SharedSparkTestInstance.initAPI
+    SharedSparkTestInstance.loadCSV("TI_ERROR_R", "test_data/error_r.csv", typeInference = true)
+  }
 
   "Type Inference Lens" >> {
     val lens = Lenses("TYPE_INFERENCE")
-    val df = dataset("TEST_R")
+    val df = dataset("TI_ERROR_R")
     val config = lens.train(df, JsNull)
 
     val result = lens.apply(df, config, "CONTEXT_CUE")

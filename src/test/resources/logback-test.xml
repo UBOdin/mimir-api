@@ -22,6 +22,7 @@
 
   <!--++++++++++++++++++++++++  Lenses  ++++++++++++++++++++++++++-->
   <logger name="org.mimirdb.lenses.AnnotateImplicitHeuristics$" level="ERROR" />
+  <logger name="org.mimirdb.lenses.CaveatedCast$"               level="ERROR" />
 
   
   <root level="ERROR">
