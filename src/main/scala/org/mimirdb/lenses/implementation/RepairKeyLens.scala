@@ -82,7 +82,7 @@ object RepairKeyLens
                     outputKeyAttribute.cast(StringType)
                   ),
                   output(COUNT_COLUMN(field)) > 1
-                )
+                ).as(field)
               }
            }
     output.select(outputSchema:_*)

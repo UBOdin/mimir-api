@@ -31,4 +31,17 @@ class MissingKeyLensSpec
 
     result.count() must beEqualTo(10)
   }
+
+  "Web-UI Ticket 147" >> {
+    // https://github.com/VizierDB/web-ui/issues/147
+    SharedSparkTestInstance.loadCSV("ISSUE_147", "test_data/web_ui_147.csv")
+
+    val missingKey = Lenses("MISSING_KEY")
+    val df = dataset("ISSUE_147")
+    val config = missingKey.train(df, JsString("A"))
+
+    val result = missingKey.apply(df, config, "CONTEXT")
+
+    result.count() must beEqualTo(9)
+  }
 }
