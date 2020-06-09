@@ -31,5 +31,25 @@ object CaveatFormat
     }
   )
 
-  implicit val caveatFormat: Format[Caveat] = Json.format
+  implicit val caveatFormat: Format[Caveat] = Format(
+    new Reads[Caveat] {
+      def reads(j: JsValue): JsResult[Caveat] = {
+        val fields = j.as[Map[String, JsValue]]
+        JsSuccess(Caveat(
+          message = fields.getOrElse("english", { return JsError() }).as[String],
+          family = fields.get("family").map { _.as[String] },
+          key = fields.get("args").map { _.as[Seq[Literal]] }.getOrElse { Seq() }
+        ))
+      }
+    },
+    new Writes[Caveat] {
+      def writes(c: Caveat): JsValue = {
+        Json.obj(
+          "english" -> JsString(c.message),
+          "args" -> Json.toJson(c.key),
+          "source" -> Json.toJson(c.family)
+        )
+      }
+    }
+  )
 }
