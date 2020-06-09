@@ -15,6 +15,13 @@ case class ErrorResponse (
 
 object ErrorResponse {
   implicit val format: Format[ErrorResponse] = Json.format
+
+  def apply(error: Throwable, message: String): ErrorResponse = 
+    ErrorResponse(
+      error.getClass.getCanonicalName(),
+      message,
+      error.getStackTrace.map(_.toString).mkString("\n")
+    )
 }
 
 case class LensList (
