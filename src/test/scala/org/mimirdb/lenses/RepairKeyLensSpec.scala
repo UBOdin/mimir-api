@@ -35,6 +35,18 @@ class RepairKeyLensSpec
     // < A:2 > has 2 possible values for B, but one is null
     //         and 1 possible value across 2 rows for C.
     caveats.size must beEqualTo(2)
+  }
 
+  "Web UI Issue 148" >> {
+    // https://github.com/VizierDB/web-ui/issues/148
+
+    SharedSparkTestInstance.loadCSV("ISSUE_148", "test_data/web_ui_147.csv")
+    val lens = Lenses("REPAIR_KEY")
+    val df = dataset("ISSUE_148")
+    val config = lens.train(df, Json.toJson(RepairKeyLensConfig("A")))
+
+    val result = lens.apply(df, config, "REPAIR_A")
+
+    result.count() must beEqualTo(5)
   }
 }

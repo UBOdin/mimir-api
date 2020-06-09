@@ -40,7 +40,6 @@ class MissingKeyLensSpec
     val df = dataset("ISSUE_147")
     val config = missingKey.train(df, JsString("A"))
 
-    println(s"CONFIG: $config")
     val result = missingKey.apply(df, config, "CONTEXT")
 
     result.count() must beEqualTo(9)
