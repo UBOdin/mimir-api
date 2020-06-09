@@ -6,9 +6,18 @@
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
+
+  <!--+++++++++++++++++++++++  Caveats  +++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.caveats.enumerate.EnumeratePlanCaveats$"       level="INFO" />
+  <logger name="org.mimirdb.caveats.enumerate.EnumerateExpressionCaveats$" level="INFO" />
+
   <!--+++++++++++++++++++++++  API  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.api.MimirVizierServlet"    level="DEBUG" />
-  <logger name="org.mimirdb.api.MimirAPI$"             level="DEBUG" />
+  <logger name="org.mimirdb.api.MimirVizierServlet"                        level="DEBUG" />
+  <logger name="org.mimirdb.api.MimirAPI$"                                 level="DEBUG" />
+  <logger name="org.mimirdb.api.request.Query$"                            level="INFO" />
+
+  <!--+++++++++++++++++++++++  Lenses  +++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.lenses.implementation.CommentLens$"            level="INFO" />
     
   <root level="ERROR">
     <appender-ref ref="STDOUT" />

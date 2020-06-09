@@ -9,6 +9,8 @@ import org.mimirdb.lenses.Lens
 import org.mimirdb.spark.SparkPrimitive.dataTypeFormat
 import org.mimirdb.rowids.AnnotateWithRowIds
 import org.apache.spark.sql.Column
+import java.sql.SQLException
+import com.typesafe.scalalogging.LazyLogging
 
 case class CommentLensConfig(
   comments: Seq[CommentParams]
@@ -23,8 +25,8 @@ object CommentLensConfig
     CommentLensConfig(
       Seq(CommentParams(
           comment,
-          AnnotateWithRowIds.ATTRIBUTE,
-          Seq(),
+          None,
+          None,
           None
         )
       )
@@ -34,10 +36,24 @@ object CommentLensConfig
 
 case class CommentParams(
   comment: String,
-  expr: String,
-  rows: Seq[String],
-  resultCol: Option[String]
+  target: Option[String],
+  rows: Option[Seq[String]],
+  condition: Option[String]
 )
+{
+  def selectedRows: Column =
+  {
+    if(!condition.isEmpty){
+      expr(condition.get)
+    } else if(!rows.toSeq.flatten.isEmpty) {
+      rows.toSeq.flatten.foldLeft(lit(false))( (cond, row) => {
+        cond.or(col(AnnotateWithRowIds.ATTRIBUTE).eqNullSafe(lit(row)))
+      })
+    } else { 
+      lit(true)
+    }
+  }
+}
 
 object CommentParams
 {
@@ -46,44 +62,64 @@ object CommentParams
 
 object CommentLens
   extends Lens
+  with LazyLogging
 {
   def train(input: DataFrame, rawConfig: JsValue): JsValue = 
   {
-    Json.toJson(
+    val config =
       rawConfig match {
         case JsString(key) => CommentLensConfig(key)
         case _:JsObject => rawConfig.as[CommentLensConfig]
         case _ => throw new IllegalArgumentException(s"Invalid CommentLens configuration: $rawConfig")
       }
-    )
+    for(comment <- config.comments){
+      for(target <- comment.target){
+        if(input.schema.fieldNames.find { _.equalsIgnoreCase(target) }.isEmpty) {
+          throw new SQLException(s"Invalid comment column: ${comment.target} (out of ${input.schema.fieldNames.mkString(", ")})")
+        }
+      }
+    }
+    Json.toJson(config)
   }
   def create(input: DataFrame, rawConfig: JsValue, context: String): DataFrame = 
   {
     val config = rawConfig.as[CommentLensConfig]
-    config.comments.foldLeft(AnnotateWithRowIds(input))((init, curr) => {
-      val caveatCond = 
-        if(curr.rows.isEmpty) 
-          lit(true)
-        else 
-          curr.rows.foldLeft(lit(false))( (cond, row) => {
-            cond.or(col(AnnotateWithRowIds.ATTRIBUTE).eqNullSafe(lit(row)))
-          })
-      val resultCol = curr.resultCol.getOrElse(s"COMMENT_${config.comments.indexOf(curr)}")
-      val ccol = expr(curr.expr).caveatIf(curr.comment, caveatCond).as(resultCol)
-      val fieldRefs = 
-      (init.schema
-           .fieldNames
-           .map { field =>
-              if(field.equalsIgnoreCase(resultCol)) { ccol }
-              else { init(field).as(field) }
-           }).toSeq ++ (curr.resultCol match {
-             case Some(c) if init.schema.fieldNames.contains(c) => Seq(ccol) 
-             case Some(c) => Seq[Column]()
-             case None => Seq(ccol)
-           })
-      init.select(fieldRefs:_*)
-    })
     
+    AnnotateWithRowIds.withRowId(input) { df => 
+      var rowComments:List[CommentParams] = Nil
+      var cellComments:List[(String, String, Column)] = Nil
+
+      for(comment <- config.comments){
+        comment.target match {
+          case Some(target) => 
+            cellComments = (
+              target.toLowerCase, 
+              comment.comment, 
+              comment.selectedRows
+            ) :: cellComments
+          case None => 
+            rowComments = comment :: rowComments
+        }
+      }
+
+      val cellCommentMap = cellComments.groupBy { _._1 }
+
+      val outputs = 
+        df.schema
+          .fieldNames
+          .map { field =>
+            cellCommentMap.getOrElse(field.toLowerCase, Seq())
+              .foldLeft(df(field)) { case (column, (_, comment, rowSelection)) =>
+                column.caveatIf(comment, rowSelection)
+              }.as(field)
+          }
+
+      rowComments.foldLeft(
+        df.select( outputs:_* )
+      ) { (df, comment) => 
+        df.caveatIf(comment.comment, comment.selectedRows)
+      }
+    }    
   }
 
 }

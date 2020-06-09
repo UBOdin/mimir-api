@@ -69,9 +69,12 @@ libraryDependencies ++= Seq(
   "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
   
   //GIS Support
-  "org.datasyslab"                %  "geospark"                 % "1.4.0" excludeAll(ExclusionRule("com.amazonaws")),
-  "org.datasyslab"                %  "geospark-sql_3.0"         % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-  "org.datasyslab"                %  "geospark-viz_3.0"         % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark"                  % "1.4.0" excludeAll(ExclusionRule("com.amazonaws")),
+  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+
+  //Other data importers
+  "com.databricks"                %% "spark-xml"                 % "0.9.0"
 )
 
 ////// Publishing Metadata //////

@@ -31,14 +31,21 @@ object AnnotateWithRowIds
   }
   def withRowId(df: DataFrame, rowIdAttribute: String = ATTRIBUTE)(op: DataFrame => DataFrame): DataFrame =
   {
-    val ret = op(apply(df, rowIdAttribute))
-    ret.select(
-      ret.schema
-         .fieldNames
-         .filter(!_.equals(rowIdAttribute))
-         .map { ret(_) }:_*
-    )    
+    if(hasRowId(df, rowIdAttribute)){
+      op(df)
+    } else {
+      val ret = op(apply(df, rowIdAttribute))
+      ret.select(
+        ret.schema
+           .fieldNames
+           .filter(!_.equals(rowIdAttribute))
+           .map { ret(_) }:_*
+      )
+    }
   }
+
+  def hasRowId(df: DataFrame, rowIdAttribute: String = ATTRIBUTE): Boolean =
+    df.schema.fieldNames.find { _.equalsIgnoreCase(rowIdAttribute) } != None
 
 }
 
@@ -367,10 +374,10 @@ class AnnotateWithRowIds(
   }
 
   def planIsAnnotated(plan: LogicalPlan): Boolean =
-      plan.output.exists { _.name.equals(rowIdAttribute) }
+      plan.output.exists { _.name.equalsIgnoreCase(rowIdAttribute) }
 
   def getAnnotation(plan: LogicalPlan): Attribute =
-    plan.output.find { _.name.equals(rowIdAttribute) }.get
+    plan.output.find { _.name.equalsIgnoreCase(rowIdAttribute) }.get
 
   def annotationAttribute(id: ExprId = NamedExpression.newExprId, name:String = rowIdAttribute): Attribute =
     AttributeReference(
