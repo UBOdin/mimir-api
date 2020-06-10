@@ -10,8 +10,9 @@ object Lenses
     "MISSING_KEY"      -> MissingKeyLens,
     "MERGE_ATTRIBUTES" -> MergeAttributesLens,
     "REPAIR_KEY"       -> RepairKeyLens,
-    "COMMENT"        -> CommentLens,
-    "MISSING_VALUE"  -> MissingValueLens
+    "COMMENT"          -> CommentLens,
+    "MISSING_VALUE"    -> MissingValueLens,
+    "PIVOT"            -> PivotLens
   )
 
   def supportedLenses = implementations.keys.toSeq
