@@ -8,6 +8,34 @@ import org.mimirdb.caveats.implicits._
 import org.mimirdb.lenses.Lens
 import org.mimirdb.spark.SparkPrimitive.dataTypeFormat
 
+/**
+ * The pivot lens "pivots" a table, modifying rows into columns.
+ *
+ * For example
+ * 
+ *  Year  |  Color  | Price
+ * -------+---------+--------
+ *  2020  |  Blue   |  100k
+ *  2019  |  Blue   |  90k
+ *  2020  |  Red    |  120k
+ *  2019  |  Red    |  130k
+ * 
+ * Pivoting this with 'year' as a target, 'price' as a value, and 'color' as a key produces:
+ * 
+ *  Color | Price_2019 | Price_2020
+ * -------+------------+------------
+ *  Blue  |   90k      |   100k
+ *  Red   |   130k     |   120k
+ *
+ * In summary, every `value` column is split into N copies, where N is the number of distinct
+ * values of the `target` column.  For each distinct value of `key`, the lens will emit one row
+ * containing the corresponding value of the `value` column at the intersection of the `target` and
+ * and `key` values.  If no such rows exist, the cell will be NULL.  If multiple *distinct* values
+ * exist, the cell contents will be arbitrary.
+ *
+ * In either case, if there is not exactly one value that can be placed into a single cell in the
+ * pivot table, the cell will be caveated.
+ */
 case class PivotLensConfig(
   target: String,
   keys: Seq[String],
