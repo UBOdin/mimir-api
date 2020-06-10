@@ -4,7 +4,7 @@ import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
 import com.typesafe.scalalogging.LazyLogging
 
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.api.{ Request, Response, MimirAPI, Schema }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
 
@@ -59,9 +59,17 @@ object CreateLensRequest
 case class CreateLensResponse (
             /* name of resulting lens */
                   lensName: String,
-                  config: JsValue
+                  config: JsValue,
+                  schema: Seq[Schema]
 ) extends Response
 
 object CreateLensResponse {
   implicit val format: Format[CreateLensResponse] = Json.format
+
+  def apply(output: String, config: JsValue): CreateLensResponse =
+    CreateLensResponse(
+      output, 
+      config, 
+      Schema(MimirAPI.catalog.get(output).schema)
+    )
 }

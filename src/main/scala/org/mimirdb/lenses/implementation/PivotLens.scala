@@ -97,13 +97,14 @@ object PivotLens
 
     def keyDescriptionParts = 
       if(config.keys.isEmpty) { Seq() }
+      else if(config.keys.size == 1) { Seq(lit(" on row "), col(config.keys.head).cast(StringType))}
       else {
         // Emits ' x < ${key1}, ${key2}, ${key3}, ... >'
-        lit(" x < ") +: 
+        lit(" on row < ") +: 
           config.keys
-                .flatMap { k => Seq(lit(", "), col(k).cast(StringType)) }
+                .flatMap { k => Seq(lit(", "), lit(s"$k : "), col(k).cast(StringType)) }
                 .drop(1) :+
-          lit(">")
+          lit(" >")
       }
 
     val (pivotColumnValues, pivotColumnCounts, caveatedPivotColumns) = 
@@ -116,10 +117,11 @@ object PivotLens
                     .otherwise(lit(null))
 
             val caveatMessage = concat((Seq[Column](
-                col(countColumn(valueName, safePivot)).cast(StringType),
-                lit(s" alternatives for $valueName x $pivot")
+                when(col(countColumn(valueName, safePivot)) === 0, "No")
+                  .otherwise(col(countColumn(valueName, safePivot)).cast(StringType)),
+                lit(s" possible values for ${valueName}_${pivot}")
               ) ++ keyDescriptionParts 
-                :+ lit(s" in $context")
+                :+ lit(s" $context (pivoted on ${config.target})")
             ):_*) 
 
             val caveatCondition = 
