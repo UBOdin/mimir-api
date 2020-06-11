@@ -26,4 +26,8 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     descr = "A directory to store metadata files in.",
     default = Some("vizier-data")
   )
+  val sparkHost = opt[String]("spark-host",
+    descr = "spark master.",
+    default = Some("local")
+  )
 }
