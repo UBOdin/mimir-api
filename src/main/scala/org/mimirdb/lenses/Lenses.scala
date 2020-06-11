@@ -8,7 +8,7 @@ object Lenses
   val implementations = scala.collection.mutable.Map[String, Lens](
     "TYPE_INFERENCE"   -> TypeInferenceLens,
     "MISSING_KEY"      -> MissingKeyLens,
-    "MERGE_ATTRIBUTES" -> MergeAttributesLens,
+    "PICKER"           -> MergeAttributesLens,
     "REPAIR_KEY"       -> RepairKeyLens,
     "COMMENT"          -> CommentLens,
     "MISSING_VALUE"    -> MissingValueLens,
