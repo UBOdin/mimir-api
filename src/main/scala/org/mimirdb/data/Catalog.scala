@@ -38,7 +38,7 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedException
  * queried.
  */
 class Catalog(
-  val metadata: MetadataBackend, 
+  metadata: MetadataBackend, 
   staging: StagingProvider,
   spark: SparkSession,
   bulkStorageFormat: FileFormat.T = FileFormat.PARQUET,

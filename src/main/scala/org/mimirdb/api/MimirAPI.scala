@@ -42,6 +42,7 @@ import org.mimirdb.lenses.implementation.{
 import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 
 import org.apache.spark.sql.AnalysisException
+import org.mimirdb.data.MetadataBackend
 
 //import org.apache.spark.ui.FixWebUi
 
@@ -52,6 +53,7 @@ object MimirAPI extends LazyLogging {
   val DEFAULT_API_PORT = 8089
 
   var sparkSession: SparkSession = null
+  var metadata: MetadataBackend = null
   var catalog: Catalog = null
   var server: Server = null
   var conf: MimirConfig = null
@@ -69,7 +71,7 @@ object MimirAPI extends LazyLogging {
     
     // Initialize the catalog
     { 
-      val metadata = conf.metadata().split(":").toList match {
+      metadata = conf.metadata().split(":").toList match {
         case "sqlite" :: Nil => 
           new JDBCMetadataBackend("sqlite", s"${conf.dataDir()}vizier.db")
         case "sqlite" :: rest => 

@@ -125,7 +125,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
       val name    = row(1).toString.trim.toUpperCase
       val rawType = row(2).toString.trim
 
-      name -> DataType.fromJson("\""+rawType+"\"")
+      name -> DataType.fromDDL(rawType)
     }
 
     if(ret.isEmpty) { None } else { Some(ret) }
