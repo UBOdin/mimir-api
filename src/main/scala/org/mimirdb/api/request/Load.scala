@@ -12,6 +12,10 @@ import org.mimirdb.data.{
   LoadConstructor
 }
 import org.mimirdb.lenses.Lenses
+import java.io.IOException
+import org.mimirdb.api.FormattedError
+import org.apache.spark.deploy.rest.ErrorResponse
+import java.io.FileNotFoundException
 
 
 case class LoadRequest (
@@ -49,63 +53,70 @@ case class LoadRequest (
     }
 
   def handle: JsValue = {
-    val sparkOptions = backendOption.map { tup => tup.name -> tup.value }
+    try { 
+      val sparkOptions = backendOption.map { tup => tup.name -> tup.value }
 
-    // Some parameters may change during the loading process.  Var-ify them
-    var url = file
-    var storageFormat = format
-    var finalSparkOptions = 
-      Catalog.defaultLoadOptions(format, detectHeaders) ++ sparkOptions
+      // Some parameters may change during the loading process.  Var-ify them
+      var url = file
+      var storageFormat = format
+      var finalSparkOptions = 
+        Catalog.defaultLoadOptions(format, detectHeaders) ++ sparkOptions
 
-    // Build a preliminary configuration of Mimir-specific metadata
-    val mimirOptions = scala.collection.mutable.Map[String, JsValue]()
+      // Build a preliminary configuration of Mimir-specific metadata
+      val mimirOptions = scala.collection.mutable.Map[String, JsValue]()
 
-    val stagingIsMandatory = (
-         file.startsWith("http://")
-      || file.startsWith("https://")
-    )
-    // Do some pre-processing / default configuration for specific formats
-    //  to make the API a little friendlier.
-    storageFormat match {
-
-      // The Google Sheets loader expects to see only the last two path components of 
-      // the sheet URL.  Rewrite full URLs if the user wants.
-      case FileFormat.GOOGLE_SHEETS => {
-        url = url.split("/").reverse.take(2).reverse.mkString("/")
-      }
-      
-      // For everything else do nothing
-      case _ => {}
-    }
-
-    if(stagingIsMandatory) {
-      // Preserve the original URL and configurations in the mimirOptions
-      mimirOptions("preStagedUrl") = JsString(url)
-      mimirOptions("preStagedSparkOptions") = Json.toJson(finalSparkOptions)
-      mimirOptions("preStagedFormat") = JsString(storageFormat)
-      val stagedConfig  = MimirAPI.catalog.stage(url, finalSparkOptions, storageFormat, output)
-      url               = stagedConfig._1
-      finalSparkOptions = stagedConfig._2
-      storageFormat     = stagedConfig._3
-    }
-
-    var loadConstructor = LoadConstructor(
-      url = url,
-      format = storageFormat,
-      sparkOptions = finalSparkOptions
-    )
-
-    // Infer types if necessary
-    if(inferTypes){
-      loadConstructor = loadConstructor.withLens(
-        MimirAPI.sparkSession, 
-        "TYPE_INFERENCE", 
-        "in " +humanReadableName.getOrElse { file }
+      val stagingIsMandatory = (
+           file.startsWith("http://")
+        || file.startsWith("https://")
       )
-    }
+      // Do some pre-processing / default configuration for specific formats
+      //  to make the API a little friendlier.
+      storageFormat match {
 
-    // And finally save the dataframe constructor
-    MimirAPI.catalog.put(output, loadConstructor, Set())
+        // The Google Sheets loader expects to see only the last two path components of 
+        // the sheet URL.  Rewrite full URLs if the user wants.
+        case FileFormat.GOOGLE_SHEETS => {
+          url = url.split("/").reverse.take(2).reverse.mkString("/")
+        }
+        
+        // For everything else do nothing
+        case _ => {}
+      }
+
+      if(stagingIsMandatory) {
+        // Preserve the original URL and configurations in the mimirOptions
+        mimirOptions("preStagedUrl") = JsString(url)
+        mimirOptions("preStagedSparkOptions") = Json.toJson(finalSparkOptions)
+        mimirOptions("preStagedFormat") = JsString(storageFormat)
+        val stagedConfig  = MimirAPI.catalog.stage(url, finalSparkOptions, storageFormat, output)
+        url               = stagedConfig._1
+        finalSparkOptions = stagedConfig._2
+        storageFormat     = stagedConfig._3
+      }
+
+      var loadConstructor = LoadConstructor(
+        url = url,
+        format = storageFormat,
+        sparkOptions = finalSparkOptions
+      )
+
+      // Infer types if necessary
+      if(inferTypes){
+        loadConstructor = loadConstructor.withLens(
+          MimirAPI.sparkSession, 
+          "TYPE_INFERENCE", 
+          "in " +humanReadableName.getOrElse { file }
+        )
+      }
+
+      // And finally save the dataframe constructor
+      MimirAPI.catalog.put(output, loadConstructor, Set())
+    } catch {
+      case e: FileNotFoundException => 
+        throw FormattedError(e, s"Can't Load URL [Not Found]: $file")
+      case e: IOException => 
+        throw FormattedError(e, s"Error Loading $file (${e.getMessage()}")
+    }
 
     return Json.toJson(LoadResponse(output))
   }

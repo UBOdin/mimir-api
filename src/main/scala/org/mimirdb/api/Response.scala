@@ -16,9 +16,9 @@ case class ErrorResponse (
 object ErrorResponse {
   implicit val format: Format[ErrorResponse] = Json.format
 
-  def apply(error: Throwable, message: String): ErrorResponse = 
+  def apply(error: Throwable, message: String, className: String = null): ErrorResponse = 
     ErrorResponse(
-      error.getClass.getCanonicalName(),
+      Option(className).getOrElse { error.getClass.getCanonicalName() } ,
       message,
       error.getStackTrace.map(_.toString).mkString("\n")
     )
