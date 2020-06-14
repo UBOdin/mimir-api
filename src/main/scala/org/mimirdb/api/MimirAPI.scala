@@ -60,6 +60,8 @@ object MimirAPI extends LazyLogging {
 
   def main(args: Array[String])
   {
+    println("Starting Mimir API Server ...")
+
     conf = new MimirConfig(args);
     conf.verify
 
@@ -100,7 +102,7 @@ object MimirAPI extends LazyLogging {
     //println(Query.apply("SELECT TKEY,A,B FROM LENS_MISSING_VALUE_521717238", true, sparkSession))
     
     // And sleep until done
-    println(s"Mimir API Server Started on http://localhost:${conf.port()}/...")
+    println(s"... Mimir API Server Started on http://localhost:${conf.port()}/")
      while(isRunning){
        Thread.sleep(90000)
        
@@ -182,6 +184,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/annotations/cell"     => input.as[ExplainCellRequest]
                     case "/annotations/all"      => input.as[ExplainEverythingRequest]
                     case "/query/data"           => input.as[QueryMimirRequest]
+                    case "/query/table"          => input.as[QueryTableRequest]
                     case "/schema"               => input.as[SchemaForQueryRequest]
                     case "/annotations/feedback" => {
                       throw new UnsupportedOperationException("Feedback No Longer Supported")

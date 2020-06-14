@@ -19,31 +19,75 @@ import org.mimirdb.util.TimerUtils
 
 import com.typesafe.scalalogging.LazyLogging
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
+import org.mimirdb.rowids.AnnotateWithSequenceNumber
 
 case class QueryMimirRequest (
             /* input for query */
-                  input: String,
+                  input: Option[String],
             /* query string - sql */
                   query: String,
             /* include taint in response */
-                  includeUncertainty: Boolean,
+                  includeUncertainty: Option[Boolean],
             /* include reasons in response */
-                  includeReasons: Boolean
+                  includeReasons: Option[Boolean]
 ) extends Request {
   def handle = {
-    val inputSubstitutionQuery = query.replaceAll("\\{\\{\\s*input\\s*\\}\\}", input.toString) 
-    if(includeReasons) {
+    if(!input.getOrElse("").equals("")){
+      throw new UnsupportedOperationException("Input substitutions are no longer supported")
+    }
+    if(includeReasons.getOrElse(false)) {
       throw new UnsupportedOperationException("IncludeReasons is no longer supported")
     }
     Json.toJson(Query(
-      inputSubstitutionQuery,
-      includeUncertainty
+      query,
+      includeUncertainty.getOrElse(true)
     ))
   }
 }
 
 object QueryMimirRequest {
   implicit val format: Format[QueryMimirRequest] = Json.format
+}
+
+case class QueryTableRequest (
+            /* input for query */
+                  table: String,
+            /* columns for query (`*` if omitted) */
+                  columns: Option[Seq[String]],
+            /* max number of rows to return */
+                  limit: Option[Int],
+            /* starting point to begin returning rows */
+                  offset: Option[Long],
+            /* include taint in response */
+                  includeUncertainty: Boolean
+) extends Request {
+  def handle = {
+    var df = MimirAPI.catalog.get(table)
+    
+    val columnNames:Seq[String] = 
+      columns.getOrElse { df.schema.fieldNames }
+
+    if(!offset.isEmpty){
+      df = AnnotateWithSequenceNumber(df)
+      df = df.filter(df(AnnotateWithSequenceNumber.ATTRIBUTE) >= offset.get)
+    }
+
+    // Filter down to the right columns... dropping the sequence number if needed
+    df = df.select(columnNames.map { df(_) }:_*)
+
+    if(!limit.isEmpty){
+      df = df.limit(limit.get)
+    }
+
+    Json.toJson(Query(
+      df,
+      includeUncertainty
+    ))
+  }
+}
+
+object QueryTableRequest {
+  implicit val format: Format[QueryTableRequest] = Json.format
 }
 
 
@@ -79,7 +123,10 @@ object DataContainer {
           DataContainer(
             schema,
             parsed("data").as[Seq[Seq[JsValue]]].map { 
-              _.zip(sparkSchema).map { case (dat, sch) => SparkPrimitive.decode(_, sch) } },
+              _.zip(sparkSchema).map { case (dat, sch) => 
+                SparkPrimitive.decode(dat, sch) 
+              } 
+            },
             parsed("prov").as[Seq[String]],
             parsed("colTaint").as[Seq[Seq[Boolean]]],
             parsed("rowTaint").as[Seq[Boolean]],
