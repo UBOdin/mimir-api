@@ -1,6 +1,6 @@
 package org.mimirdb.util
 
-import play.api.libs.json.{JsPath, JsonValidationError}
+import play.api.libs.json.{JsValue, Json, JsPath, JsonValidationError}
 
 object JsonUtils
 {
@@ -15,4 +15,7 @@ object JsonUtils
       }
     }
   }
+
+  def addFieldsToObject(j: JsValue, fields: (String, JsValue)*): JsValue =
+    Json.toJson(j.as[Map[String, JsValue]] ++ fields.toMap)
 }
