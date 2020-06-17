@@ -66,7 +66,7 @@ object VizierDB {
   }
   
   def withDataset[T](dsname:String, handler: Dataset[Row] => T) : T = {
-    MimirAPI.catalog.populateSpark
+    MimirAPI.catalog.populateSpark()
     handler(MimirAPI.catalog.get(dsname))
   }
       

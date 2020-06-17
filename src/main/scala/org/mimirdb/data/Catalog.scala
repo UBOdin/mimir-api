@@ -211,10 +211,21 @@ class Catalog(
     cache.remove(name)
   }
 
-  def populateSpark
+  def populateSpark(forgetInvalidTables: Boolean = false)
   {
     for(view <- views.keys){
-      get(view).createOrReplaceTempView(view)
+      try {
+        get(view).createOrReplaceTempView(view)
+      } catch {
+        case e:Exception => {
+          logger.error(s"Couldn't safely preload $view.\n$e")
+          if(forgetInvalidTables){
+            logger.warn(s"Forgetting $view")
+            logger.warn(views.get(view).get._2.asInstanceOf[String])
+            views.rm(view)
+          }
+        }
+      }
     }
   }
 }

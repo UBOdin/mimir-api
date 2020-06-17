@@ -177,7 +177,7 @@ object Query
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): DataContainer = 
   {
-    MimirAPI.catalog.populateSpark
+    MimirAPI.catalog.populateSpark()
     apply(sparkSession.sql(query), includeCaveats)
   }
 
@@ -279,7 +279,7 @@ object Query
     query: String,
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): Seq[Schema] = { 
-    MimirAPI.catalog.populateSpark
+    MimirAPI.catalog.populateSpark()
     getSchema(sparkSession.sql(query))
   }
 

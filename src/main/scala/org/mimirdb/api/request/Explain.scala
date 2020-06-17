@@ -94,7 +94,7 @@ object Explain
     spark: SparkSession = MimirAPI.sparkSession
   ): Seq[CaveatSet] = 
   {
-    MimirAPI.catalog.populateSpark
+    MimirAPI.catalog.populateSpark()
     var df = spark.sql(query)
     val selectedCols = 
       Option(cols).getOrElse { df.schema.fieldNames.toSeq }.toSet
