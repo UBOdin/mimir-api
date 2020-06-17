@@ -36,6 +36,16 @@ object SharedSparkTestInstance
     MimirAPI.catalog.put(name, constructor, Set())
   }
 
+  def loadText(name: String, url: String)
+  {
+    var constructor = LoadConstructor(
+                        url = url, 
+                        format = "text",
+                        sparkOptions = Map()
+                      )
+    MimirAPI.catalog.put(name, constructor, Set())
+  }
+
   def initAPI {
     this.synchronized {
       if(MimirAPI.sparkSession == null){

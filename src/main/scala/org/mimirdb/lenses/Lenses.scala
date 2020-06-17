@@ -12,7 +12,8 @@ object Lenses
     "REPAIR_KEY"       -> RepairKeyLens,
     "COMMENT"          -> CommentLens,
     "MISSING_VALUE"    -> MissingValueLens,
-    "PIVOT"            -> PivotLens
+    "PIVOT"            -> PivotLens,
+    "SHRED"            -> ShredderLens
   )
 
   def supportedLenses = implementations.keys.toSeq
