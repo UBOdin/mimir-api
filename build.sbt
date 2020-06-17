@@ -26,8 +26,8 @@ resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 resolvers += Resolver.mavenLocal
 
 excludeDependencies ++= Seq(
-  // Hadoop brings in another logging backend.  Kill it with fire.
-  ExclusionRule("org.slf4j", "slf4j-log4j12")
+  // Hadoop brings in more logging backends.  Kill it with fire.
+  ExclusionRule("org.slf4j", "slf4j-log4j12"),
 )
 
 // Custom Dependencies
@@ -39,6 +39,7 @@ libraryDependencies ++= Seq(
   // API
   "com.typesafe.scala-logging"    %%  "scala-logging"            % "3.9.2",
   "ch.qos.logback"                %   "logback-classic"          % "1.2.3",
+  "org.apache.logging.log4j"      %   "log4j-core"               % "2.13.3",
   "org.rogach"                    %%  "scallop"                  % "3.4.0",
 
   // Testing

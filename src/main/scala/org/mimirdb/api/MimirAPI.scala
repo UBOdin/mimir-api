@@ -61,7 +61,7 @@ object MimirAPI extends LazyLogging {
   def main(args: Array[String])
   {
     println("Starting Mimir API Server ...")
-
+    logger.debug("debug is enabled")
     conf = new MimirConfig(args);
     conf.verify
 
@@ -92,8 +92,9 @@ object MimirAPI extends LazyLogging {
       ).flatten
     if(!geocoders.isEmpty){ Lenses.initGeocoding(geocoders, catalog) }
 
-    //populate spark after lens initialization
-    catalog.populateSpark
+    // populate spark after lens initialization
+    // For safety, drop any tables that are now invalid... it's easy to reload them later
+    catalog.populateSpark(forgetInvalidTables = true)
     
     // Start the server
     runServer(conf.port())
