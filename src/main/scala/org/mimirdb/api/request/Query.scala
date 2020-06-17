@@ -75,13 +75,10 @@ case class QueryTableRequest (
     // Filter down to the right columns... dropping the sequence number if needed
     df = df.select(columnNames.map { df(_) }:_*)
 
-    if(!limit.isEmpty){
-      df = df.limit(limit.get)
-    }
-
     Json.toJson(Query(
       df,
-      includeUncertainty
+      includeCaveats = includeUncertainty,
+      limit = limit
     ))
   }
 }
@@ -174,16 +171,33 @@ object Query
   def apply(
     query: String,
     includeCaveats: Boolean,
+    limit: Option[Int] = None,
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): DataContainer = 
   {
     MimirAPI.catalog.populateSpark()
-    apply(sparkSession.sql(query), includeCaveats)
+    apply(
+      sparkSession.sql(query), 
+      includeCaveats = includeCaveats, 
+      limit = limit
+    )
   }
 
   def apply(
     query: DataFrame,
     includeCaveats: Boolean
+  ): DataContainer =
+  {
+    apply(
+      query, 
+      includeCaveats = includeCaveats, 
+      limit = None
+    )
+  }
+  def apply(
+    query: DataFrame,
+    includeCaveats: Boolean,
+    limit: Option[Int]
   ): DataContainer =
   {
 
@@ -219,6 +233,10 @@ object Query
 
     logger.trace(s"----------- AFTER-CAVEATS -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
+    if(!limit.isEmpty){
+      df = df.limit(limit.get)
+      logger.trace(s"----------- AFTER-LIMIT -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
+    }
 
     /////// Create a mapping from field name to position in the output tuples
     val postAnnotationSchema = 
