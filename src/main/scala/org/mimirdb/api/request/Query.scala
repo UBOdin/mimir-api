@@ -213,7 +213,7 @@ object Query
     df = AnnotateImplicitHeuristics(df)
 
     /////// We need the schema before any annotations to produce the right outputs
-    val schema = getSchema(df)
+    val schema = Schema(df)
 
     logger.trace(s"----------- RAW-QUERY-----------\nSCHEMA:{ ${schema.mkString(", ")} }\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
@@ -240,7 +240,7 @@ object Query
 
     /////// Create a mapping from field name to position in the output tuples
     val postAnnotationSchema = 
-      getSchema(df)
+      Schema(df)
         .zipWithIndex
         .map { case (attribute, idx) => attribute.name.toLowerCase -> idx }
         .toMap
@@ -285,20 +285,12 @@ object Query
     )
   }
 
-  def getSchema(df: DataFrame):Seq[Schema] = 
-    df.schema match { 
-      case StructType(fields) => 
-        fields.map { field => Schema(field.name, field.dataType) }
-      case other => 
-        throw new IllegalArgumentException(s"Query produces a non-dataframe output $other")
-    }
-
   def getSchema(
     query: String,
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): Seq[Schema] = { 
     MimirAPI.catalog.populateSpark()
-    getSchema(sparkSession.sql(query))
+    Schema(sparkSession.sql(query))
   }
 
 }

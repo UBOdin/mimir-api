@@ -45,7 +45,7 @@ class JoinSpec
 
   def query[T](query: String, includeUncertainty: Boolean = true)
               (op: DataContainer => T): T = 
-    op(Query(query, includeUncertainty, spark))
+    op(Query(query, includeUncertainty, sparkSession = spark))
 
   def schemaOf(query: String): Seq[Schema] =
     Query.getSchema(query, spark)

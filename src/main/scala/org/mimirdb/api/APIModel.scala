@@ -1,6 +1,7 @@
 package org.mimirdb.api
 
 import play.api.libs.json._
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{ DataType, ArrayType, StructField, StructType }
 import org.apache.spark.sql.geosparksql.UDT.GeometryUDT
 import org.apache.spark.sql.types.UDTRegistration
@@ -28,6 +29,9 @@ case class Schema (
 }
 
 object Schema {
+  def apply(df: DataFrame): Seq[Schema] =
+    apply(df.schema)
+
   def apply(schema: StructType): Seq[Schema] =
     schema.fields.map { Schema(_) }
 
