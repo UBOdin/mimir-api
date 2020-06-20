@@ -1,6 +1,6 @@
 name := "mimir-api"
-version := "0.1-SNAPSHOT"
-organization := "info.mimirdb"
+version := "0.1"
+organization := "org.mimirdb"
 scalaVersion := "2.12.10"
 
 // Make the UX work in SBT
@@ -33,7 +33,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.1-SNAPSHOT",
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.1",
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
