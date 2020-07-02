@@ -72,17 +72,7 @@ object MimirAPI extends LazyLogging {
     InitSpark.initPlugins(sparkSession)
     
     // Initialize the catalog
-    { 
-      metadata = conf.metadata().split(":").toList match {
-        case "sqlite" :: Nil => 
-          new JDBCMetadataBackend("sqlite", s"${conf.dataDir()}vizier.db")
-        case "sqlite" :: rest => 
-          new JDBCMetadataBackend("sqlite", rest.mkString(":"))
-        case _ => throw new IllegalArgumentException(s"Unknown metadata provider: ${conf.metadata}")
-      }
-      val staging = new LocalFSStagingProvider(conf.staging())
-      catalog = new Catalog(metadata, staging, sparkSession)
-    }
+    initCatalog(conf.metadata())
 
     // Initialize Geocoders (if configuration options available)
     val geocoders = 
@@ -112,7 +102,18 @@ object MimirAPI extends LazyLogging {
      server.stop();
   }
   
-  
+  def initCatalog(metadataDB: String)
+  {
+    metadata = metadataDB.split(":").toList match {
+      case "sqlite" :: Nil => 
+        new JDBCMetadataBackend("sqlite", s"${conf.dataDir()}vizier.db")
+      case "sqlite" :: rest => 
+        new JDBCMetadataBackend("sqlite", rest.mkString(":"))
+      case _ => throw new IllegalArgumentException(s"Unknown metadata provider: ${metadataDB}")
+    }
+    val staging = new LocalFSStagingProvider(conf.staging())
+    catalog = new Catalog(metadata, staging, sparkSession)
+  }
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
     if(server != null){ 
