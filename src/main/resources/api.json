@@ -1,0 +1,1064 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "The Mimir Annotated Data Store",
+    "version": "0.2",
+    "description": "A spark-based data server ",
+    "contact": {
+      "name": "Mimir Issues",
+      "url": "https://github.com/UBOdin/mimir-api"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "paths": {
+    "/lens": {
+      "get": {
+        "summary": "Retrieve a list of lenses supported by this Mimir instance",
+        "description": "",
+        "operationId": "",
+        "responses": {
+          "200": {
+            "description": "A list of lenses supported by this Mimir instance",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "simple": {
+                    "value": {
+                      "lensList": [
+                        "TYPE_INFERENCE",
+                        "MISSING_KEY",
+                        "COMMENT"
+                      ]
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lensList": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "The name of a lens supported by this Mimir instance"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataSource/load": {
+      "post": {
+        "summary": "Register (load) a new data source with this Mimir instance",
+        "description": "",
+        "operationId": "",
+        "requestBody": {
+          "description": "Instructions for loading the dataset",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "format",
+                  "inferTypes",
+                  "detectHeaders"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "The URL of the data source to load"
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "The spark data loader to use",
+                    "enum": [
+                      "csv",
+                      "json",
+                      "com.databricks.spark.xml",
+                      "com.crealytics.spark.excel",
+                      "jdbc",
+                      "text",
+                      "parquet",
+                      "mimir.exec.spark.datasource.pdf",
+                      "orc",
+                      "mimir.exec.spark.datasource.google.spreadsheet",
+                      "org.apache.spark.sql.execution.datasources.ubodin.csv"
+                    ]
+                  },
+                  "inferTypes": {
+                    "type": "boolean",
+                    "description": "Automatically guess the types of loaded attributes (e.g., for a CSV file)"
+                  },
+                  "detectHeaders": {
+                    "type": "boolean",
+                    "description": "For a CSV file, assume that the file has a header row"
+                  },
+                  "humanReadableName": {
+                    "type": "string",
+                    "description": "Provide a human-readable description of this dataset to be used in caveats applied during data loading."
+                  },
+                  "caveatLoadErrors": {
+                    "type": "boolean",
+                    "description": "If supported by the data loader, record errors arising during the data load process as caveats"
+                  },
+                  "backendOption": {
+                    "type": "array",
+                    "description": "A list of key-value pairs to pass as options to the spark data loader",
+                    "items": {
+                      "$ref": "#/components/schemas/Tuple"
+                    }
+                  },
+                  "dependencies": {
+                    "type": "array",
+                    "description": "A list of tables from which the dataset being loaded was externally derived; Caveats on these tables will be transferred to the newly loaded table.",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "resultName": {
+                    "type": "string",
+                    "description": "The name to assign to this table.  If omitted, a fresh name will be generated and returned in the result."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Load successful",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"name\" : \"my_example_data\"\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the newly loaded table, whether or not it was explicitly defined as part of the request."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataSource/unload": {
+      "post": {
+        "summary": "Output (unload) a new data source to a location specified by a given base file/URL.",
+        "requestBody": {
+          "description": "Targetting instructions for where to unload the data",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input",
+                  "file",
+                  "format"
+                ],
+                "properties": {
+                  "input": {
+                    "type": "string",
+                    "description": "The name of the dataset to unload"
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "A URL indicating where the dataset should be unloaded (note that data loaders that emit multiple files will use this as a base url.  See the return value for a full list of files.)"
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "The name of the spark data loader to use to dump the data"
+                  },
+                  "backendOption": {
+                    "type": "array",
+                    "description": "Options to pass directly to the spark data loader",
+                    "items": {
+                      "$ref": "#/components/schemas/Tuple"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unload successful",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"outputFiles\" : [\"s3a://output_bucket/my_example_dataset/data.csv\"]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "outputFiles": {
+                      "type": "array",
+                      "description": "A list of URLs corresponding to each file emitted by the data loader.  All should be relative to the base URL provided.",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lens/create": {
+      "post": {
+        "summary": "Create a new dataset by applying a 'lens' data cleaning operation",
+        "requestBody": {
+          "description": "A specification for the newly created lens",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input",
+                  "params",
+                  "type",
+                  "materialize"
+                ],
+                "properties": {
+                  "input": {
+                    "type": "string",
+                    "description": "The dataset to apply the newly created lens to"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "The type of the lens being created (should be in all upper-case)"
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Lens-specific parameters or null to indicate that the lens should select defaults.  See lens documentation for details.",
+                    "externalDocs": {
+                      "url": "https://github.com/UBOdin/mimir/wiki/Lenses-and-Adaptive-Schemas"
+                    },
+                    "additionalProperties": true
+                  },
+                  "materialize": {
+                    "type": "boolean",
+                    "description": "Whether or not the resulting lens should be materialized for faster access (currently ignored)"
+                  },
+                  "humanReadableName": {
+                    "type": "string",
+                    "description": "A human readable name for the dataset to include in caveats created by the lens"
+                  },
+                  "resultName": {
+                    "type": "string",
+                    "description": "The name of the dataset created by applying this lens (a fresh name will be automatically generated if needed)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lens creation successful (returns an updated configuration)",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"lensName\" : \"my_example_lens\",\n  \"params\" : {\n    \"example_column_1\" : \"string\",\n    \"example_column_2\" : \"int\",\n    \"example_column_3\" : \"float\"\n  },\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"float\" }\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "lensName",
+                    "params",
+                    "schema"
+                  ],
+                  "properties": {
+                    "lensName": {
+                      "type": "string",
+                      "description": "The name of the newly created lens (whether or not one was provided)"
+                    },
+                    "params": {
+                      "type": "object",
+                      "description": "A concrete instantiation with all missing/implicit values replaced by concrete defaults selected by the lens.  This value should be used on subsequent attempts to create lenses based on this one."
+                    },
+                    "schema": {
+                      "$ref": "#/components/schemas/TableSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/view/create": {
+      "post": {
+        "summary": "Create a new dataset from a SQL query over existing datasets",
+        "requestBody": {
+          "description": "The query and associated metadata to use in interpreting it",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input",
+                  "query"
+                ],
+                "properties": {
+                  "input": {
+                    "type": "object",
+                    "description": "A list of table names to alias in the query.  If the view query refers to a table defined as a key, it will be transparently replaced with the dataset in the value.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "query": {
+                    "type": "string",
+                    "description": "The SQL string to build a query around (uses SparkSQL syntax)"
+                  },
+                  "resultName": {
+                    "type": "string",
+                    "description": "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "View creation successful",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"viewName\" : \"my_example_view\",\n  \"dependencies\" : [\"my_example_dataset\"],\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "viewName",
+                    "dependencies",
+                    "schema"
+                  ],
+                  "properties": {
+                    "viewName": {
+                      "type": "string",
+                      "description": "The name of the newly created view dataset (whether or not one was explicitly provided)"
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "description": "A list of datasets on which the newly created dataset depends.",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "schema": {
+                      "$ref": "#/components/schemas/TableSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/view/sample": {
+      "post": {
+        "summary": "Create a new dataset as a sample of an existing dataset",
+        "requestBody": {
+          "description": "Which dataset to sample from and how to sample it",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "source",
+                  "samplingMode"
+                ],
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "description": "The dataset to sample from"
+                  },
+                  "samplingMode": {
+                    "$ref": "#/components/schemas/SamplingMode"
+                  },
+                  "resultName": {
+                    "type": "string",
+                    "description": "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sample creation successful",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{ \n  \"viewName\" : \"my_example_sample\" \n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "viewName"
+                  ],
+                  "properties": {
+                    "viewName": {
+                      "type": "string",
+                      "description": "The name of the newly created sample dataset (whether or not one was explicitly provided)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vizual/create": {
+      "post": {
+        "summary": "Create a dataset by applying a Vizual script to an existing dataset",
+        "requestBody": {
+          "description": "The vizual script and associated options",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input",
+                  "script"
+                ],
+                "properties": {
+                  "input": {
+                    "type": "object",
+                    "description": "The name of the dataset to use as an input to the Vizual script"
+                  },
+                  "script": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/VizualCommand"
+                    }
+                  },
+                  "resultName": {
+                    "type": "string",
+                    "description": "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+                  },
+                  "compile": {
+                    "type": "boolean",
+                    "description": "True if the provided script should be compiled to mimick spreadsheet semantics (defaults to true)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vizual script execution successful",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"name\" : \"my_example_vizual_result\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+                    },
+                    "script": {
+                      "type": "array",
+                      "description": "A compiled version of the script (if compilation was requested) that can be used on subsequent calls",
+                      "items": {
+                        "$ref": "#/components/schemas/VizualCommand"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/annotations/cell": {
+      "post": {
+        "summary": "Retrieve the caveats on a specified cell of a query",
+        "requestBody": {
+          "description": "The cell to retrieve caveats for",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query",
+                  "row",
+                  "col"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "The query to retrieve caveats for.  Syntax is SparkSQL"
+                  },
+                  "row": {
+                    "type": "string",
+                    "description": "The rowid of the cell to retrieve caveats for"
+                  },
+                  "col": {
+                    "type": "string",
+                    "description": "The name of the column of the cell to retrieve caveats for"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Annotations on the requested cells",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"reasons\" : [\n    { \"message\" : \"the baz is fooed in An Example Dataset\" }\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reasons"
+                  ],
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Caveat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/annotations/all": {
+      "post": {
+        "summary": "Retrieve all caveats applicable to a given query",
+        "requestBody": {
+          "description": "The query to retrieve caveats for",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "The query to retrieve caveats for.  Syntax is SparkSQL"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Annotations on the requested cells",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"reasons\" : [\n    { \"message\" : \"the baz is fooed in An Example Dataset\" }\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reasons"
+                  ],
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Caveat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/query/data": {
+      "post": {
+        "summary": "Retrieve the data generated from the specified SQL query",
+        "requestBody": {
+          "description": "The query and parameters",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "The query to retrieve data for.  Syntax is SparkSQL"
+                  },
+                  "includeUncertainty": {
+                    "type": "boolean",
+                    "description": "Include the 'colTaint' and 'rowTaint' fields in the response to indicate which rows/cells in the result are affected by caveats."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The result data and any supplemental metadata",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Alice\", \"1\", \"10.1\"],\n    [\"Bob\",   \"2\", \"20.1\"],\n    [\"Carol\", \"3\", \"30.1\"],\n    [\"Dave\",  \"4\", \"40.1\"],  \n  ],\n  \"prov\" : [\n    \"12323513245613\",\n    \"-23456347563090\",\n    \"09809809345734\",\n    \"098436234623432\"\n  ],\n  \"colTaint\" : [\n    [false, false,  true],\n    [false, false,  true],\n    [false, true,  false],\n    [true,  true,  false]\n  ]\n  \"rowTaint\" : [\n    false,\n    false,\n    false,\n    true\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DataContainer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/query/table": {
+      "post": {
+        "summary": "Retrieve the contents of a specified dataset",
+        "requestBody": {
+          "description": "The table and parameters",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "table",
+                  "includeUncertainty"
+                ],
+                "properties": {
+                  "table": {
+                    "type": "string",
+                    "description": "The name of the dataset to retrieve"
+                  },
+                  "columns": {
+                    "type": "array",
+                    "description": "The columns of the table to retrieve (case insensitive)",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "An optional limit on the number of rows returned (default: return all rows)"
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "description": "An optional offset to allow for paged results (default: 0)"
+                  },
+                  "includeUncertainty": {
+                    "type": "boolean",
+                    "description": "Include the 'colTaint' and 'rowTaint' fields in the response to indicate which rows/cells in the result are affected by caveats."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The result data and any supplemental metadata",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"schema\" : [\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Bob\",   \"20.1\"],\n    [\"Carol\", \"30.1\"],\n  ],\n  \"prov\" : [\n    \"-23456347563090\",\n    \"09809809345734\",\n  ],\n  \"colTaint\" : [\n    [false, true],\n    [false, false],\n  ]\n  \"rowTaint\" : [\n    false,\n    false,\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/DataContainer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/schema": {
+      "post": {
+        "requestBody": {
+          "description": "The query to retrieve the schema of",
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "The query to retrieve a schema for.  Syntax is SparkSQL"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The schema of the specified query",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": "{\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ]\n}"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schema"
+                  ],
+                  "properties": {
+                    "schema": {
+                      "$ref": "#/components/schemas/TableSchema"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Tuple": {
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ColumnSchema": {
+        "type": "object",
+        "required": [
+          "name",
+          "t"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of a column"
+          },
+          "t": {
+            "type": "string",
+            "description": "The datatype of the column"
+          }
+        }
+      },
+      "TableSchema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ColumnSchema"
+        }
+      },
+      "SamplingMode": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/UniformSample"
+          },
+          {
+            "$ref": "#/components/schemas/StratifiedSample"
+          }
+        ]
+      },
+      "UniformSample": {
+        "type": "object",
+        "description": "Sample each tuple with uniform probability",
+        "required": [
+          "mode",
+          "probability"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "The string 'uniform_probability'"
+          },
+          "probability": {
+            "type": "number",
+            "description": "The probability to sample each tuple with"
+          }
+        }
+      },
+      "StratifiedSample": {
+        "type": "object",
+        "description": "Creeate a stratified sample, selecting probabilities based on a specified field",
+        "required": [
+          "mode",
+          "column",
+          "strata"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "The string 'stratified_on'"
+          },
+          "column": {
+            "type": "string",
+            "description": "The column to stratify on"
+          },
+          "strata": {
+            "type": "object",
+            "description": "An object who's keys are values that can be found in the target column and who's values are probabilities for records with that value.",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "VizualCommand": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DeleteColumnVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DeleteRowVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/InsertColumnVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/InsertRowVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/MoveColumnVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/MoveRowVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/FilterColumnsVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/RenameColumnVizualCommand"
+          },
+          {
+            "$ref": "#/components/schemas/UpdateCellVizualCommand"
+          }
+        ]
+      },
+      "DeleteColumnVizualCommand": {
+        "description": "Delete the column at a specified position in the dataframe"
+      },
+      "DeleteRowVizualCommand": {
+        "description": "Delete the row at a specified position in the dataframe"
+      },
+      "InsertColumnVizualCommand": {
+        "description": "Add a new column to the dataframe"
+      },
+      "InsertRowVizualCommand": {
+        "description": "Add a new row to the dataframe"
+      },
+      "MoveColumnVizualCommand": {
+        "description": "Reposition a column in the dataframe"
+      },
+      "MoveRowVizualCommand": {
+        "description": "Reposition a row in the dataframe"
+      },
+      "FilterColumnsVizualCommand": {
+        "description": "Remove a set of columns from the dataframe"
+      },
+      "RenameColumnVizualCommand": {
+        "description": "Rename an existing column in the dataframe"
+      },
+      "UpdateCellVizualCommand": {
+        "description": "Modify one or more cells of the dataframe"
+      },
+      "Caveat": {
+        "description": "A warning or potential problem encountered while processing the data.  Typically applies to a specific cell or row.  A Caveat may (but need not) be associated with a unique identifier consisting of a family name and a key.  The message is guaranteed to be identical for all caveats with the same family name and key, and the family name and key may be used to refer to the caveat for other forms of analysis.",
+        "type": "object",
+        "required": [
+          "message",
+          "key"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "A human-readable string describing the potential problem and optionally how to resolve it."
+          },
+          "family": {
+            "type": "string",
+            "description": "An identifier that can be used to tie a group of caveats together (e.g., via a lens)"
+          },
+          "key": {
+            "type": "string",
+            "description": "A unique identifier marking the message in question"
+          }
+        }
+      },
+      "DataContainer": {
+        "type": "object",
+        "required": [
+          "schema",
+          "data",
+          "prov"
+        ],
+        "properties": {
+          "schema": {
+            "$ref": "#/components/schemas/TableSchema"
+          },
+          "data": {
+            "type": "array",
+            "description": "An array of records",
+            "items": {
+              "type": "array",
+              "description": "One record",
+              "items": {
+                "description": "One cell value"
+              }
+            }
+          },
+          "prov": {
+            "type": "array",
+            "description": "Stable row identifiers for each row of the result (this array will be exactly the same length as the data field)",
+            "items": {
+              "type": "string"
+            }
+          },
+          "colTaint": {
+            "type": "array",
+            "description": "A 2-dimensional array identifying which result cells are tainted by caveats (the dimensions of this array are the same as the data field)",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "boolean"
+              }
+            }
+          },
+          "rowTaint": {
+            "type": "array",
+            "description": "An array identifying which result rows are tainted by caveats (this array will be exactly the same length as the data field)",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
