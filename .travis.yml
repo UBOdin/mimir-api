@@ -1,27 +1,64 @@
-language: scala
-
-jdk: openjdk8
-
-scala:
-   - 2.12.10
-
-before_cache:
-  - rm -fv $HOME/.ivy2/.sbt.ivy.lock
-  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
-  - find $HOME/.sbt        -name "*.lock"               -print -delete
-
-cache:
-  directories:
-    - $HOME/.cache/coursier
-    - $HOME/.ivy2/cache
-    - $HOME/.sbt
-    
 branches:
   only:
   - master
 
-script:
-  - sbt ++$TRAVIS_SCALA_VERSION test
+jobs:
+  include:
+    - stage: test scala code
+      language: scala
+      jdk: openjdk8
+      scala:
+        - 2.12.10
+      before_cache:
+        - rm -fv $HOME/.ivy2/.sbt.ivy.lock
+        - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+        - find $HOME/.sbt        -name "*.lock"               -print -delete
+
+      cache:
+        directories:
+          - $HOME/.cache/coursier
+          - $HOME/.ivy2/cache
+          - $HOME/.sbt
+      
+      script:
+      - sbt ++$TRAVIS_SCALA_VERSION test
+    - stage: build docker image
+      services:
+        - docker
+      addons: 
+        chrome: stable
+        hosts:
+          - demo.vizier.devel
+      script:
+      - git clone https://$BC_GIT_USER:$BC_GIT_PASS@gitlab.vizier.io/mike/vizier-auth-docker.git
+      - docker build -t docker.vizier.io/vizier-auth --build-arg BC_GIT_PASS="$BC_GIT_PASS" ./vizier-auth-docker
+      - docker images
+      - docker run --rm -d -v vizier-data:/usr/local/source/vizier-api-auth/vizier-data -p 5000:5000 -h vizier-auth --name vizier-auth -e MIMIR_DATA_DIR="/usr/local/source/web-api/vizier/.vizierdb/mimir" -e MIMIR_HOST="vizier-auth" -e AUTHSERVER_AUTH_CLIENTS="MockIndirectClient" -e API_SCHEME="http" -e API_SERVER="demo.vizier.devel" -e API_PORT=5000 docker.vizier.io/vizier-auth
+      - echo "waiting for vizier"
+      - i="0";
+        while [ $i -lt 60 ];
+        do
+          i=$[$i+1];
+          sleep 8;
+          httpstatus=$(curl -LI http://demo.vizier.devel:5000/ -o /dev/null -w '%{http_code}\n' -s);
+          echo "vizier http status $httpstatus";
+          if [ "$httpstatus" == "303" ];
+          then
+            sleep 3;
+            break;
+          fi
+        done
+      - google-chrome-stable --headless --disable-gpu --virtual-time-budget=10000 --dump-dom http://demo.vizier.devel:5000/ > vizier-dom.html
+      - export VIZIER_DOM_TEST=$(sed -nr 's/.*<div class="(empty-list-message)">.*/\1/p' vizier-dom.html)
+      - echo "vizier response dom test $VIZIER_DOM_TEST"
+      - tail vizier-dom.html
+      - docker logs --tail 150 vizier-auth
+      - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.vizier.io
+      - if [ "$VIZIER_DOM_TEST" == "empty-list-message" ]; then 
+          bash -c "docker push docker.vizier.io/vizier-auth";
+        else
+          exit 1;
+        fi
 
 notifications:
     webhooks:
