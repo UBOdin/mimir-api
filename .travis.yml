@@ -31,8 +31,11 @@ jobs:
           - demo.vizier.devel
       script:
       - git clone https://$BC_GIT_USER:$BC_GIT_PASS@gitlab.vizier.io/mike/vizier-auth-docker.git
+      - git clone https://$BC_GIT_USER:$BC_GIT_PASS@gitlab.vizier.io/mike/vizier-python-executor-docker.git
       - docker build -t docker.vizier.io/vizier-auth --build-arg BC_GIT_PASS="$BC_GIT_PASS" ./vizier-auth-docker
+      - docker build -t docker.vizier.io/python-executor ./vizier-python-executor-docker
       - docker images
+      - docker run --rm -d -v vizier-data:/usr/local/source/vizier-api-auth/vizier-data -p 5005:5005 -h python-executor --name python-executor -e MIMIR_URL=http://vizier-auth:8089/api/v2/ docker.vizier.io/python-executor
       - docker run --rm -d -v vizier-data:/usr/local/source/vizier-api-auth/vizier-data -p 5000:5000 -h vizier-auth --name vizier-auth -e MIMIR_DATA_DIR="/usr/local/source/web-api/vizier/.vizierdb/mimir" -e MIMIR_HOST="vizier-auth" -e AUTHSERVER_AUTH_CLIENTS="MockIndirectClient" -e API_SCHEME="http" -e API_SERVER="demo.vizier.devel" -e API_PORT=5000 docker.vizier.io/vizier-auth
       - echo "waiting for vizier"
       - i="0";
@@ -55,7 +58,7 @@ jobs:
       - docker logs --tail 150 vizier-auth
       - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.vizier.io
       - if [ "$VIZIER_DOM_TEST" == "empty-list-message" ]; then 
-          bash -c "docker push docker.vizier.io/vizier-auth";
+          bash -c "docker push docker.vizier.io/vizier-auth && docker push docker.vizier.io/python-executor";
         else
           exit 1;
         fi
