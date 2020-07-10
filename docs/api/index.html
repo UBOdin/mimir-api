@@ -735,6 +735,9 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name to assign to this table.  If omitted, a fresh name will be generated and returned in the result."
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
@@ -804,6 +807,9 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name of the dataset created by applying this lens (a fresh name will be automatically generated if needed)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
@@ -825,6 +831,9 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
@@ -842,6 +851,9 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
@@ -866,6 +878,9 @@
     "compile" : {
       "type" : "boolean",
       "description" : "True if the provided script should be compiled to mimick spreadsheet semantics (defaults to true)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
@@ -1014,8 +1029,16 @@
       "items" : {
         "type" : "boolean"
       }
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
+};
+            defs.DataProperties = {
+  "type" : "object",
+  "additionalProperties" : true,
+  "description" : "A typically user-provided set of additional data descriptors to be used by the client."
 };
             defs.DeleteColumnVizualCommand = {
   "description" : "Delete the column at a specified position in the dataframe"
@@ -2032,7 +2055,7 @@ public class DefaultApiExample {
         
         DefaultApi apiInstance = new DefaultApi();
         Body body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Body | Instructions for loading the dataset
         try {
             inline_response_200_1 result = apiInstance.dataSourceLoadPost(body);
@@ -2053,7 +2076,7 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
         Body body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Body | Instructions for loading the dataset
         try {
             inline_response_200_1 result = apiInstance.dataSourceLoadPost(body);
@@ -2071,7 +2094,7 @@ public class DefaultApiExample {
   </div> -->
                             <div class="tab-pane" id="examples-Default-dataSourceLoadPost-0-objc">
                               <pre class="prettyprint"><code class="language-cpp">Body *body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Instructions for loading the dataset (optional)
 
 DefaultApi *apiInstance = [[DefaultApi alloc] init];
@@ -2095,7 +2118,7 @@ DefaultApi *apiInstance = [[DefaultApi alloc] init];
 var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 } // {{Body}} Instructions for loading the dataset
 };
 var callback = function(error, data, response) {
@@ -2151,7 +2174,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Body | Instructions for loading the dataset
 
 try {
@@ -2190,7 +2213,7 @@ from pprint import pprint
 # create an instance of the API class
 api_instance = swagger_client.DefaultApi()
 body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 } # Body | Instructions for loading the dataset (optional)
 
 try: 
@@ -2227,7 +2250,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+          "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
         }
       }
     }
@@ -3537,7 +3560,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Alice\", \"1\", \"10.1\"],\n    [\"Bob\",   \"2\", \"20.1\"],\n    [\"Carol\", \"3\", \"30.1\"],\n    [\"Dave\",  \"4\", \"40.1\"],  \n  ],\n  \"prov\" : [\n    \"12323513245613\",\n    \"-23456347563090\",\n    \"09809809345734\",\n    \"098436234623432\"\n  ],\n  \"colTaint\" : [\n    [false, false,  true],\n    [false, false,  true],\n    [false, true,  false],\n    [true,  true,  false]\n  ]\n  \"rowTaint\" : [\n    false,\n    false,\n    false,\n    true\n  ]\n}"
+          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Alice\", \"1\", \"10.1\"],\n    [\"Bob\",   \"2\", \"20.1\"],\n    [\"Carol\", \"3\", \"30.1\"],\n    [\"Dave\",  \"4\", \"40.1\"],  \n  ],\n  \"prov\" : [\n    \"12323513245613\",\n    \"-23456347563090\",\n    \"09809809345734\",\n    \"098436234623432\"\n  ],\n  \"colTaint\" : [\n    [false, false,  true],\n    [false, false,  true],\n    [false, true,  false],\n    [true,  true,  false]\n  ],\n  \"rowTaint\" : [\n    false,\n    false,\n    false,\n    true\n  ],\n  \"properties\" : {\n    { 'columns': [\n        { 'name': 'example_column_2',\n          'structural_type': 'https://schema.org/Float',\n          'semantic_types': [],\n          'unclean_values_ratio': 0.0,\n          'num_distinct_values': 25,\n          'mean': 31.27777777777778,\n          'stddev': 7.102859796163133,\n          'plot': { 'type': 'histogram_numerical',\n                    'data': [ {'count': 9, 'bin_start': 20.0, 'bin_end': 23.5},\n                              {'count': 13, 'bin_start': 23.5, 'bin_end': 27.0},\n                              {'count': 15, 'bin_start': 27.0, 'bin_end': 30.5},\n                              {'count': 10, 'bin_start': 30.5, 'bin_end': 34.0},\n                              {'count': 11, 'bin_start': 34.0, 'bin_end': 37.5},\n                              {'count': 5, 'bin_start': 37.5, 'bin_end': 41.0},\n                              {'count': 7, 'bin_start': 41.0, 'bin_end': 44.5},\n                              {'count': 1, 'bin_start': 44.5, 'bin_end': 48.0},\n                              {'count': 0, 'bin_start': 48.0, 'bin_end': 51.5},\n                              {'count': 1, 'bin_start': 51.5, 'bin_end': 55.0}]\n          },\n          'coverage': [ {'range': {'gte': 21.0, 'lte': 29.0}},\n                        {'range': {'gte': 30.0, 'lte': 38.0}},\n                        {'range': {'gte': 40.0, 'lte': 55.0}} ]\n        }\n      ]\n    }\n  }\n}\n}"
         }
       }
     }
@@ -3868,7 +3891,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Bob\",   \"20.1\"],\n    [\"Carol\", \"30.1\"],\n  ],\n  \"prov\" : [\n    \"-23456347563090\",\n    \"09809809345734\",\n  ],\n  \"colTaint\" : [\n    [false, true],\n    [false, false],\n  ]\n  \"rowTaint\" : [\n    false,\n    false,\n  ]\n}"
+          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Bob\",   \"20.1\"],\n    [\"Carol\", \"30.1\"],\n  ],\n  \"prov\" : [\n    \"-23456347563090\",\n    \"09809809345734\",\n  ],\n  \"colTaint\" : [\n    [false, true],\n    [false, false],\n  ],\n  \"rowTaint\" : [\n    false,\n    false,\n  ],\n  \"properties\" : {\n    { 'columns': [\n        { 'name': 'example_column_2',\n          'structural_type': 'https://schema.org/Float',\n          'semantic_types': [],\n          'unclean_values_ratio': 0.0,\n          'num_distinct_values': 25,\n          'mean': 31.27777777777778,\n          'stddev': 7.102859796163133,\n          'plot': { 'type': 'histogram_numerical',\n                    'data': [ {'count': 9, 'bin_start': 20.0, 'bin_end': 23.5},\n                              {'count': 13, 'bin_start': 23.5, 'bin_end': 27.0},\n                              {'count': 15, 'bin_start': 27.0, 'bin_end': 30.5},\n                              {'count': 10, 'bin_start': 30.5, 'bin_end': 34.0},\n                              {'count': 11, 'bin_start': 34.0, 'bin_end': 37.5},\n                              {'count': 5, 'bin_start': 37.5, 'bin_end': 41.0},\n                              {'count': 7, 'bin_start': 41.0, 'bin_end': 44.5},\n                              {'count': 1, 'bin_start': 44.5, 'bin_end': 48.0},\n                              {'count': 0, 'bin_start': 48.0, 'bin_end': 51.5},\n                              {'count': 1, 'bin_start': 51.5, 'bin_end': 55.0}]\n          },\n          'coverage': [ {'range': {'gte': 21.0, 'lte': 29.0}},\n                        {'range': {'gte': 30.0, 'lte': 38.0}},\n                        {'range': {'gte': 40.0, 'lte': 55.0}} ]\n        }\n      ]\n    }\n  }\n}"
         }
       }
     }
