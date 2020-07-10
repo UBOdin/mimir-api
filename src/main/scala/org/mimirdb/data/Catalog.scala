@@ -61,7 +61,12 @@ class Catalog(
       "TYPE"         -> StringType,
       "CONSTRUCTOR"  -> StringType,
       "DEPENDENCIES" -> StringType
-    ))
+    )),
+    AddColumnToMap(
+      "PROPERTIES",
+      StringType,
+      Some("{}")
+    )
   ))
 
   def stage(
@@ -106,7 +111,8 @@ class Catalog(
     name: String,
     df: DataFrame,
     format: String = bulkStorageFormat,
-    replaceIfExists: Boolean = true
+    replaceIfExists: Boolean = true,
+    properties: Map[String, JsValue] = Map.empty
   )
   {
     val url = staging.stage(df, format, Some(name))
@@ -114,7 +120,8 @@ class Catalog(
       name, 
       LoadConstructor(url, format, Map(), Seq()),
       Set(),
-      replaceIfExists
+      replaceIfExists,
+      properties = properties
     )
   }
 
@@ -122,7 +129,8 @@ class Catalog(
     name: String, 
     constructor: T, 
     dependencies: Set[String], 
-    replaceIfExists: Boolean = true
+    replaceIfExists: Boolean = true,
+    properties: Map[String, JsValue] = Map.empty
   )(implicit format: Format[T]): DataFrame = {
     if(!replaceIfExists && views.exists(name)){
       throw new SQLException(s"View $name already exists")
@@ -148,13 +156,25 @@ class Catalog(
       Seq(
         constructor.deserializer.toString,
         Json.toJson(constructor).toString,
-        Json.toJson(dependencies.toSeq).toString
+        Json.toJson(dependencies.toSeq).toString,
+        Json.toJson(properties).toString
       )
     )
 
     return df
   }
 
+  def getProperties(name: String): Map[String, JsValue] =
+  {
+    val (_, components) = views.get(name).getOrElse {
+      throw new UnresolvedException(
+        UnresolvedRelation(Seq(name)),
+        "lookup"
+      )
+    }
+    Json.parse(components(3).asInstanceOf[String])
+      .as[Map[String,JsValue]]
+  }
 
   def get(name: String): DataFrame = 
   {

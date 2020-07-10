@@ -26,7 +26,8 @@ class LoadSpec
                       humanReadableName = Some("A TEST OF THE THING"),
                       backendOption     = Seq(),
                       dependencies      = Seq(),
-                      resultName        = None
+                      resultName        = None,
+                      properties        = None
                     )
       val response = request.handle.as[LoadResponse]
 
@@ -49,7 +50,8 @@ class LoadSpec
                       humanReadableName = Some("ANOTHER TEST OF THE THING"),
                       backendOption     = Seq(),
                       dependencies      = Seq(),
-                      resultName        = None
+                      resultName        = None,
+                      properties        = None
                     )
       val response = request.handle.as[LoadResponse]
 
@@ -72,7 +74,8 @@ class LoadSpec
                       humanReadableName = Some("STILL MORE THING TESTS"),
                       backendOption     = Seq(),
                       dependencies      = Seq(),
-                      resultName        = None
+                      resultName        = None,
+                      properties        = None
                     )
       val response = request.handle.as[LoadResponse]
 

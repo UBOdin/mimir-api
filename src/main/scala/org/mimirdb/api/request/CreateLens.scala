@@ -20,7 +20,9 @@ case class CreateLensRequest (
             /* optional human-readable name */
                   humanReadableName: Option[String],
             /* optional name for the result table */
-                  resultName: Option[String]
+                  resultName: Option[String],
+            /* optional properties */
+                  properties: Option[Map[String,JsValue]]
 ) 
   extends Request 
   with LazyLogging
@@ -45,7 +47,8 @@ case class CreateLensRequest (
         config, 
         "in " +humanReadableName.getOrElse { input }
       ),
-      Set(input)
+      Set(input),
+      properties = properties.getOrElse { Map.empty }
     )
     Json.toJson(CreateLensResponse(output, config))
   }

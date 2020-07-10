@@ -34,7 +34,9 @@ case class LoadRequest (
             /* optionally provide dependencies */
                   dependencies: Seq[String],
             /* optionally provide an output name */
-                  resultName: Option[String]
+                  resultName: Option[String],
+            /* optional properties */
+                  properties: Option[Map[String,JsValue]]
 ) extends Request {
 
   lazy val output = 
@@ -110,7 +112,12 @@ case class LoadRequest (
       }
 
       // And finally save the dataframe constructor
-      MimirAPI.catalog.put(output, loadConstructor, Set())
+      MimirAPI.catalog.put(
+        output, 
+        loadConstructor, 
+        Set(), 
+        properties = properties.getOrElse { Map.empty }
+      )
     } catch {
       case e: FileNotFoundException => 
         throw FormattedError(e, s"Can't Load URL [Not Found]: $file")

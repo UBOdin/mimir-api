@@ -78,7 +78,8 @@ case class QueryTableRequest (
     Json.toJson(Query(
       df,
       includeCaveats = includeUncertainty,
-      limit = limit
+      limit = limit,
+      computedProperties = MimirAPI.catalog.getProperties(table)
     ))
   }
 }
@@ -105,7 +106,8 @@ case class DataContainer (
                   prov: Seq[String],
                   colTaint: Seq[Seq[Boolean]],
                   rowTaint: Seq[Boolean],
-                  reasons: Seq[Seq[Caveat]]
+                  reasons: Seq[Seq[Caveat]],
+                  properties: Map[String,JsValue]
 ) extends Response
 
 object DataContainer {
@@ -127,7 +129,8 @@ object DataContainer {
             parsed("prov").as[Seq[String]],
             parsed("colTaint").as[Seq[Seq[Boolean]]],
             parsed("rowTaint").as[Seq[Boolean]],
-            parsed("reasons").as[Seq[Seq[Caveat]]]
+            parsed("reasons").as[Seq[Seq[Caveat]]],
+            parsed("properties").as[Map[String,JsValue]]
           )
         )
       }
@@ -145,7 +148,8 @@ object DataContainer {
           "prov" -> data.prov,
           "colTaint" -> data.colTaint,
           "rowTaint" -> data.rowTaint,
-          "reasons" -> data.reasons
+          "reasons" -> data.reasons,
+          "properties" -> data.properties
         )
       }
     }
@@ -179,7 +183,8 @@ object Query
     apply(
       sparkSession.sql(query), 
       includeCaveats = includeCaveats, 
-      limit = limit
+      limit = limit,
+      computedProperties = Map.empty
     )
   }
 
@@ -191,13 +196,15 @@ object Query
     apply(
       query, 
       includeCaveats = includeCaveats, 
-      limit = None
+      limit = None,
+      computedProperties = Map.empty
     )
   }
   def apply(
     query: DataFrame,
     includeCaveats: Boolean,
-    limit: Option[Int]
+    limit: Option[Int],
+    computedProperties: Map[String,JsValue]
   ): DataContainer =
   {
 
@@ -281,7 +288,8 @@ object Query
       results.map { row => s"${row.get(identifierAnnotation)}" }.toSeq,
       colTaint, 
       rowTaint,
-      Seq()
+      Seq(),
+      computedProperties
     )
   }
 

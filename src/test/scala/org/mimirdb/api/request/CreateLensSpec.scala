@@ -25,6 +25,7 @@ class CreateLensSpec
                       false,
                       Some("A TEST"),
                       None,
+                      None
                     )
       val response = request.handle.as[CreateLensResponse]
       val df = MimirAPI.catalog.get(response.lensName)

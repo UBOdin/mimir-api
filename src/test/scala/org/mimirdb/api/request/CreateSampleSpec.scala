@@ -21,6 +21,7 @@ class CreateSampleSpec
                       "TEST_R",
                       Sample.Uniform(0.5),
                       Some(42l),
+                      None,
                       None
                     )
       val response = request.handle.as[CreateSampleResponse]
@@ -36,6 +37,7 @@ class CreateSampleSpec
                         JsString("3") -> 1.0
                       )),
                       Some(42l),
+                      None,
                       None
                     )
       val response = request.handle.as[CreateSampleResponse]

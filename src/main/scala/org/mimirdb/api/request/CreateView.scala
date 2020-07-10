@@ -18,7 +18,9 @@ case class CreateViewRequest (
             /* query for view */
                   query: String,
             /* optional name for the result table */
-                  resultName: Option[String]
+                  resultName: Option[String],
+            /* optional properties */
+                  properties: Option[Map[String,JsValue]]
 )  extends Request with DataFrameConstructor {
 
   lazy val output = 
@@ -44,7 +46,8 @@ case class CreateViewRequest (
       MimirAPI.catalog.put(
         output, 
         this,
-        input.values.toSet
+        input.values.toSet,
+        properties = properties.getOrElse { Map.empty }
       )
     } catch {
       case e:AnalysisException => {

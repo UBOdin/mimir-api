@@ -39,7 +39,8 @@ class GeoSparkSpec
                     humanReadableName = Some("social_dist"),
                     backendOption     = Seq(),
                     dependencies      = Seq(),
-                    resultName        = Some("social_dist")
+                    resultName        = Some("social_dist"),
+                    properties        = Some(Map.empty)
                   )
     val response = request.handle.as[LoadResponse]
     
@@ -51,7 +52,8 @@ class GeoSparkSpec
                     humanReadableName = Some("census_geo"),
                     backendOption     = Seq(),
                     dependencies      = Seq(),
-                    resultName        = Some("census_geo")
+                    resultName        = Some("census_geo"),
+                    properties        = Some(Map.empty)
                   )
     val response2 = request2.handle.as[LoadResponse]
     
@@ -74,18 +76,21 @@ class GeoSparkSpec
          |FROM social_dist
          |LEFT JOIN census_geo
          |on census_geo.CENSUS_BLOCK_GROUP = social_dist.ORIGIN_CENSUS_BLOCK_GROUP""".stripMargin,
-         Some("social_dist_geo")
+         Some("social_dist_geo"),
+         None
       ).handle
       
       CreateViewRequest(Map(("social_dist_geo","social_dist_geo")),
           "SELECT ST_Envelope_Aggr(social_dist_geo.PT_SHAPE) AS BOUND FROM social_dist_geo",
-          Some("social_dist_bound")
+          Some("social_dist_bound"),
+         None
       ).handle 
       
       CreateViewRequest(Map(("social_dist_bound","social_dist_bound")),
           s"""SELECT ST_Transform(BOUND, 'epsg:4326','epsg:3857') AS TRANS_BOUND
           FROM social_dist_bound""",
-         Some("social_dist_bound_trans")
+         Some("social_dist_bound_trans"),
+         None
       ).handle 
 
       
@@ -96,7 +101,8 @@ class GeoSparkSpec
           FROM social_dist_geo
           LEFT JOIN social_dist_bound_trans
         """,
-         Some("social_dist_pixel")
+         Some("social_dist_pixel"),
+         None
       ).handle 
       
       query("SELECT * FROM social_dist_geo"){ result => 
