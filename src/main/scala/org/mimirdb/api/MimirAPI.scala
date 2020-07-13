@@ -178,6 +178,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/eval/scala"           => input.as[CodeEvalRequest]
                     case "/eval/R"               => input.as[CodeEvalRequest]
                     case "/dataSource/load"      => input.as[LoadRequest]
+                    case "/dataSource/inlined"   => input.as[LoadInlineRequest]
                     case "/dataSource/unload"    => input.as[UnloadRequest]
                     case "/lens/create"          => input.as[CreateLensRequest]
                     case "/view/create"          => input.as[CreateViewRequest]

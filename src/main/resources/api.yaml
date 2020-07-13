@@ -125,7 +125,12 @@ paths:
                 default:
                   value: |-
                     {
-                      "name" : "my_example_data"
+                      "name" : "my_example_data",
+                      "schema" : [
+                        { "name" : "example_column_1", "t" : "string" },
+                        { "name" : "example_column_2", "t" : "int" },
+                        { "name" : "example_column_3", "t" : "float" }
+                      ]
                     }
               schema:
                 type: object
@@ -133,6 +138,82 @@ paths:
                   name: 
                     type: string
                     description: The name of the newly loaded table, whether or not it was explicitly defined as part of the request.
+                  schema:
+                    $ref: "#/components/schemas/TableSchema"
+  /dataSource/inline:
+    post:
+      summary: Register (load) a new data source with this Mimir instance, providing records explicitly
+      description: ''
+      operationId: ''
+      requestBody:
+        description: Data contents and schema
+        content: 
+          application/json: 
+            examples:
+              default:
+                value: |-
+                  { 
+                    schema: [
+                      { "name" : "example_column_1", "t" : "int" },
+                      { "name" : "example_column_2", "t" : "string" },
+                    ],
+                    data: [
+                      [1, "A"],
+                      [2, "B"],
+                      [3, "C"]
+                    ],
+                    dependencies = [],
+                    resultName = "inlined_table",
+                    properties = {},
+                    humanReadableName = "INLINED TABLE"
+                  }
+            schema:
+              type: object
+              required: 
+                - schema
+                - data
+              properties: 
+                schema: 
+                  $ref: "#/components/schemas/TableSchema"
+                data:
+                  $ref: "#/components/schemas/DataRows"
+                dependencies: 
+                  type: array
+                  description: A list of tables from which the dataset being loaded was externally derived; Caveats on these tables will be transferred to the newly loaded table.
+                  items:  
+                    type: string
+                resultName: 
+                  type: string
+                  description: The name to assign to this table.  If omitted, a fresh name will be generated and returned in the result.
+                properties:
+                  $ref: "#/components/schemas/DataProperties"
+                humanReadableName: 
+                  type: string
+                  description: Provide a human-readable description of this dataset to be used in caveats applied during data loading.                  
+      responses:
+        '200':
+          description: "Load successful"
+          content:
+            application/json:
+              examples: 
+                default:
+                  value: |-
+                    {
+                      "name" : "my_example_data",
+                      "schema" : [
+                        { "name" : "example_column_1", "t" : "string" },
+                        { "name" : "example_column_2", "t" : "int" },
+                        { "name" : "example_column_3", "t" : "float" }
+                      ]
+                    }
+              schema:
+                type: object
+                properties: 
+                  name: 
+                    type: string
+                    description: The name of the newly loaded table, whether or not it was explicitly defined as part of the request.
+                  schema:
+                    $ref: "#/components/schemas/TableSchema"
   /dataSource/unload:
     post:
       summary: Output (unload) a new data source to a location specified by a given base file/URL.
@@ -898,6 +979,14 @@ components:
         key:
           type: string
           description: A unique identifier marking the message in question
+    DataRows:
+      type: array
+      description: An array of records
+      items:
+        type: array
+        description: One record
+        items: 
+          description: One cell value
     DataContainer:
       type: object
       required:
@@ -908,13 +997,7 @@ components:
         schema:
           $ref: "#/components/schemas/TableSchema"
         data:
-          type: array
-          description: An array of records
-          items:
-            type: array
-            description: One record
-            items: 
-              description: One cell value
+          $ref: "#/components/schemas/DataRows"
         prov:
           type: array
           description: Stable row identifiers for each row of the result (this array will be exactly the same length as the data field)

@@ -175,6 +175,9 @@ case class LoadInlineRequest(
   }
 }
 
+object LoadInlineRequest {
+  implicit val format: Format[LoadInlineRequest] = Json.format
+}
 
 case class LoadResponse (
             /* name of resulting table */
