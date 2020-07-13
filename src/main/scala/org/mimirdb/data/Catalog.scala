@@ -118,7 +118,7 @@ class Catalog(
     val url = staging.stage(df, format, Some(name))
     put(
       name, 
-      LoadConstructor(url, format, Map(), Seq()),
+      LoadConstructor(url, format, Map(), Seq(), None),
       Set(),
       replaceIfExists,
       properties = properties
@@ -267,8 +267,7 @@ object Catalog
 
   private val defaultLoadCSVOptions = Map(
     "ignoreLeadingWhiteSpace"-> "true",
-    "ignoreTrailingWhiteSpace"-> "true", 
-    "mode" -> "DROPMALFORMED"
+    "ignoreTrailingWhiteSpace"-> "true"
   )
   
   private val defaultLoadGoogleSheetOptions = Map(

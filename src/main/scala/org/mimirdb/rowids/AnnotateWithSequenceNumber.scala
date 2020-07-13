@@ -17,6 +17,7 @@ object AnnotateWithSequenceNumber
 {
   val ATTRIBUTE = "__MIMIR_ROW_INDEX"
   val FIELD_TYPE = StructField(ATTRIBUTE, LongType)
+  val DEFAULT_FIRST_ROW = 0
 
   def withSequenceNumber(df: DataFrame)(op: DataFrame => DataFrame): DataFrame =
   {

@@ -108,7 +108,8 @@ case class LoadRequest (
       var loadConstructor = LoadConstructor(
         url = url,
         format = storageFormat,
-        sparkOptions = finalSparkOptions
+        sparkOptions = finalSparkOptions,
+        contextText = humanReadableName
       )
 
       // Infer types if necessary

@@ -8,6 +8,7 @@ import org.apache.spark.sql.types._
 
 import org.mimirdb.api.MimirAPI
 import org.mimirdb.api.SharedSparkTestInstance
+import org.mimirdb.caveats.implicits._
 
 class LoadSpec 
   extends Specification
@@ -118,6 +119,30 @@ class LoadSpec
     dataRow.schema.fieldNames.toSet must contain(eachOf("num", "str"))
     dataRow.getAs[AnyRef]("num") must beEqualTo(1)
     dataRow.getAs[AnyRef]("str") must beEqualTo("A")
+  }
+
+  "load broken CSV files" >> {
+
+    val request = LoadRequest(
+                    file              = "test_data/pd5h-92mc.csv",
+                    format            = "csv",
+                    inferTypes        = true, 
+                    detectHeaders     = true,
+                    humanReadableName = Some("Garbled CSV"),
+                    backendOption     = Seq(),
+                    dependencies      = Some(Seq()),
+                    resultName        = None,
+                    properties        = None
+                  )
+    val response = request.handle.as[LoadResponse]
+
+    val df = 
+      MimirAPI.catalog.get(response.name)
+    df.count() must beEqualTo(63l)
+    df.collect().size must beEqualTo(63)
+
+    df.listCaveats() must haveSize(21)
+
   }
 
 }
