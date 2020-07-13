@@ -2,11 +2,14 @@ package org.mimirdb.api.request
 
 import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.StructField
 import com.typesafe.scalalogging.LazyLogging
 
-import org.mimirdb.api.{ Request, Response, MimirAPI, Schema }
+import org.mimirdb.api.{ Request, Response, MimirAPI }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
+import org.mimirdb.spark.Schema
+import org.mimirdb.spark.Schema.fieldFormat
 
 case class CreateLensRequest (
             /* input for lens */
@@ -63,7 +66,7 @@ case class CreateLensResponse (
             /* name of resulting lens */
                   lensName: String,
                   config: JsValue,
-                  schema: Seq[Schema]
+                  schema: Seq[StructField]
 ) extends Response
 
 object CreateLensResponse {
@@ -73,6 +76,6 @@ object CreateLensResponse {
     CreateLensResponse(
       output, 
       config, 
-      Schema(MimirAPI.catalog.get(output).schema)
+      MimirAPI.catalog.get(output).schema.fields
     )
 }

@@ -25,7 +25,7 @@ class PropertiesSpec
       detectHeaders     = true,
       humanReadableName = Some("R_WITH_PROPERTIES"),
       backendOption     = Seq.empty,
-      dependencies      = Seq.empty,
+      dependencies      = None,
       resultName        = Some("R_WITH_PROPERTIES"),
       properties        = Some(Map(
         "shazbot" -> JsString("frobbed"),

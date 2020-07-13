@@ -25,7 +25,7 @@ class LoadSpec
                       detectHeaders     = true,
                       humanReadableName = Some("A TEST OF THE THING"),
                       backendOption     = Seq(),
-                      dependencies      = Seq(),
+                      dependencies      = Some(Seq()),
                       resultName        = None,
                       properties        = None
                     )
@@ -49,7 +49,7 @@ class LoadSpec
                       detectHeaders     = true,
                       humanReadableName = Some("ANOTHER TEST OF THE THING"),
                       backendOption     = Seq(),
-                      dependencies      = Seq(),
+                      dependencies      = Some(Seq()),
                       resultName        = None,
                       properties        = None
                     )
@@ -73,7 +73,7 @@ class LoadSpec
                       detectHeaders     = true,
                       humanReadableName = Some("STILL MORE THING TESTS"),
                       backendOption     = Seq(),
-                      dependencies      = Seq(),
+                      dependencies      = Some(Seq()),
                       resultName        = None,
                       properties        = None
                     )

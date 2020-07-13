@@ -3,16 +3,15 @@ package org.mimirdb.api.request
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.api.{ MimirAPI, Schema } 
+import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.LensConstructor
 import org.mimirdb.lenses.Lenses
 import play.api.libs.json.JsString
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
-import org.mimirdb.api.MimirAPI
 
 
 class GeoSparkSpec 
@@ -38,7 +37,7 @@ class GeoSparkSpec
                     detectHeaders     = true,
                     humanReadableName = Some("social_dist"),
                     backendOption     = Seq(),
-                    dependencies      = Seq(),
+                    dependencies      = Some(Seq()),
                     resultName        = Some("social_dist"),
                     properties        = Some(Map.empty)
                   )
@@ -51,7 +50,7 @@ class GeoSparkSpec
                     detectHeaders     = true,
                     humanReadableName = Some("census_geo"),
                     backendOption     = Seq(),
-                    dependencies      = Seq(),
+                    dependencies      = Some(Seq()),
                     resultName        = Some("census_geo"),
                     properties        = Some(Map.empty)
                   )
@@ -64,7 +63,7 @@ class GeoSparkSpec
               (op: DataContainer => T): T = 
     op(Query(query, includeUncertainty, sparkSession = spark))
 
-  def schemaOf(query: String): Seq[Schema] =
+  def schemaOf(query: String): Seq[StructField] =
     Query.getSchema(query, spark)
 
   "Geospark" >> {

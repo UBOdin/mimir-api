@@ -3,22 +3,22 @@ package org.mimirdb.api.data
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.api.{ MimirAPI, Schema } 
+import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.LensConstructor
 import org.mimirdb.lenses.Lenses
 import play.api.libs.json.JsString
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
-import org.mimirdb.api.request.CreateViewRequest
-import org.mimirdb.api.MimirAPI
-import org.mimirdb.api.request.LoadResponse
-import org.mimirdb.api.request.LoadRequest
-import org.mimirdb.api.request.DataContainer
-import org.mimirdb.api.request.Query
-
+import org.mimirdb.api.request.{ 
+  CreateViewRequest,
+  LoadResponse,
+  LoadRequest,
+  DataContainer,
+  Query
+}
 
 class JoinSpec 
   extends Specification
@@ -37,7 +37,7 @@ class JoinSpec
                     detectHeaders     = true,
                     humanReadableName = Some("covid_us_county"),
                     backendOption     = Seq(),
-                    dependencies      = Seq(),
+                    dependencies      = None,
                     resultName        = Some("covid_us_county"),
                     properties        = None
                   )
@@ -48,7 +48,7 @@ class JoinSpec
               (op: DataContainer => T): T = 
     op(Query(query, includeUncertainty, sparkSession = spark))
 
-  def schemaOf(query: String): Seq[Schema] =
+  def schemaOf(query: String): Seq[StructField] =
     Query.getSchema(query, spark)
 
   "JoinSpec" >> {

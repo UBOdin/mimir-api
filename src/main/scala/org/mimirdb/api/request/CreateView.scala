@@ -1,14 +1,15 @@
 package org.mimirdb.api.request
 
 import play.api.libs.json._
-import org.apache.spark.sql.{ DataFrame, SparkSession }
-import org.apache.spark.sql.AnalysisException
+import org.apache.spark.sql.{ DataFrame, SparkSession, AnalysisException }
+import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.{ Request, Response, MimirAPI, ErrorResponse, FormattedError, Schema }
+import org.mimirdb.api.{ Request, Response, MimirAPI, ErrorResponse, FormattedError }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.util.ErrorUtils
-import org.mimirdb.spark.GetViewDependencies
+import org.mimirdb.spark.{ GetViewDependencies, Schema }
+import org.mimirdb.spark.Schema.fieldFormat
 
 
 
@@ -76,7 +77,7 @@ case class CreateViewResponse (
             /* view dependencies (tables that this view reads from) */
             dependencies: Seq[String],
             /* the schema of the resulting view */
-            schema: Seq[Schema]
+            schema: Seq[StructField]
 ) extends Response
 
 object CreateViewResponse {
