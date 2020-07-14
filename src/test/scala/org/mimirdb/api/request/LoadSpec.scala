@@ -8,6 +8,7 @@ import org.apache.spark.sql.types._
 
 import org.mimirdb.api.MimirAPI
 import org.mimirdb.api.SharedSparkTestInstance
+import org.mimirdb.api.CreateResponse
 import org.mimirdb.caveats.implicits._
 
 class LoadSpec 
@@ -31,7 +32,7 @@ class LoadSpec
                     resultName        = None,
                     properties        = None
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = request.handle.as[CreateResponse]
 
     MimirAPI.catalog.get(response.name)
                     .count() must be equalTo(7)
@@ -55,7 +56,7 @@ class LoadSpec
                     resultName        = None,
                     properties        = None
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = request.handle.as[CreateResponse]
 
     MimirAPI.catalog.get(response.name)
                     .count() must be equalTo(7)
@@ -79,7 +80,7 @@ class LoadSpec
                     resultName        = None,
                     properties        = None
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = request.handle.as[CreateResponse]
 
     val allRows = 
       MimirAPI.catalog.get(response.name).collect()
@@ -109,7 +110,7 @@ class LoadSpec
                     humanReadableName = None
                   )
 
-    val response = Json.toJson(request).as[LoadInlineRequest].handle.as[LoadResponse]
+    val response = Json.toJson(request).as[LoadInlineRequest].handle.as[CreateResponse]
     response.name must beEqualTo("INLINED_LOAD_TEST")
 
     val allRows = 
@@ -134,7 +135,7 @@ class LoadSpec
                     resultName        = None,
                     properties        = None
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = request.handle.as[CreateResponse]
 
     val df = 
       MimirAPI.catalog.get(response.name)

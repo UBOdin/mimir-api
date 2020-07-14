@@ -107,17 +107,21 @@ case class LoadConstructor(
     dataWithoutHeader
       .select(
         col("value") as "raw",
-        from_csv( col("value"), annotatedSchema, extraOptions ++ sparkOptions ) as "csv"
+        when(col("value").isNull, null)
+        .otherwise(
+          from_csv( col("value"), annotatedSchema, extraOptions ++ sparkOptions )
+        ) as "csv"
       ).caveatIf(
         concat(
           lit("Error Loading Row: '"), 
           col("raw"), 
           lit(s"'${contextText.map { " (in "+_+")" }.getOrElse {""}}")
         ),
-        not(col(s"csv.$ERROR_COL").isNull)
+        col("csv").isNull or not(col(s"csv.$ERROR_COL").isNull)
       ).select(
         baseSchema.fields.map { field => 
-          col("csv").getField(field.name) as field.name
+          when(col("csv").isNull, null)
+            .otherwise(col("csv").getField(field.name)) as field.name
         }:_*
       )
   }

@@ -14,7 +14,8 @@ import org.mimirdb.api.{
   Response, 
   Tuple, 
   MimirAPI,
-  FormattedError
+  FormattedError,
+  CreateResponse
 }
 import org.mimirdb.data.{ 
   Catalog, 
@@ -128,7 +129,7 @@ case class LoadRequest (
         dependencies = dependencies.getOrElse { Seq() }.toSet, 
         properties = properties.getOrElse { Map.empty }
       )
-      return Json.toJson(LoadResponse(output, Schema(df)))
+      return Json.toJson(CreateResponse(output, Schema(df), properties.getOrElse { Map.empty }))
     } catch {
       case e: FileNotFoundException => 
         throw FormattedError(e, s"Can't Load URL [Not Found]: $file")
@@ -172,22 +173,10 @@ case class LoadInlineRequest(
       dependencies = dependencies.getOrElse { Seq() }.toSet, 
       properties = properties.getOrElse { Map.empty }
     )
-    Json.toJson(LoadResponse(output, Schema(df)))
+    Json.toJson(CreateResponse(output, Schema(df), properties.getOrElse { Map.empty }))
   }
 }
 
 object LoadInlineRequest {
   implicit val format: Format[LoadInlineRequest] = Json.format
 }
-
-case class LoadResponse (
-            /* name of resulting table */
-                  name: String,
-            /* schema of resulting table */
-                  schema: Seq[StructField]
-) extends Response
-
-object LoadResponse {
-  implicit val format: Format[LoadResponse] = Json.format
-}
-

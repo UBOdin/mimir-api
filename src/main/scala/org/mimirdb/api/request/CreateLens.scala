@@ -64,9 +64,10 @@ object CreateLensRequest
 
 case class CreateLensResponse (
             /* name of resulting lens */
-                  lensName: String,
+                  name: String,
                   config: JsValue,
-                  schema: Seq[StructField]
+                  schema: Seq[StructField],
+                  properties: Map[String, JsValue]
 ) extends Response
 
 object CreateLensResponse {
@@ -76,6 +77,7 @@ object CreateLensResponse {
     CreateLensResponse(
       output, 
       config, 
-      MimirAPI.catalog.get(output).schema.fields
+      MimirAPI.catalog.get(output).schema.fields,
+      Map.empty
     )
 }

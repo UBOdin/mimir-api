@@ -92,11 +92,25 @@ case class SchemaForQueryRequest (
             /* query string to get schema for - sql */
                   query: String
 ) extends Request {
-  def handle = Json.toJson(SchemaList(Query.getSchema(query)))
+  def handle = Json.toJson(SchemaList(Query.getSchema(query), Map.empty))
 }
 
 object SchemaForQueryRequest {
-implicit val format: Format[SchemaForQueryRequest] = Json.format
+  implicit val format: Format[SchemaForQueryRequest] = Json.format
+}
+
+case class SchemaForTableRequest (
+            /* table name */
+                  table: String
+) extends Request {
+  def handle = Json.toJson(SchemaList(
+    Schema(MimirAPI.catalog.get(table)),
+    MimirAPI.catalog.getProperties(table)
+  ))
+}
+
+object SchemaForTableRequest {
+  implicit val format: Format[SchemaForTableRequest] = Json.format
 }
 
 case class DataContainer (
@@ -156,7 +170,8 @@ object DataContainer {
 }
 
 case class SchemaList (
-    schema: Seq[StructField]
+    schema: Seq[StructField],
+    properties: Map[String, JsValue]
 ) extends Response
 
 object SchemaList {

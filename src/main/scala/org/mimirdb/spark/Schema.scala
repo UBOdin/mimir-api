@@ -2,7 +2,7 @@ package org.mimirdb.spark
 
 import play.api.libs.json._
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.{ DataType, ArrayType, StructField, StructType }
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.geosparksql.UDT.GeometryUDT
 import org.apache.spark.sql.types.UDTRegistration
 import org.apache.spark.sql.SqlUDTRegistrationProxy
@@ -16,6 +16,8 @@ object Schema {
 
   def decodeType(t: String): DataType =
     t match  {
+      case "varchar" => StringType
+      case "int" => IntegerType
       case "geometry" => 
         SqlUDTRegistrationProxy.getUDT(t)
       case _ if t.startsWith("array:") => 

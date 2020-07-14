@@ -12,7 +12,7 @@ import org.mimirdb.lenses.Lenses
 import play.api.libs.json.JsString
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
-
+import org.mimirdb.api.CreateResponse
 
 class GeoSparkSpec 
   extends Specification
@@ -41,7 +41,7 @@ class GeoSparkSpec
                     resultName        = Some("social_dist"),
                     properties        = Some(Map.empty)
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = request.handle.as[CreateResponse]
     
     val request2 = LoadRequest(
                     file              = "test_data/census_geo.csv",
@@ -54,7 +54,7 @@ class GeoSparkSpec
                     resultName        = Some("census_geo"),
                     properties        = Some(Map.empty)
                   )
-    val response2 = request2.handle.as[LoadResponse]
+    val response2 = request2.handle.as[CreateResponse]
     
       
   }

@@ -14,11 +14,11 @@ import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
 import org.mimirdb.api.request.{ 
   CreateViewRequest,
-  LoadResponse,
   LoadRequest,
   DataContainer,
   Query
 }
+import org.mimirdb.api.CreateResponse
 
 class JoinSpec 
   extends Specification
@@ -41,7 +41,7 @@ class JoinSpec
                     resultName        = Some("covid_us_county"),
                     properties        = None
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = request.handle.as[CreateResponse]
   }
 
   def query[T](query: String, includeUncertainty: Boolean = true)

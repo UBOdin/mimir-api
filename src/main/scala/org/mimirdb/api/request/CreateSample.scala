@@ -7,8 +7,8 @@ import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.apache.spark.sql.catalyst.plans.logical.{ LogicalPlan, Filter } 
 import org.apache.spark.sql.functions.{ rand, udf, col }
 import org.apache.spark.sql.types.DataType
-import org.mimirdb.spark.SparkPrimitive
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.spark.{ SparkPrimitive, Schema }
+import org.mimirdb.api.{ Request, Response, MimirAPI, CreateResponse }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 
 
@@ -170,8 +170,8 @@ case class CreateSampleRequest (
       resultName.getOrElse {
         s"SAMPLE_${(source+samplingMode.toString+seed.toString).hashCode().toString().replace("-", "")}"
       }
-    MimirAPI.catalog.put(output, this, Set(source), properties = properties.getOrElse { Map.empty })
-    Json.toJson(CreateSampleResponse(output))
+    val df = MimirAPI.catalog.put(output, this, Set(source), properties = properties.getOrElse { Map.empty })
+    Json.toJson(CreateResponse(output, Schema(df), properties.getOrElse { Map.empty }))
   }
 }
 
@@ -182,7 +182,7 @@ object CreateSampleRequest extends DataFrameConstructorCodec {
 
 case class CreateSampleResponse (
             /* name of resulting view */
-                  viewName: String
+                  viewName: String,
 ) extends Response
 
 object CreateSampleResponse {

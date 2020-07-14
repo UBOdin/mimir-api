@@ -84,7 +84,7 @@ object MimirAPI extends LazyLogging {
 
     // populate spark after lens initialization
     // For safety, drop any tables that are now invalid... it's easy to reload them later
-    catalog.populateSpark(forgetInvalidTables = true)
+    // catalog.populateSpark(forgetInvalidTables = true)
     
     // Start the server
     runServer(conf.port())
@@ -189,6 +189,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/query/data"           => input.as[QueryMimirRequest]
                     case "/query/table"          => input.as[QueryTableRequest]
                     case "/schema"               => input.as[SchemaForQueryRequest]
+                    case "/tableInfo"            => input.as[SchemaForTableRequest]
                     case "/annotations/feedback" => {
                       throw new UnsupportedOperationException("Feedback No Longer Supported")
                     }

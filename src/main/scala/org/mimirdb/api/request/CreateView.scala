@@ -61,7 +61,8 @@ case class CreateViewRequest (
     Json.toJson(CreateViewResponse(
       output,
       GetViewDependencies(df).toSeq,
-      Schema(df)
+      Schema(df),
+      Map.empty
     ))
   }
 }
@@ -73,11 +74,13 @@ object CreateViewRequest extends DataFrameConstructorCodec {
 
 case class CreateViewResponse (
             /* name of resulting view */
-            viewName: String,
+            name: String,
             /* view dependencies (tables that this view reads from) */
             dependencies: Seq[String],
             /* the schema of the resulting view */
-            schema: Seq[StructField]
+            schema: Seq[StructField],
+            /* Properties associated with the newly created view */
+            properties: Map[String,JsValue]
 ) extends Response
 
 object CreateViewResponse {

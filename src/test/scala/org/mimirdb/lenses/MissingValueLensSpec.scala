@@ -36,7 +36,7 @@ class MissingValueLensSpec
     val response = request.handle.as[CreateLensResponse]
     val mvconfigDefault = JsArray(IndexedSeq(/*JsString("B"),*/JsString("C")))
     val requestMV = CreateLensRequest(
-                      response.lensName,
+                      response.name,
                       mvconfigDefault, 
                       "MISSING_VALUE",
                       false,
@@ -45,7 +45,7 @@ class MissingValueLensSpec
                       None
                     )
     val responseMV = requestMV.handle.as[CreateLensResponse]
-    val result = Query(s"SELECT * FROM ${responseMV.lensName}",true).data
+    val result = Query(s"SELECT * FROM ${responseMV.name}",true).data
     result.length must beEqualTo(7)
     //result(2)(1) must beEqualTo(2)
     result(3)(2) must beEqualTo(1)
