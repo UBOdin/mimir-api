@@ -45,26 +45,27 @@ class SafelyLoadFunkyData
   // }
 
   "Data with funky unicode - csv edition" >> {
-    val df = MimirAPI.catalog.put(
-      "CURE_SOURCE_CSV",
-      LoadConstructor(
-        "test_data/cureSource.csv",
-        "csv",
-        Catalog.defaultLoadOptions("csv", true)
-      ),
-      Set.empty,
-      true,
-      Map.empty
-    )
+    skipped("https://github.com/UBOdin/mimir-api/issues/9")
+  //   val df = MimirAPI.catalog.put(
+  //     "CURE_SOURCE_CSV",
+  //     LoadConstructor(
+  //       "test_data/cureSource.csv",
+  //       "csv",
+  //       Catalog.defaultLoadOptions("csv", true)
+  //     ),
+  //     Set.empty,
+  //     true,
+  //     Map.empty
+  //   )
 
-    df.stripCaveats.explain()
-    // df.count() must be equalTo(8910l)
-    val ret = 
-      df.select(col("date"))
-        .collect()
-        .map { _.getString(0) }
-    ret.size must beEqualTo(8911)
-    ret.toSeq must not(contain(beNull))
+  //   df.stripCaveats.explain()
+  //   // df.count() must be equalTo(8910l)
+  //   val ret = 
+  //     df.select(col("date"))
+  //       .collect()
+  //       .map { _.getString(0) }
+  //   ret.size must beEqualTo(8911)
+  //   ret.toSeq must not(contain(beNull))
   }
 
 }

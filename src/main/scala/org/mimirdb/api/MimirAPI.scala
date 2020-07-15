@@ -43,6 +43,7 @@ import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 
 import org.apache.spark.sql.AnalysisException
 import org.mimirdb.data.MetadataBackend
+import org.mimirdb.blobs.BlobStore
 
 //import org.apache.spark.ui.FixWebUi
 
@@ -57,6 +58,7 @@ object MimirAPI extends LazyLogging {
   var catalog: Catalog = null
   var server: Server = null
   var conf: MimirConfig = null
+  var blobs: BlobStore = null
 
   def main(args: Array[String])
   {
@@ -113,6 +115,7 @@ object MimirAPI extends LazyLogging {
     }
     val staging = new LocalFSStagingProvider(conf.staging())
     catalog = new Catalog(metadata, staging, sparkSession)
+    blobs = new BlobStore(metadata)
   }
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
@@ -190,6 +193,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
                     case "/query/table"          => input.as[QueryTableRequest]
                     case "/schema"               => input.as[SchemaForQueryRequest]
                     case "/tableInfo"            => input.as[SchemaForTableRequest]
+                    case "/blob/create"          => input.as[CreateBlobRequest]
                     case "/annotations/feedback" => {
                       throw new UnsupportedOperationException("Feedback No Longer Supported")
                     }

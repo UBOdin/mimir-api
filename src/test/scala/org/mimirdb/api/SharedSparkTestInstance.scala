@@ -6,6 +6,7 @@ import org.mimirdb.lenses.Lenses
 import org.mimirdb.lenses.implementation.TestCaseGeocoder
 import org.apache.spark.serializer.KryoSerializer
 import org.datasyslab.geosparkviz.core.Serde.GeoSparkVizKryoRegistrator
+import org.mimirdb.data.JDBCMetadataBackend
 
 object SharedSparkTestInstance
 {
@@ -56,7 +57,7 @@ object SharedSparkTestInstance
         MimirAPI.conf.verify()
       }
       if(MimirAPI.catalog == null){
-        MimirAPI.catalog = new Catalog("target/test.db", spark, "target/staged_files")
+        MimirAPI.initCatalog("sqlite:target/test.db")
 
         // And load up some example test data
         loadCSV("TEST_R", "test_data/r.csv")
