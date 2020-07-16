@@ -4,6 +4,7 @@ import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructField
+import play.api.libs.json._
 
 import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.mimirdb.caveats.implicits._ 
@@ -41,7 +42,7 @@ class JoinSpec
                     resultName        = Some("covid_us_county"),
                     properties        = None
                   )
-    val response = request.handle.as[CreateResponse]
+    val response = Json.toJson(request.handle).as[CreateResponse]
   }
 
   def query[T](query: String, includeUncertainty: Boolean = true)

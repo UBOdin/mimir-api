@@ -4,7 +4,7 @@ import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.api.{ Request, JsonResponse, MimirAPI }
 import org.mimirdb.vizual.{ Command, VizualScriptConstructor }
 import org.mimirdb.spark.Schema
 import org.mimirdb.spark.Schema.fieldFormat
@@ -40,7 +40,7 @@ case class VizualRequest (
       Set(input),
       true
     )
-    Json.toJson(VizualResponse(output, simplified, Schema(df), Map.empty))
+    VizualResponse(output, simplified, Schema(df), Map.empty)
   }
 }
 
@@ -58,7 +58,7 @@ case class VizualResponse (
                   schema: Seq[StructField],
             /* any properties associated with the result */
                   properties: Map[String, JsValue]
-) extends Response
+) extends JsonResponse[VizualResponse]
 
 object VizualResponse {
   implicit val format: Format[VizualResponse] = Json.format

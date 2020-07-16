@@ -1,60 +1,67 @@
 package org.mimirdb.api.request
 
 import play.api.libs.json._
-import org.mimirdb.api.{ Request, MimirAPI, FormattedError }
+import org.mimirdb.api.{ Request, MimirAPI, FormattedError, BytesResponse }
 import org.mimirdb.blobs.BlobStore
+import java.io.InputStream
+import scala.collection.mutable
+import org.mimirdb.util.StreamUtils
+import javax.servlet.http.HttpServletRequest
 
 
 case class CreateBlobRequest(
-                  name: Option[String],
-                  `type`: String,
-                  data: Array[Byte]
+  stream: InputStream,
+  blobType: Option[String],
+  id: Option[String] = None
 ) extends Request {
-  lazy val realName = 
-    name.getOrElse {
-      val viewNameBase = (`type`.hashCode().toString + data.hashCode().toString).hashCode()
-      "BLOB_" + (viewNameBase.toString().replace("-", ""))
+  val data = StreamUtils.readAll(stream)
+  val resolvedBlobType = blobType.getOrElse { "text/plain" }
+  val resolvedId = 
+    id.getOrElse {
+      resolvedBlobType.toUpperCase()+"_" + data.hashCode().toString.replace("-", "")
     }
 
-  def handle: JsValue = {
-    MimirAPI.blobs.put(realName, `type`, data)
-    Json.toJson(CreateBlobResponse(realName))
+  def handle: CreateBlobResponse = {
+    MimirAPI.blobs.put(
+      resolvedId,
+      resolvedBlobType,
+      data
+    )
+    CreateBlobResponse(resolvedId)
   }
 }
 object CreateBlobRequest
 {
-  implicit val format: Format[CreateBlobRequest] = Json.format
+  def apply(req: HttpServletRequest): CreateBlobRequest =
+    CreateBlobRequest(req.getInputStream(), req.getParameterValues("type").headOption, None)
+  def apply(req: HttpServletRequest, id: String): CreateBlobRequest =
+    CreateBlobRequest(req.getInputStream(), req.getParameterValues("type").headOption, Some(id))
 }
 
 case class CreateBlobResponse(
-  name: String
-)
-object CreateBlobResponse
+  id: String
+) extends BytesResponse
 {
-  implicit val format: Format[CreateBlobResponse] = Json.format
+  def getBytes = id.getBytes()
 }
 
 case class GetBlobRequest(
-                  name: String
+                  id: String,
 ) extends Request {
-  def handle: JsValue = {
+  def handle: GetBlobResponse = {
     val (t, data) = 
-      MimirAPI.blobs.get(name).getOrElse {
-        throw FormattedError(null, s"Blob $name does not exist")
+      MimirAPI.blobs.get(id).getOrElse {
+        throw FormattedError(null, s"Blob $id does not exist")
       }
-    Json.toJson(GetBlobResponse(t, data))
+    GetBlobResponse(data, t)
   }
-}
-object GetBlobRequest
-{
-  implicit val format: Format[GetBlobRequest] = Json.format
 }
 
 case class GetBlobResponse(
-  `type`: String,
-  data: Array[Byte]
-)
-object GetBlobResponse
+  data: Array[Byte],
+  blobType: String
+) extends BytesResponse
 {
-  implicit val format: Format[GetBlobResponse] = Json.format
+  override def contentType = blobType
+  def getBytes = data
 }

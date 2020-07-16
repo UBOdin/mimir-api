@@ -64,7 +64,7 @@ case class LoadRequest (
       "DATASOURCE_" + hint + "_" + (lensNameBase.toString().replace("-", ""))
     }
 
-  def handle: JsValue = {
+  def handle: CreateResponse = {
     try { 
       val sparkOptions = backendOption.map { tup => tup.name -> tup.value }
 
@@ -129,7 +129,7 @@ case class LoadRequest (
         dependencies = dependencies.getOrElse { Seq() }.toSet, 
         properties = properties.getOrElse { Map.empty }
       )
-      return Json.toJson(CreateResponse(output, Schema(df), properties.getOrElse { Map.empty }))
+      return CreateResponse(output, Schema(df), properties.getOrElse { Map.empty })
     } catch {
       case e: FileNotFoundException => 
         throw FormattedError(e, s"Can't Load URL [Not Found]: $file")
@@ -165,7 +165,7 @@ case class LoadInlineRequest(
       "INLINE_" + hint + "_" + (lensNameBase.toString().replace("-", ""))
     }
 
-  def handle: JsValue =
+  def handle: CreateResponse =
   {
     val df = MimirAPI.catalog.put(
       name = output,
@@ -173,7 +173,7 @@ case class LoadInlineRequest(
       dependencies = dependencies.getOrElse { Seq() }.toSet, 
       properties = properties.getOrElse { Map.empty }
     )
-    Json.toJson(CreateResponse(output, Schema(df), properties.getOrElse { Map.empty }))
+    CreateResponse(output, Schema(df), properties.getOrElse { Map.empty })
   }
 }
 

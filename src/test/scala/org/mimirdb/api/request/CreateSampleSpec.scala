@@ -24,7 +24,7 @@ class CreateSampleSpec
                       None,
                       None
                     )
-      val response = request.handle.as[CreateSampleResponse]
+      val response = Json.toJson(request.handle).as[CreateSampleResponse]
       val df = MimirAPI.catalog.get(response.viewName)
       df.count() must be beCloseTo(3, /*+/-*/ 2)
     }
@@ -40,7 +40,7 @@ class CreateSampleSpec
                       None,
                       None
                     )
-      val response = request.handle.as[CreateSampleResponse]
+      val response = Json.toJson(request.handle).as[CreateSampleResponse]
       val df = MimirAPI.catalog.get(response.viewName)
       df.filter { df("A") === "1" }.count() must be beCloseTo(2, /*+/-*/ 1)
       df.filter { df("A") === "2" }.count() must be equalTo(2)

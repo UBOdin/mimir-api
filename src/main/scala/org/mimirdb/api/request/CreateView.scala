@@ -4,7 +4,7 @@ import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, SparkSession, AnalysisException }
 import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.{ Request, Response, MimirAPI, ErrorResponse, FormattedError }
+import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, ErrorResponse, FormattedError }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.util.ErrorUtils
@@ -58,12 +58,12 @@ case class CreateViewRequest (
       }
     }
     val df = MimirAPI.catalog.get(output)
-    Json.toJson(CreateViewResponse(
+    CreateViewResponse(
       output,
       GetViewDependencies(df).toSeq,
       Schema(df),
       Map.empty
-    ))
+    )
   }
 }
 
@@ -81,7 +81,7 @@ case class CreateViewResponse (
             schema: Seq[StructField],
             /* Properties associated with the newly created view */
             properties: Map[String,JsValue]
-) extends Response
+) extends JsonResponse[CreateViewResponse]
 
 object CreateViewResponse {
   implicit val format: Format[CreateViewResponse] = Json.format

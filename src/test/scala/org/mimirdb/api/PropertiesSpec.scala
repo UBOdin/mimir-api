@@ -33,8 +33,8 @@ class PropertiesSpec
       ))
     ).handle
     val result = 
-      QueryTableRequest("R_WITH_PROPERTIES", None, None, None, true)
-        .handle
+      Json.toJson(QueryTableRequest("R_WITH_PROPERTIES", None, None, None, true)
+        .handle)
         .as[DataContainer]
 
     result.properties("shazbot").as[String] must beEqualTo("frobbed")

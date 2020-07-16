@@ -5,6 +5,7 @@ import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
+import play.api.libs.json._
 import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI } 
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
@@ -57,13 +58,13 @@ class QuerySpec
     offset: Integer = null,
     includeUncertainty: Boolean = false
   )(op: DataContainer => T): T = 
-    op( QueryTableRequest(
+    op( Json.toJson(QueryTableRequest(
           table,
           Option(columns),
           Option(limit).map { _.toInt },
           Option(offset).map { _.toLong },
           includeUncertainty
-        ).handle.as[DataContainer] )
+        ).handle).as[DataContainer] )
 
   "Basic Query Functions" >> {
     "Look up schemas" >> {

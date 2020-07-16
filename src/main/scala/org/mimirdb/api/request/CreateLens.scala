@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructField
 import com.typesafe.scalalogging.LazyLogging
 
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.api.{ Request, JsonResponse, MimirAPI }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
 import org.mimirdb.spark.Schema
@@ -53,7 +53,7 @@ case class CreateLensRequest (
       Set(input),
       properties = properties.getOrElse { Map.empty }
     )
-    Json.toJson(CreateLensResponse(output, config))
+    CreateLensResponse(output, config)
   }
 }
 
@@ -68,7 +68,7 @@ case class CreateLensResponse (
                   config: JsValue,
                   schema: Seq[StructField],
                   properties: Map[String, JsValue]
-) extends Response
+) extends JsonResponse[CreateLensResponse]
 
 object CreateLensResponse {
   implicit val format: Format[CreateLensResponse] = Json.format

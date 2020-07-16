@@ -4,7 +4,7 @@ package org.mimirdb.api.request
 import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
 
-import org.mimirdb.api.{ Request, Response }
+import org.mimirdb.api.{ Request, JsonResponse }
 import org.mimirdb.api.MimirAPI
 import org.mimirdb.caveats.{ Caveat, CaveatSet }
 import org.mimirdb.api.CaveatFormat._
@@ -19,12 +19,12 @@ case class ExplainCellRequest (
             /* column of cell */
                   col: String
 ) extends Request {
-  def handle = Json.toJson(ExplainResponse(Explain(
+  def handle = ExplainResponse(Explain(
     query,
     rows = Seq(row),
     cols = Seq(col),
     reasonCap = 20
-  )))
+  ))
 
 }
 
@@ -37,9 +37,9 @@ case class ExplainEverythingRequest (
             /* query to explain */
                   query: String
 ) extends Request {
-  def handle = Json.toJson(ExplainResponse(Explain(
+  def handle = ExplainResponse(Explain(
     query
-  )))
+  ))
 }
 
 object ExplainEverythingRequest {
@@ -50,7 +50,7 @@ object ExplainEverythingRequest {
 
 case class ExplainResponse (
                   reasons: Seq[Caveat]
-) extends Response
+) extends JsonResponse[ExplainResponse]
 
 object ExplainResponse {
   implicit val format: Format[ExplainResponse] = Json.format

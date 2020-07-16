@@ -33,7 +33,7 @@ class MissingValueLensSpec
                       None,
                       None
                     )
-    val response = request.handle.as[CreateLensResponse]
+    val response = Json.toJson(request.handle).as[CreateLensResponse]
     val mvconfigDefault = JsArray(IndexedSeq(/*JsString("B"),*/JsString("C")))
     val requestMV = CreateLensRequest(
                       response.name,
@@ -44,7 +44,7 @@ class MissingValueLensSpec
                       None,
                       None
                     )
-    val responseMV = requestMV.handle.as[CreateLensResponse]
+    val responseMV = Json.toJson(requestMV.handle).as[CreateLensResponse]
     val result = Query(s"SELECT * FROM ${responseMV.name}",true).data
     result.length must beEqualTo(7)
     //result(2)(1) must beEqualTo(2)

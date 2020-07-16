@@ -23,7 +23,7 @@ case class InlineConstructor(
     val rows:Seq[Row] = 
       data.map { row => 
         Row.fromSeq(row.zip(types).map { case (field, t) => 
-          SparkPrimitive.decode(field, t)
+          SparkPrimitive.decode(field, t, castStrings = true)
         })
       }
     return spark.createDataFrame(

@@ -5,6 +5,7 @@ import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructField
 
+import play.api.libs.json._
 import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.LensConstructor
@@ -41,7 +42,7 @@ class GeoSparkSpec
                     resultName        = Some("social_dist"),
                     properties        = Some(Map.empty)
                   )
-    val response = request.handle.as[CreateResponse]
+    val response = Json.toJson(request.handle).as[CreateResponse]
     
     val request2 = LoadRequest(
                     file              = "test_data/census_geo.csv",
@@ -54,7 +55,7 @@ class GeoSparkSpec
                     resultName        = Some("census_geo"),
                     properties        = Some(Map.empty)
                   )
-    val response2 = request2.handle.as[CreateResponse]
+    val response2 = Json.toJson(request2.handle).as[CreateResponse]
     
       
   }

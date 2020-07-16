@@ -231,7 +231,7 @@ class Catalog(
     cache.remove(name)
   }
 
-  def populateSpark(forgetInvalidTables: Boolean = false)
+  def populateSpark(targets: Iterable[String] = views.keys, forgetInvalidTables: Boolean = false)
   {
     for(view <- views.keys){
       try {

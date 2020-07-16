@@ -27,7 +27,7 @@ class CreateLensSpec
                       None,
                       None
                     )
-      val response = request.handle.as[CreateLensResponse]
+      val response = Json.toJson(request.handle).as[CreateLensResponse]
       val df = MimirAPI.catalog.get(response.name)
       val row = df.take(1)(0)
       row(row.fieldIndex("A")).asInstanceOf[AnyRef] must not(beAnInstanceOf[String])

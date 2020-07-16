@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession
 
 import play.api.libs.json._
 
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.api.{ Request, Response, JsonResponse, MimirAPI }
 import org.mimirdb.caveats.{ Caveat, CaveatSet, Constants => Caveats }
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.rowids.AnnotateWithRowIds
@@ -37,10 +37,10 @@ case class QueryMimirRequest (
     if(includeReasons.getOrElse(false)) {
       throw new UnsupportedOperationException("IncludeReasons is no longer supported")
     }
-    Json.toJson(Query(
+    Query(
       query,
       includeUncertainty.getOrElse(true)
-    ))
+    )
   }
 }
 
@@ -74,12 +74,12 @@ case class QueryTableRequest (
     // Filter down to the right columns... dropping the sequence number if needed
     df = df.select(columnNames.map { df(_) }:_*)
 
-    Json.toJson(Query(
+    Query(
       df,
       includeCaveats = includeUncertainty,
       limit = limit,
       computedProperties = MimirAPI.catalog.getProperties(table)
-    ))
+    )
   }
 }
 
@@ -92,7 +92,7 @@ case class SchemaForQueryRequest (
             /* query string to get schema for - sql */
                   query: String
 ) extends Request {
-  def handle = Json.toJson(SchemaList(Query.getSchema(query), Map.empty))
+  def handle = SchemaList(Query.getSchema(query), Map.empty)
 }
 
 object SchemaForQueryRequest {
@@ -103,10 +103,10 @@ case class SchemaForTableRequest (
             /* table name */
                   table: String
 ) extends Request {
-  def handle = Json.toJson(SchemaList(
+  def handle = SchemaList(
     Schema(MimirAPI.catalog.get(table)),
     MimirAPI.catalog.getProperties(table)
-  ))
+  )
 }
 
 object SchemaForTableRequest {
@@ -121,7 +121,7 @@ case class DataContainer (
                   rowTaint: Seq[Boolean],
                   reasons: Seq[Seq[Caveat]],
                   properties: Map[String,JsValue]
-) extends Response
+) extends JsonResponse[DataContainer]
 
 object DataContainer {
   implicit val format: Format[DataContainer] = Format(
@@ -172,7 +172,7 @@ object DataContainer {
 case class SchemaList (
     schema: Seq[StructField],
     properties: Map[String, JsValue]
-) extends Response
+) extends JsonResponse[SchemaList]
 
 object SchemaList {
   implicit val format: Format[SchemaList] = Json.format

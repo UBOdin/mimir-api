@@ -3,7 +3,7 @@ package org.mimirdb.api.request
 import org.apache.spark.sql.SparkSession
 import play.api.libs.json._
 
-import org.mimirdb.api.{ Request, Response }
+import org.mimirdb.api.{ Request, JsonResponse }
 import org.mimirdb.api.MimirAPI
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Dataset
@@ -19,12 +19,10 @@ case class CodeEvalRequest (
                   source: String
 ) extends Request {
   def handle = {
-    Json.toJson(
-      language match {
-        case "R"     => evalR(source)
-        case "scala" => evalScala(source)
-      }
-    )
+    language match {
+      case "R"     => evalR(source)
+      case "scala" => evalScala(source)
+    }
   }
 
   def evalR(source: String): CodeEvalResponse = ???
@@ -86,7 +84,7 @@ case class CodeEvalResponse (
                   stdout: String,
             /* stderr from evaluation of scala code */
                   stderr: String
-) extends Response
+) extends JsonResponse[CodeEvalResponse]
 
 object CodeEvalResponse {
   implicit val format: Format[CodeEvalResponse] = Json.format

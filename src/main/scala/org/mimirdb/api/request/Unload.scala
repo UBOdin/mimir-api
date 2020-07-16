@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 import java.io.File
 import com.typesafe.scalalogging.LazyLogging
 
-import org.mimirdb.api.{ Request, Response, Tuple }
+import org.mimirdb.api.{ Request, JsonResponse, Tuple }
 import org.mimirdb.api.MimirAPI
 import org.mimirdb.data.FileFormat
 import org.mimirdb.util.TimerUtils
@@ -64,7 +64,7 @@ case class UnloadRequest (
           .map(_.getName).toSeq
       }
 
-    Json.toJson(UnloadResponse(outputFiles))
+    UnloadResponse(outputFiles)
   }
 }
 
@@ -75,7 +75,7 @@ object UnloadRequest {
 case class UnloadResponse (
             /* name of resulting table */
                   outputFiles: Seq[String]
-) extends Response
+) extends JsonResponse[UnloadResponse]
 
 object UnloadResponse {
   implicit val format: Format[UnloadResponse] = Json.format
