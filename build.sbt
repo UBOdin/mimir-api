@@ -63,22 +63,88 @@ libraryDependencies ++= Seq(
   //Data Source Support
   //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
-  "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.234" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.2"    excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  //"com.amazonaws"                 %   "aws-java-sdk-core"        % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  //"com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws")),
+  "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
+  "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   
   //Scala eval support
   "org.scala-lang"                %   "scala-reflect"            % scalaVersion.value,
   "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
   
   //GIS Support
-  "org.datasyslab"                %  "geospark"                  % "1.4.0" excludeAll(ExclusionRule("com.amazonaws")),
-  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.0" excludeAll(ExclusionRule("com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark"                  % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws")),
+  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
 
   //Other data importers
-  "com.databricks"                %% "spark-xml"                 % "0.9.0"
+  "com.databricks"                %% "spark-xml"                 % "0.9.0",
+  
+  //Google Sheets Datasource
+  "info.mimirdb"                  %% "spark-google-spreadsheets" % "0.6.4",
+  
+  //excel data loading
+  "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1133-SNAPSHOT"
+  
 )
+
+////// Generate a Coursier Bootstrap Jar
+// See https://get-coursier.io/docs
+// 
+import scala.sys.process.{Process, ProcessLogger}
+lazy val bootstrap = taskKey[Unit]("Generate Bootstrap Jar")
+bootstrap := {
+  val logger = ProcessLogger(println(_), println(_))
+  val coursier_bin = "bin/coursier"
+  val coursier_url = "https://git.io/coursier-cli"
+  val mimir_bin = "bin/mimir-api"
+  if(!java.nio.file.Files.exists(java.nio.file.Paths.get("bin/coursier"))){
+
+    println("Downloading Coursier...")
+    Process(List(
+      "curl", "-L",
+      "-o", coursier_bin,
+      coursier_url
+    )) ! logger match {
+      case 0 => 
+      case n => sys.error(s"Could not download Coursier")
+    }
+    Process(List(
+      "chmod", "+x", coursier_bin
+    )) ! logger
+    println("... done")
+  }
+
+  println("Coursier available.  Generating Repository List")
+
+  val resolverArgs = resolvers.value.map { 
+    case r: MavenRepository => Seq("-r", r.root)
+  }.flatten
+
+  val (art, file) = packagedArtifact.in(Compile, packageBin).value
+  val qualified_artifact_name = file.name.replace(".jar", "").replaceFirst("-([0-9.]+)$", "")
+  val full_artifact_name = s"${organization.value}:${qualified_artifact_name}:${version.value}"
+  println("Rendering bootstraps for "+full_artifact_name)
+  for(resolver <- resolverArgs){
+    println("  "+resolver)
+  }
+  
+  println("Generating Mimir-API Server binary")
+  Process(List(
+    coursier_bin,
+    "bootstrap",
+    full_artifact_name,
+    "-f",
+    "-o", "bin/mimir-api",
+    "-r", "central",
+    "-M", "mimir.MimirVizier"
+  )++resolverArgs) ! logger match {
+      case 0 => 
+      case n => sys.error(s"Bootstrap failed")
+  }
+}
+
 
 ////// Publishing Metadata //////
 // use `sbt publish make-pom` to generate 
