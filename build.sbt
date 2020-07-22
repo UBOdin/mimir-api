@@ -85,7 +85,7 @@ libraryDependencies ++= Seq(
   "info.mimirdb"                  %% "spark-google-spreadsheets" % "0.6.4",
   
   //excel data loading
-  "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1133-SNAPSHOT"
+  "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1201-SNAPSHOT"
   
 )
 
