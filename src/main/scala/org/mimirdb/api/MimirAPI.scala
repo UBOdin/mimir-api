@@ -260,13 +260,13 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       output.setStatus(HttpServletResponse.SC_NOT_FOUND)
       logger.error(s"MimirAPI ${req.getMethod} Not Handled: ${req.getPathInfo}")
       ErrorResponse(
-        "MimirAPI POST Not Handled",
+        s"MimirAPI ${req.getMethod} Not Handled: ${req.getPathInfo}",
         "Unknown Request:"+ req.getPathInfo, 
         Thread.currentThread().getStackTrace.map(_.toString).mkString("\n") 
       ).write(output)
     }
 
-    val PREFIX = "\\/api\\/v2(\\/[a-zA-Z\\/]+)".r
+    val PREFIX = "\\/api\\/v2(\\/.*)".r
 
     override def doPost(req: HttpServletRequest, output: HttpServletResponse)
     {
@@ -295,14 +295,16 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       }
     }
     
-    val BLOB_WITH_ID = "/blob\\/([a-zA-Z\\/]+)".r
+    val HEAD = "\\/([^\\/]+)/(.*)".r
+    val TAIL = "([^\\/]+)".r
+
     override def doPut(req: HttpServletRequest, output: HttpServletResponse)
     {
       logger.info(s"MimirAPI PUT ${req.getPathInfo}")
       req.getPathInfo match {
         case PREFIX(route) => 
           route match {
-            case BLOB_WITH_ID(id)        => process(CreateBlobRequest(req, id), output)
+            case HEAD("blob", TAIL(id))  => process(CreateBlobRequest(req, id), output)
             case "/blob"                 => process(CreateBlobRequest(req), output)
             case _                       => fourOhFour(req, output)
           }
@@ -314,11 +316,12 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       req.getPathInfo match {
         case PREFIX(route) => 
           route match {
-            case "/lens"                 => LensList(Lenses.supportedLenses).write(output)
-            case BLOB_WITH_ID(id)        => process(GetBlobRequest(id), output)
-            case _                       => fourOhFour(req, output)
+            case "/lens"                    => LensList(Lenses.supportedLenses).write(output)
+            case HEAD("blob", TAIL(id))     => process(GetBlobRequest(id), output)
+            case HEAD("tableInfo", TAIL(id))=> process(SchemaForTableRequest(id), output)
+            case _                          => fourOhFour(req, output)
           }
-        case _                           => fourOhFour(req, output)
+        case _                              => fourOhFour(req, output)
       }
     }
 

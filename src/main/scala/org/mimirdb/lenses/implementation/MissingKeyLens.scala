@@ -22,16 +22,20 @@ object MissingKeyLensConfig
 
   def apply(key: String, df: DataFrame): MissingKeyLensConfig =
   {
-    val t = df.schema(key).dataType
+    val field = df.schema.fields
+                    .find { _.name.equalsIgnoreCase(key) }
+                    .getOrElse { throw new IllegalArgumentException(
+                                    s"No column named '$key'.  Available: ${df.schema.fieldNames.mkString(", ")}")}
+    val t = field.dataType
 
     val stats = df.select(
-      min(df(key).cast("long")),
-      max(df(key).cast("long")),
+      min(df(field.name).cast("long")),
+      max(df(field.name).cast("long")),
       lit(1l)
     ).collect()(0)
 
     MissingKeyLensConfig(
-      key,
+      field.name,
       t,
       stats.getAs[Long](0),
       stats.getAs[Long](1)+1, // Add 1 to make the high value exclusive
