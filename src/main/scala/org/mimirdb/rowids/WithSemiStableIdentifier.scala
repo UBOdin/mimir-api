@@ -1,12 +1,14 @@
 package org.mimirdb.rowids
 
-import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.{ SparkSession, DataFrame, Column }
+import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
 object WithSemiStableIdentifier
 {
@@ -108,17 +110,8 @@ object WithSemiStableIdentifier
        .map { row => row.getLong(0) -> row.getLong(1) }
        .toMap
 
-    def lookupFirstIdentifier(partition: Expression) =
-      ScalaUDF(
-        (partitionId:Int) => firstPerPartitionIdentifierMap(partitionId),
-        LongType,
-        Seq(partition),
-        Seq(false),
-        Seq(IntegerType),
-        Some("FIRST_IDENTIFIER_FOR_PARTITION"), /*name hint*/
-        true, /*nullable*/
-        true, /*deterministic*/
-      )
+    val lookupFirstIdentifier =
+      udf { (partitionId:Int) => firstPerPartitionIdentifierMap(partitionId) }
 
     Project(
       plan.output :+ ResolvedAlias(MergeRowIds(
@@ -127,7 +120,7 @@ object WithSemiStableIdentifier
           INTERNAL_ID,
           Add(
             INTERNAL_ID,
-            lookupFirstIdentifier(PARTITION_ID)
+            lookupFirstIdentifier(new Column(PARTITION_ID)).expr
           )
         ) +: plan.output):_*
       ), attribute),

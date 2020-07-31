@@ -38,7 +38,7 @@ class ExplainSpec
 				"org.mimirdb.caveats.enumerate.*",
 				"org.mimirdb.lenses.CaveatedCast"
 			){
-    val result = request.handle.as[ExplainResponse]
+    val result = Json.toJson(request.handle).as[ExplainResponse]
     result.reasons must haveSize(1)
     result.reasons(0).message must not be null
     }

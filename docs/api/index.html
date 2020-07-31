@@ -735,10 +735,82 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name to assign to this table.  If omitted, a fresh name will be generated and returned in the result."
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
             defs.body_1 = {
+  "required" : [ "data", "schema" ],
+  "type" : "object",
+  "properties" : {
+    "schema" : {
+      "$ref" : "#/components/schemas/TableSchema"
+    },
+    "data" : {
+      "$ref" : "#/components/schemas/DataRows"
+    },
+    "dependencies" : {
+      "type" : "array",
+      "description" : "A list of tables from which the dataset being loaded was externally derived; Caveats on these tables will be transferred to the newly loaded table.",
+      "items" : {
+        "type" : "string"
+      }
+    },
+    "resultName" : {
+      "type" : "string",
+      "description" : "The name to assign to this table.  If omitted, a fresh name will be generated and returned in the result."
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
+    },
+    "humanReadableName" : {
+      "type" : "string",
+      "description" : "Provide a human-readable description of this dataset to be used in caveats applied during data loading."
+    }
+  }
+};
+            defs.body_10 = {
+  "required" : [ "includeUncertainty", "table" ],
+  "type" : "object",
+  "properties" : {
+    "table" : {
+      "type" : "string",
+      "description" : "The name of the dataset to retrieve"
+    },
+    "columns" : {
+      "type" : "array",
+      "description" : "The columns of the table to retrieve (case insensitive)",
+      "items" : {
+        "type" : "string"
+      }
+    },
+    "limit" : {
+      "type" : "integer",
+      "description" : "An optional limit on the number of rows returned (default: return all rows)"
+    },
+    "offset" : {
+      "type" : "integer",
+      "description" : "An optional offset to allow for paged results (default: 0)"
+    },
+    "includeUncertainty" : {
+      "type" : "boolean",
+      "description" : "Include the 'colTaint' and 'rowTaint' fields in the response to indicate which rows/cells in the result are affected by caveats."
+    }
+  }
+};
+            defs.body_11 = {
+  "required" : [ "query" ],
+  "type" : "object",
+  "properties" : {
+    "query" : {
+      "type" : "string",
+      "description" : "The query to retrieve a schema for.  Syntax is SparkSQL"
+    }
+  }
+};
+            defs.body_2 = {
   "required" : [ "file", "format", "input" ],
   "type" : "object",
   "properties" : {
@@ -763,17 +835,7 @@
     }
   }
 };
-            defs.body_10 = {
-  "required" : [ "query" ],
-  "type" : "object",
-  "properties" : {
-    "query" : {
-      "type" : "string",
-      "description" : "The query to retrieve a schema for.  Syntax is SparkSQL"
-    }
-  }
-};
-            defs.body_2 = {
+            defs.body_3 = {
   "required" : [ "input", "materialize", "params", "type" ],
   "type" : "object",
   "properties" : {
@@ -804,10 +866,13 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name of the dataset created by applying this lens (a fresh name will be automatically generated if needed)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
-            defs.body_3 = {
+            defs.body_4 = {
   "required" : [ "input", "query" ],
   "type" : "object",
   "properties" : {
@@ -825,10 +890,13 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
-            defs.body_4 = {
+            defs.body_5 = {
   "required" : [ "samplingMode", "source" ],
   "type" : "object",
   "properties" : {
@@ -842,10 +910,13 @@
     "resultName" : {
       "type" : "string",
       "description" : "The name of the dataset to create (Mimir will automatically generate a fresh name if ommitted)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
-            defs.body_5 = {
+            defs.body_6 = {
   "required" : [ "input", "script" ],
   "type" : "object",
   "properties" : {
@@ -866,10 +937,13 @@
     "compile" : {
       "type" : "boolean",
       "description" : "True if the provided script should be compiled to mimick spreadsheet semantics (defaults to true)"
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
     }
   }
 };
-            defs.body_6 = {
+            defs.body_7 = {
   "required" : [ "col", "query", "row" ],
   "type" : "object",
   "properties" : {
@@ -887,7 +961,7 @@
     }
   }
 };
-            defs.body_7 = {
+            defs.body_8 = {
   "required" : [ "query" ],
   "type" : "object",
   "properties" : {
@@ -897,42 +971,13 @@
     }
   }
 };
-            defs.body_8 = {
+            defs.body_9 = {
   "required" : [ "query" ],
   "type" : "object",
   "properties" : {
     "query" : {
       "type" : "string",
       "description" : "The query to retrieve data for.  Syntax is SparkSQL"
-    },
-    "includeUncertainty" : {
-      "type" : "boolean",
-      "description" : "Include the 'colTaint' and 'rowTaint' fields in the response to indicate which rows/cells in the result are affected by caveats."
-    }
-  }
-};
-            defs.body_9 = {
-  "required" : [ "includeUncertainty", "table" ],
-  "type" : "object",
-  "properties" : {
-    "table" : {
-      "type" : "string",
-      "description" : "The name of the dataset to retrieve"
-    },
-    "columns" : {
-      "type" : "array",
-      "description" : "The columns of the table to retrieve (case insensitive)",
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "limit" : {
-      "type" : "integer",
-      "description" : "An optional limit on the number of rows returned (default: return all rows)"
-    },
-    "offset" : {
-      "type" : "integer",
-      "description" : "An optional offset to allow for paged results (default: 0)"
     },
     "includeUncertainty" : {
       "type" : "boolean",
@@ -981,15 +1026,7 @@
       "$ref" : "#/components/schemas/TableSchema"
     },
     "data" : {
-      "type" : "array",
-      "description" : "An array of records",
-      "items" : {
-        "type" : "array",
-        "description" : "One record",
-        "items" : {
-          "description" : "One cell value"
-        }
-      }
+      "$ref" : "#/components/schemas/DataRows"
     },
     "prov" : {
       "type" : "array",
@@ -1014,6 +1051,25 @@
       "items" : {
         "type" : "boolean"
       }
+    },
+    "properties" : {
+      "$ref" : "#/components/schemas/DataProperties"
+    }
+  }
+};
+            defs.DataProperties = {
+  "type" : "object",
+  "additionalProperties" : true,
+  "description" : "A typically user-provided set of additional data descriptors to be used by the client."
+};
+            defs.DataRows = {
+  "type" : "array",
+  "description" : "An array of records",
+  "items" : {
+    "type" : "array",
+    "description" : "One record",
+    "items" : {
+      "description" : "One cell value"
     }
   }
 };
@@ -1044,6 +1100,9 @@
     "name" : {
       "type" : "string",
       "description" : "The name of the newly loaded table, whether or not it was explicitly defined as part of the request."
+    },
+    "schema" : {
+      "$ref" : "#/components/schemas/TableSchema"
     }
   }
 };
@@ -1270,6 +1329,9 @@
                     <li data-group="Default" data-name="annotationsCellPost" class="">
                       <a href="#api-Default-annotationsCellPost">annotationsCellPost</a>
                     </li>
+                    <li data-group="Default" data-name="dataSourceInlinePost" class="">
+                      <a href="#api-Default-dataSourceInlinePost">dataSourceInlinePost</a>
+                    </li>
                     <li data-group="Default" data-name="dataSourceLoadPost" class="">
                       <a href="#api-Default-dataSourceLoadPost">dataSourceLoadPost</a>
                     </li>
@@ -1369,9 +1431,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_7 body = {
+        Body_8 body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
-}; // Body_7 | The query to retrieve caveats for
+}; // Body_8 | The query to retrieve caveats for
         try {
             inline_response_200_7 result = apiInstance.annotationsAllPost(body);
             System.out.println(result);
@@ -1390,9 +1452,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_7 body = {
+        Body_8 body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
-}; // Body_7 | The query to retrieve caveats for
+}; // Body_8 | The query to retrieve caveats for
         try {
             inline_response_200_7 result = apiInstance.annotationsAllPost(body);
             System.out.println(result);
@@ -1408,7 +1470,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-annotationsAllPost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_7 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_8 *body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
 }; // The query to retrieve caveats for (optional)
 
@@ -1434,7 +1496,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
-} // {{Body_7}} The query to retrieve caveats for
+} // {{Body_8}} The query to retrieve caveats for
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -1465,7 +1527,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_7(); // Body_7 | The query to retrieve caveats for (optional) 
+            var body = new Body_8(); // Body_8 | The query to retrieve caveats for (optional) 
 
             try
             {
@@ -1490,7 +1552,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
-}; // Body_7 | The query to retrieve caveats for
+}; // Body_8 | The query to retrieve caveats for
 
 try {
     $result = $api_instance->annotationsAllPost($body);
@@ -1507,7 +1569,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_7->new(); # Body_7 | The query to retrieve caveats for
+my $body = WWW::SwaggerClient::Object::Body_8->new(); # Body_8 | The query to retrieve caveats for
 
 eval { 
     my $result = $api_instance->annotationsAllPost(body => $body);
@@ -1529,7 +1591,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n}"
-} # Body_7 | The query to retrieve caveats for (optional)
+} # Body_8 | The query to retrieve caveats for (optional)
 
 try: 
     # Retrieve all caveats applicable to a given query
@@ -1561,7 +1623,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_7"
+        "$ref" : "#/components/schemas/body_8"
       },
       "examples" : {
         "default" : {
@@ -1700,9 +1762,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_6 body = {
+        Body_7 body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
-}; // Body_6 | The cell to retrieve caveats for
+}; // Body_7 | The cell to retrieve caveats for
         try {
             inline_response_200_7 result = apiInstance.annotationsCellPost(body);
             System.out.println(result);
@@ -1721,9 +1783,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_6 body = {
+        Body_7 body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
-}; // Body_6 | The cell to retrieve caveats for
+}; // Body_7 | The cell to retrieve caveats for
         try {
             inline_response_200_7 result = apiInstance.annotationsCellPost(body);
             System.out.println(result);
@@ -1739,7 +1801,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-annotationsCellPost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_6 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_7 *body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
 }; // The cell to retrieve caveats for (optional)
 
@@ -1765,7 +1827,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
-} // {{Body_6}} The cell to retrieve caveats for
+} // {{Body_7}} The cell to retrieve caveats for
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -1796,7 +1858,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_6(); // Body_6 | The cell to retrieve caveats for (optional) 
+            var body = new Body_7(); // Body_7 | The cell to retrieve caveats for (optional) 
 
             try
             {
@@ -1821,7 +1883,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
-}; // Body_6 | The cell to retrieve caveats for
+}; // Body_7 | The cell to retrieve caveats for
 
 try {
     $result = $api_instance->annotationsCellPost($body);
@@ -1838,7 +1900,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_6->new(); # Body_6 | The cell to retrieve caveats for
+my $body = WWW::SwaggerClient::Object::Body_7->new(); # Body_7 | The cell to retrieve caveats for
 
 eval { 
     my $result = $api_instance->annotationsCellPost(body => $body);
@@ -1860,7 +1922,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  query : \"SELECT * FROM my_example_dataset\"\n  row : \"-2311351234\",\n  col: 'example_column_1'\n}"
-} # Body_6 | The cell to retrieve caveats for (optional)
+} # Body_7 | The cell to retrieve caveats for (optional)
 
 try: 
     # Retrieve the caveats on a specified cell of a query
@@ -1892,7 +1954,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_6"
+        "$ref" : "#/components/schemas/body_7"
       },
       "examples" : {
         "default" : {
@@ -1983,6 +2045,337 @@ except ApiException as e:
                         </article>
                       </div>
                       <hr>
+                    <div id="api-Default-dataSourceInlinePost">
+                      <article id="api-Default-dataSourceInlinePost-0" data-group="User" data-name="dataSourceInlinePost" data-version="0">
+                        <div class="pull-left">
+                          <h1>dataSourceInlinePost</h1>
+                          <p>Register (load) a new data source with this Mimir instance, providing records explicitly</p>
+                        </div>
+                        <div class="pull-right"></div>
+                        <div class="clearfix"></div>
+                        <p></p>
+                        <p class="marked"></p>
+                        <p></p>
+                        <br />
+                        <pre class="prettyprint language-html prettyprinted" data-type="post"><code><span class="pln">/dataSource/inline</span></code></pre>
+                        <p>
+                          <h3>Usage and SDK Samples</h3>
+                        </p>
+                        <ul class="nav nav-tabs nav-tabs-examples">
+                          <li class="active"><a href="#examples-Default-dataSourceInlinePost-0-curl">Curl</a></li>
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-java">Java</a></li>
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-android">Android</a></li>
+                          <!--<li class=""><a href="#examples-Default-dataSourceInlinePost-0-groovy">Groovy</a></li>-->
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-objc">Obj-C</a></li>
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-javascript">JavaScript</a></li>
+                          <!--<li class=""><a href="#examples-Default-dataSourceInlinePost-0-angular">Angular</a></li>-->
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-csharp">C#</a></li>
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-php">PHP</a></li>
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-perl">Perl</a></li>
+                          <li class=""><a href="#examples-Default-dataSourceInlinePost-0-python">Python</a></li>
+                        </ul>
+
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="examples-Default-dataSourceInlinePost-0-curl">
+                            <pre class="prettyprint"><code class="language-bsh">curl -X POST "//dataSource/inline"</code></pre>
+                          </div>
+                          <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-java">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
+import io.swagger.client.auth.*;
+import io.swagger.client.model.*;
+import io.swagger.client.api.DefaultApi;
+
+import java.io.File;
+import java.util.*;
+
+public class DefaultApiExample {
+
+    public static void main(String[] args) {
+        
+        DefaultApi apiInstance = new DefaultApi();
+        Body_1 body = {
+  "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+}; // Body_1 | Data contents and schema
+        try {
+            inline_response_200_1 result = apiInstance.dataSourceInlinePost(body);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling DefaultApi#dataSourceInlinePost");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+
+                          <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-android">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.api.DefaultApi;
+
+public class DefaultApiExample {
+
+    public static void main(String[] args) {
+        DefaultApi apiInstance = new DefaultApi();
+        Body_1 body = {
+  "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+}; // Body_1 | Data contents and schema
+        try {
+            inline_response_200_1 result = apiInstance.dataSourceInlinePost(body);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling DefaultApi#dataSourceInlinePost");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+  <!--
+  <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-groovy">
+  <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+  </div> -->
+                            <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-objc">
+                              <pre class="prettyprint"><code class="language-cpp">Body_1 *body = {
+  "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+}; // Data contents and schema (optional)
+
+DefaultApi *apiInstance = [[DefaultApi alloc] init];
+
+// Register (load) a new data source with this Mimir instance, providing records explicitly
+[apiInstance dataSourceInlinePostWith:body
+              completionHandler: ^(inline_response_200_1 output, NSError* error) {
+                            if (output) {
+                                NSLog(@"%@", output);
+                            }
+                            if (error) {
+                                NSLog(@"Error: %@", error);
+                            }
+                        }];
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-javascript">
+                              <pre class="prettyprint"><code class="language-js">var TheMimirAnnotatedDataStore = require('the_mimir_annotated_data_store');
+
+var api = new TheMimirAnnotatedDataStore.DefaultApi()
+var opts = { 
+  'body': {
+  "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+} // {{Body_1}} Data contents and schema
+};
+var callback = function(error, data, response) {
+  if (error) {
+    console.error(error);
+  } else {
+    console.log('API called successfully. Returned data: ' + data);
+  }
+};
+api.dataSourceInlinePost(opts, callback);
+</code></pre>
+                            </div>
+
+                            <!--<div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-angular">
+              <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+            </div>-->
+                            <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-csharp">
+                              <pre class="prettyprint"><code class="language-cs">using System;
+using System.Diagnostics;
+using IO.Swagger.Api;
+using IO.Swagger.Client;
+using IO.Swagger.Model;
+
+namespace Example
+{
+    public class dataSourceInlinePostExample
+    {
+        public void main()
+        {
+
+            var apiInstance = new DefaultApi();
+            var body = new Body_1(); // Body_1 | Data contents and schema (optional) 
+
+            try
+            {
+                // Register (load) a new data source with this Mimir instance, providing records explicitly
+                inline_response_200_1 result = apiInstance.dataSourceInlinePost(body);
+                Debug.WriteLine(result);
+            }
+            catch (Exception e)
+            {
+                Debug.Print("Exception when calling DefaultApi.dataSourceInlinePost: " + e.Message );
+            }
+        }
+    }
+}
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-php">
+                              <pre class="prettyprint"><code class="language-php"><&#63;php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+$api_instance = new Swagger\Client\ApiDefaultApi();
+$body = {
+  "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+}; // Body_1 | Data contents and schema
+
+try {
+    $result = $api_instance->dataSourceInlinePost($body);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling DefaultApi->dataSourceInlinePost: ', $e->getMessage(), PHP_EOL;
+}
+?></code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-perl">
+                              <pre class="prettyprint"><code class="language-perl">use Data::Dumper;
+use WWW::SwaggerClient::Configuration;
+use WWW::SwaggerClient::DefaultApi;
+
+my $api_instance = WWW::SwaggerClient::DefaultApi->new();
+my $body = WWW::SwaggerClient::Object::Body_1->new(); # Body_1 | Data contents and schema
+
+eval { 
+    my $result = $api_instance->dataSourceInlinePost(body => $body);
+    print Dumper($result);
+};
+if ($@) {
+    warn "Exception when calling DefaultApi->dataSourceInlinePost: $@\n";
+}</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Default-dataSourceInlinePost-0-python">
+                              <pre class="prettyprint"><code class="language-python">from __future__ import print_statement
+import time
+import swagger_client
+from swagger_client.rest import ApiException
+from pprint import pprint
+
+# create an instance of the API class
+api_instance = swagger_client.DefaultApi()
+body = {
+  "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+} # Body_1 | Data contents and schema (optional)
+
+try: 
+    # Register (load) a new data source with this Mimir instance, providing records explicitly
+    api_response = api_instance.data_source_inline_post(body=body)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling DefaultApi->dataSourceInlinePost: %s\n" % e)</code></pre>
+                            </div>
+                          </div>
+
+                          <h2>Parameters</h2>
+
+
+
+                            <div class="methodsubtabletitle">Body parameters</div>
+                            <table id="methodsubtable">
+                              <tr>
+                                <th width="150px">Name</th>
+                                <th>Description</th>
+                              </tr>
+                                <tr><td style="width:150px;">body </td>
+                                <td>
+                                
+                                
+                                <script>
+                                $(document).ready(function() {
+                                  var schemaWrapper = {
+  "description" : "Data contents and schema",
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/body_1"
+      },
+      "examples" : {
+        "default" : {
+          "value" : "{ \n  schema: [\n    { \"name\" : \"example_column_1\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n  ],\n  data: [\n    [1, \"A\"],\n    [2, \"B\"],\n    [3, \"C\"]\n  ],\n  dependencies = [],\n  resultName = \"inlined_table\",\n  properties = {},\n  humanReadableName = \"INLINED TABLE\"\n}"
+        }
+      }
+    }
+  }
+};
+                                  var schema = schemaWrapper.content["application/json"].schema;
+                                  if (schema.$ref != null) {
+                                    schema = defsParser.$refs.get(schema.$ref);
+                                  } else {
+                                    schemaWrapper.components = {};
+                                    schemaWrapper.components.schemas = Object.assign({}, defs);
+                                    $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                      console.log(err);
+                                    });
+                                  }
+                                
+                                  var view = new JSONSchemaView(schema,2,{isBodyParam: true});
+                                  var result = $('#d2e199_dataSourceInlinePost_body');
+                                  result.empty();
+                                  result.append(view.render());
+                                });
+                                </script>
+                                <div id="d2e199_dataSourceInlinePost_body"></div>
+                                </td>
+                                </tr>
+                            </table>
+
+
+
+                          <h2>Responses</h2>
+                            <h3> Status: 200 - Load successful </h3>
+
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-dataSourceInlinePost-200-schema">Schema</a>
+                                </li>
+
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-dataSourceInlinePost-200-schema">
+                                  <div id='responses-dataSourceInlinePost-200-schema-200' style="padding: 30px; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee;">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = {
+  "description" : "Load successful",
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/inline_response_200_1"
+      },
+      "examples" : {
+        "default" : {
+          "value" : "{\n  \"name\" : \"my_example_data\",\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"float\" }\n  ]\n}"
+        }
+      }
+    }
+  }
+};
+                                        var schema = schemaWrapper.content["application/json"].schema;
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                        } else {
+                                          schemaWrapper.components = {};
+                                          schemaWrapper.components.schemas = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        //console.log(JSON.stringify(schema));
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-dataSourceInlinePost-200-schema-data').val(stringify(schema));
+                                        var result = $('#responses-dataSourceInlinePost-200-schema-200');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-dataSourceInlinePost-200-schema-data' type='hidden' value=''></input>
+                                </div>
+                            </div>
+
+                        </article>
+                      </div>
+                      <hr>
                     <div id="api-Default-dataSourceLoadPost">
                       <article id="api-Default-dataSourceLoadPost-0" data-group="User" data-name="dataSourceLoadPost" data-version="0">
                         <div class="pull-left">
@@ -2032,7 +2425,7 @@ public class DefaultApiExample {
         
         DefaultApi apiInstance = new DefaultApi();
         Body body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Body | Instructions for loading the dataset
         try {
             inline_response_200_1 result = apiInstance.dataSourceLoadPost(body);
@@ -2053,7 +2446,7 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
         Body body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Body | Instructions for loading the dataset
         try {
             inline_response_200_1 result = apiInstance.dataSourceLoadPost(body);
@@ -2071,7 +2464,7 @@ public class DefaultApiExample {
   </div> -->
                             <div class="tab-pane" id="examples-Default-dataSourceLoadPost-0-objc">
                               <pre class="prettyprint"><code class="language-cpp">Body *body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Instructions for loading the dataset (optional)
 
 DefaultApi *apiInstance = [[DefaultApi alloc] init];
@@ -2095,7 +2488,7 @@ DefaultApi *apiInstance = [[DefaultApi alloc] init];
 var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 } // {{Body}} Instructions for loading the dataset
 };
 var callback = function(error, data, response) {
@@ -2151,7 +2544,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 }; // Body | Instructions for loading the dataset
 
 try {
@@ -2190,7 +2583,7 @@ from pprint import pprint
 # create an instance of the API class
 api_instance = swagger_client.DefaultApi()
 body = {
-  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+  "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
 } # Body | Instructions for loading the dataset (optional)
 
 try: 
@@ -2227,7 +2620,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\"\n}"
+          "value" : "{ \n  \"file\" : \"https://myserver.org/my_data.csv\",\n  \"format\" : \"csv\",\n  \"inferTypes\" : false,\n  \"detectHeaders\" : true,\n  \"humanReadableName\" : \"My Example Data\",\n  \"backendOption\" : [\n    { \"key\" : \"loadHeaders\", \"value\" : \"true\" }]\n  ],\n  \"dependencies\" : [\"my_other_dataset\"]\n  \"resultName\" : \"my_example_data\",\n  \"properties\" : {\n    \"source\" : \"http://example.org\"\n  }\n}"
         }
       }
     }
@@ -2281,7 +2674,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{\n  \"name\" : \"my_example_data\"\n}"
+          "value" : "{\n  \"name\" : \"my_example_data\",\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"int\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"float\" }\n  ]\n}"
         }
       }
     }
@@ -2362,9 +2755,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_1 body = {
+        Body_2 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
-}; // Body_1 | Targetting instructions for where to unload the data
+}; // Body_2 | Targetting instructions for where to unload the data
         try {
             inline_response_200_2 result = apiInstance.dataSourceUnloadPost(body);
             System.out.println(result);
@@ -2383,9 +2776,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_1 body = {
+        Body_2 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
-}; // Body_1 | Targetting instructions for where to unload the data
+}; // Body_2 | Targetting instructions for where to unload the data
         try {
             inline_response_200_2 result = apiInstance.dataSourceUnloadPost(body);
             System.out.println(result);
@@ -2401,7 +2794,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-dataSourceUnloadPost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_1 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_2 *body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
 }; // Targetting instructions for where to unload the data (optional)
 
@@ -2427,7 +2820,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
-} // {{Body_1}} Targetting instructions for where to unload the data
+} // {{Body_2}} Targetting instructions for where to unload the data
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -2458,7 +2851,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_1(); // Body_1 | Targetting instructions for where to unload the data (optional) 
+            var body = new Body_2(); // Body_2 | Targetting instructions for where to unload the data (optional) 
 
             try
             {
@@ -2483,7 +2876,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
-}; // Body_1 | Targetting instructions for where to unload the data
+}; // Body_2 | Targetting instructions for where to unload the data
 
 try {
     $result = $api_instance->dataSourceUnloadPost($body);
@@ -2500,7 +2893,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_1->new(); # Body_1 | Targetting instructions for where to unload the data
+my $body = WWW::SwaggerClient::Object::Body_2->new(); # Body_2 | Targetting instructions for where to unload the data
 
 eval { 
     my $result = $api_instance->dataSourceUnloadPost(body => $body);
@@ -2522,7 +2915,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"file\" : \"s3a://output_bucket/my_example_dataset\",\n  \"format\" : \"csv\"\n}"
-} # Body_1 | Targetting instructions for where to unload the data (optional)
+} # Body_2 | Targetting instructions for where to unload the data (optional)
 
 try: 
     # Output (unload) a new data source to a location specified by a given base file/URL.
@@ -2554,7 +2947,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_1"
+        "$ref" : "#/components/schemas/body_2"
       },
       "examples" : {
         "default" : {
@@ -2693,9 +3086,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_2 body = {
+        Body_3 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
-}; // Body_2 | A specification for the newly created lens
+}; // Body_3 | A specification for the newly created lens
         try {
             inline_response_200_3 result = apiInstance.lensCreatePost(body);
             System.out.println(result);
@@ -2714,9 +3107,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_2 body = {
+        Body_3 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
-}; // Body_2 | A specification for the newly created lens
+}; // Body_3 | A specification for the newly created lens
         try {
             inline_response_200_3 result = apiInstance.lensCreatePost(body);
             System.out.println(result);
@@ -2732,7 +3125,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-lensCreatePost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_2 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_3 *body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
 }; // A specification for the newly created lens (optional)
 
@@ -2758,7 +3151,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
-} // {{Body_2}} A specification for the newly created lens
+} // {{Body_3}} A specification for the newly created lens
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -2789,7 +3182,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_2(); // Body_2 | A specification for the newly created lens (optional) 
+            var body = new Body_3(); // Body_3 | A specification for the newly created lens (optional) 
 
             try
             {
@@ -2814,7 +3207,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
-}; // Body_2 | A specification for the newly created lens
+}; // Body_3 | A specification for the newly created lens
 
 try {
     $result = $api_instance->lensCreatePost($body);
@@ -2831,7 +3224,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_2->new(); # Body_2 | A specification for the newly created lens
+my $body = WWW::SwaggerClient::Object::Body_3->new(); # Body_3 | A specification for the newly created lens
 
 eval { 
     my $result = $api_instance->lensCreatePost(body => $body);
@@ -2853,7 +3246,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"type\" : \"TYPE_INFERENCE\",\n  \"params\" : {},\n  \"materialize\" : \"false\",\n  \"humanReadableName\" : \"An example dataset\"\n  \"resultName\" : \"my_example_lens\"\n}"
-} # Body_2 | A specification for the newly created lens (optional)
+} # Body_3 | A specification for the newly created lens (optional)
 
 try: 
     # Create a new dataset by applying a 'lens' data cleaning operation
@@ -2885,7 +3278,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_2"
+        "$ref" : "#/components/schemas/body_3"
       },
       "examples" : {
         "default" : {
@@ -3287,9 +3680,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_8 body = {
+        Body_9 body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
-}; // Body_8 | The query and parameters
+}; // Body_9 | The query and parameters
         try {
             DataContainer result = apiInstance.queryDataPost(body);
             System.out.println(result);
@@ -3308,9 +3701,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_8 body = {
+        Body_9 body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
-}; // Body_8 | The query and parameters
+}; // Body_9 | The query and parameters
         try {
             DataContainer result = apiInstance.queryDataPost(body);
             System.out.println(result);
@@ -3326,7 +3719,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-queryDataPost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_8 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_9 *body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
 }; // The query and parameters (optional)
 
@@ -3352,7 +3745,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
-} // {{Body_8}} The query and parameters
+} // {{Body_9}} The query and parameters
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -3383,7 +3776,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_8(); // Body_8 | The query and parameters (optional) 
+            var body = new Body_9(); // Body_9 | The query and parameters (optional) 
 
             try
             {
@@ -3408,7 +3801,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
-}; // Body_8 | The query and parameters
+}; // Body_9 | The query and parameters
 
 try {
     $result = $api_instance->queryDataPost($body);
@@ -3425,7 +3818,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_8->new(); # Body_8 | The query and parameters
+my $body = WWW::SwaggerClient::Object::Body_9->new(); # Body_9 | The query and parameters
 
 eval { 
     my $result = $api_instance->queryDataPost(body => $body);
@@ -3447,7 +3840,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\",\n  \"includeUncertainty\" : true\n}"
-} # Body_8 | The query and parameters (optional)
+} # Body_9 | The query and parameters (optional)
 
 try: 
     # Retrieve the data generated from the specified SQL query
@@ -3479,7 +3872,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_8"
+        "$ref" : "#/components/schemas/body_9"
       },
       "examples" : {
         "default" : {
@@ -3537,7 +3930,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Alice\", \"1\", \"10.1\"],\n    [\"Bob\",   \"2\", \"20.1\"],\n    [\"Carol\", \"3\", \"30.1\"],\n    [\"Dave\",  \"4\", \"40.1\"],  \n  ],\n  \"prov\" : [\n    \"12323513245613\",\n    \"-23456347563090\",\n    \"09809809345734\",\n    \"098436234623432\"\n  ],\n  \"colTaint\" : [\n    [false, false,  true],\n    [false, false,  true],\n    [false, true,  false],\n    [true,  true,  false]\n  ]\n  \"rowTaint\" : [\n    false,\n    false,\n    false,\n    true\n  ]\n}"
+          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_1\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Alice\", \"1\", \"10.1\"],\n    [\"Bob\",   \"2\", \"20.1\"],\n    [\"Carol\", \"3\", \"30.1\"],\n    [\"Dave\",  \"4\", \"40.1\"],  \n  ],\n  \"prov\" : [\n    \"12323513245613\",\n    \"-23456347563090\",\n    \"09809809345734\",\n    \"098436234623432\"\n  ],\n  \"colTaint\" : [\n    [false, false,  true],\n    [false, false,  true],\n    [false, true,  false],\n    [true,  true,  false]\n  ],\n  \"rowTaint\" : [\n    false,\n    false,\n    false,\n    true\n  ],\n  \"properties\" : {\n    { 'columns': [\n        { 'name': 'example_column_2',\n          'structural_type': 'https://schema.org/Float',\n          'semantic_types': [],\n          'unclean_values_ratio': 0.0,\n          'num_distinct_values': 25,\n          'mean': 31.27777777777778,\n          'stddev': 7.102859796163133,\n          'plot': { 'type': 'histogram_numerical',\n                    'data': [ {'count': 9, 'bin_start': 20.0, 'bin_end': 23.5},\n                              {'count': 13, 'bin_start': 23.5, 'bin_end': 27.0},\n                              {'count': 15, 'bin_start': 27.0, 'bin_end': 30.5},\n                              {'count': 10, 'bin_start': 30.5, 'bin_end': 34.0},\n                              {'count': 11, 'bin_start': 34.0, 'bin_end': 37.5},\n                              {'count': 5, 'bin_start': 37.5, 'bin_end': 41.0},\n                              {'count': 7, 'bin_start': 41.0, 'bin_end': 44.5},\n                              {'count': 1, 'bin_start': 44.5, 'bin_end': 48.0},\n                              {'count': 0, 'bin_start': 48.0, 'bin_end': 51.5},\n                              {'count': 1, 'bin_start': 51.5, 'bin_end': 55.0}]\n          },\n          'coverage': [ {'range': {'gte': 21.0, 'lte': 29.0}},\n                        {'range': {'gte': 30.0, 'lte': 38.0}},\n                        {'range': {'gte': 40.0, 'lte': 55.0}} ]\n        }\n      ]\n    }\n  }\n}\n}"
         }
       }
     }
@@ -3618,9 +4011,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_9 body = {
+        Body_10 body = {
   "value" : "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
-}; // Body_9 | The table and parameters
+}; // Body_10 | The table and parameters
         try {
             DataContainer result = apiInstance.queryTablePost(body);
             System.out.println(result);
@@ -3639,9 +4032,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_9 body = {
+        Body_10 body = {
   "value" : "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
-}; // Body_9 | The table and parameters
+}; // Body_10 | The table and parameters
         try {
             DataContainer result = apiInstance.queryTablePost(body);
             System.out.println(result);
@@ -3657,7 +4050,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-queryTablePost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_9 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_10 *body = {
   "value" : "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
 }; // The table and parameters (optional)
 
@@ -3683,7 +4076,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
-} // {{Body_9}} The table and parameters
+} // {{Body_10}} The table and parameters
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -3714,7 +4107,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_9(); // Body_9 | The table and parameters (optional) 
+            var body = new Body_10(); // Body_10 | The table and parameters (optional) 
 
             try
             {
@@ -3739,7 +4132,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
-}; // Body_9 | The table and parameters
+}; // Body_10 | The table and parameters
 
 try {
     $result = $api_instance->queryTablePost($body);
@@ -3756,7 +4149,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_9->new(); # Body_9 | The table and parameters
+my $body = WWW::SwaggerClient::Object::Body_10->new(); # Body_10 | The table and parameters
 
 eval { 
     my $result = $api_instance->queryTablePost(body => $body);
@@ -3778,7 +4171,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"table\" : \"my_example_dataset\",\n  \"columns\" : [\"example_column_1\", \"example_column_3\"]\n  \"limit\" : 2,\n  \"offset\" : 1,\n  \"includeUncertainty\" : true\n}"
-} # Body_9 | The table and parameters (optional)
+} # Body_10 | The table and parameters (optional)
 
 try: 
     # Retrieve the contents of a specified dataset
@@ -3810,7 +4203,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_9"
+        "$ref" : "#/components/schemas/body_10"
       },
       "examples" : {
         "default" : {
@@ -3868,7 +4261,7 @@ except ApiException as e:
       },
       "examples" : {
         "default" : {
-          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Bob\",   \"20.1\"],\n    [\"Carol\", \"30.1\"],\n  ],\n  \"prov\" : [\n    \"-23456347563090\",\n    \"09809809345734\",\n  ],\n  \"colTaint\" : [\n    [false, true],\n    [false, false],\n  ]\n  \"rowTaint\" : [\n    false,\n    false,\n  ]\n}"
+          "value" : "{\n  \"schema\" : [\n    { \"name\" : \"example_column_2\", \"t\" : \"string\" },\n    { \"name\" : \"example_column_3\", \"t\" : \"string\" }\n  ],\n  \"data\" : [\n    [\"Bob\",   \"20.1\"],\n    [\"Carol\", \"30.1\"],\n  ],\n  \"prov\" : [\n    \"-23456347563090\",\n    \"09809809345734\",\n  ],\n  \"colTaint\" : [\n    [false, true],\n    [false, false],\n  ],\n  \"rowTaint\" : [\n    false,\n    false,\n  ],\n  \"properties\" : {\n    { 'columns': [\n        { 'name': 'example_column_2',\n          'structural_type': 'https://schema.org/Float',\n          'semantic_types': [],\n          'unclean_values_ratio': 0.0,\n          'num_distinct_values': 25,\n          'mean': 31.27777777777778,\n          'stddev': 7.102859796163133,\n          'plot': { 'type': 'histogram_numerical',\n                    'data': [ {'count': 9, 'bin_start': 20.0, 'bin_end': 23.5},\n                              {'count': 13, 'bin_start': 23.5, 'bin_end': 27.0},\n                              {'count': 15, 'bin_start': 27.0, 'bin_end': 30.5},\n                              {'count': 10, 'bin_start': 30.5, 'bin_end': 34.0},\n                              {'count': 11, 'bin_start': 34.0, 'bin_end': 37.5},\n                              {'count': 5, 'bin_start': 37.5, 'bin_end': 41.0},\n                              {'count': 7, 'bin_start': 41.0, 'bin_end': 44.5},\n                              {'count': 1, 'bin_start': 44.5, 'bin_end': 48.0},\n                              {'count': 0, 'bin_start': 48.0, 'bin_end': 51.5},\n                              {'count': 1, 'bin_start': 51.5, 'bin_end': 55.0}]\n          },\n          'coverage': [ {'range': {'gte': 21.0, 'lte': 29.0}},\n                        {'range': {'gte': 30.0, 'lte': 38.0}},\n                        {'range': {'gte': 40.0, 'lte': 55.0}} ]\n        }\n      ]\n    }\n  }\n}"
         }
       }
     }
@@ -3949,9 +4342,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_10 body = {
+        Body_11 body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
-}; // Body_10 | The query to retrieve the schema of
+}; // Body_11 | The query to retrieve the schema of
         try {
             inline_response_200_8 result = apiInstance.schemaPost(body);
             System.out.println(result);
@@ -3970,9 +4363,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_10 body = {
+        Body_11 body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
-}; // Body_10 | The query to retrieve the schema of
+}; // Body_11 | The query to retrieve the schema of
         try {
             inline_response_200_8 result = apiInstance.schemaPost(body);
             System.out.println(result);
@@ -3988,7 +4381,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-schemaPost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_10 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_11 *body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
 }; // The query to retrieve the schema of (optional)
 
@@ -4013,7 +4406,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
-} // {{Body_10}} The query to retrieve the schema of
+} // {{Body_11}} The query to retrieve the schema of
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -4044,7 +4437,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_10(); // Body_10 | The query to retrieve the schema of (optional) 
+            var body = new Body_11(); // Body_11 | The query to retrieve the schema of (optional) 
 
             try
             {
@@ -4068,7 +4461,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
-}; // Body_10 | The query to retrieve the schema of
+}; // Body_11 | The query to retrieve the schema of
 
 try {
     $result = $api_instance->schemaPost($body);
@@ -4085,7 +4478,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_10->new(); # Body_10 | The query to retrieve the schema of
+my $body = WWW::SwaggerClient::Object::Body_11->new(); # Body_11 | The query to retrieve the schema of
 
 eval { 
     my $result = $api_instance->schemaPost(body => $body);
@@ -4107,7 +4500,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"query\" : \"SELECT * FROM my_example_dataset\"\n}"
-} # Body_10 | The query to retrieve the schema of (optional)
+} # Body_11 | The query to retrieve the schema of (optional)
 
 try: 
     api_response = api_instance.schema_post(body=body)
@@ -4138,7 +4531,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_10"
+        "$ref" : "#/components/schemas/body_11"
       },
       "examples" : {
         "default" : {
@@ -4277,9 +4670,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_3 body = {
+        Body_4 body = {
   "value" : "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
-}; // Body_3 | The query and associated metadata to use in interpreting it
+}; // Body_4 | The query and associated metadata to use in interpreting it
         try {
             inline_response_200_4 result = apiInstance.viewCreatePost(body);
             System.out.println(result);
@@ -4298,9 +4691,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_3 body = {
+        Body_4 body = {
   "value" : "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
-}; // Body_3 | The query and associated metadata to use in interpreting it
+}; // Body_4 | The query and associated metadata to use in interpreting it
         try {
             inline_response_200_4 result = apiInstance.viewCreatePost(body);
             System.out.println(result);
@@ -4316,7 +4709,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-viewCreatePost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_3 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_4 *body = {
   "value" : "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
 }; // The query and associated metadata to use in interpreting it (optional)
 
@@ -4342,7 +4735,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
-} // {{Body_3}} The query and associated metadata to use in interpreting it
+} // {{Body_4}} The query and associated metadata to use in interpreting it
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -4373,7 +4766,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_3(); // Body_3 | The query and associated metadata to use in interpreting it (optional) 
+            var body = new Body_4(); // Body_4 | The query and associated metadata to use in interpreting it (optional) 
 
             try
             {
@@ -4398,7 +4791,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
-}; // Body_3 | The query and associated metadata to use in interpreting it
+}; // Body_4 | The query and associated metadata to use in interpreting it
 
 try {
     $result = $api_instance->viewCreatePost($body);
@@ -4415,7 +4808,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_3->new(); # Body_3 | The query and associated metadata to use in interpreting it
+my $body = WWW::SwaggerClient::Object::Body_4->new(); # Body_4 | The query and associated metadata to use in interpreting it
 
 eval { 
     my $result = $api_instance->viewCreatePost(body => $body);
@@ -4437,7 +4830,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"input\" : { \"foo\" : \"my_example_dataset\", \"bar\" : \"my_example_lens\" },\n  \"query\" : \"SELECT * FROM foo\",\n  \"resultName\" : \"my_example_view\"\n}"
-} # Body_3 | The query and associated metadata to use in interpreting it (optional)
+} # Body_4 | The query and associated metadata to use in interpreting it (optional)
 
 try: 
     # Create a new dataset from a SQL query over existing datasets
@@ -4469,7 +4862,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_3"
+        "$ref" : "#/components/schemas/body_4"
       },
       "examples" : {
         "default" : {
@@ -4608,9 +5001,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_4 body = {
+        Body_5 body = {
   "value" : "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
-}; // Body_4 | Which dataset to sample from and how to sample it
+}; // Body_5 | Which dataset to sample from and how to sample it
         try {
             inline_response_200_5 result = apiInstance.viewSamplePost(body);
             System.out.println(result);
@@ -4629,9 +5022,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_4 body = {
+        Body_5 body = {
   "value" : "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
-}; // Body_4 | Which dataset to sample from and how to sample it
+}; // Body_5 | Which dataset to sample from and how to sample it
         try {
             inline_response_200_5 result = apiInstance.viewSamplePost(body);
             System.out.println(result);
@@ -4647,7 +5040,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-viewSamplePost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_4 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_5 *body = {
   "value" : "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
 }; // Which dataset to sample from and how to sample it (optional)
 
@@ -4673,7 +5066,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
-} // {{Body_4}} Which dataset to sample from and how to sample it
+} // {{Body_5}} Which dataset to sample from and how to sample it
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -4704,7 +5097,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_4(); // Body_4 | Which dataset to sample from and how to sample it (optional) 
+            var body = new Body_5(); // Body_5 | Which dataset to sample from and how to sample it (optional) 
 
             try
             {
@@ -4729,7 +5122,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
-}; // Body_4 | Which dataset to sample from and how to sample it
+}; // Body_5 | Which dataset to sample from and how to sample it
 
 try {
     $result = $api_instance->viewSamplePost($body);
@@ -4746,7 +5139,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_4->new(); # Body_4 | Which dataset to sample from and how to sample it
+my $body = WWW::SwaggerClient::Object::Body_5->new(); # Body_5 | Which dataset to sample from and how to sample it
 
 eval { 
     my $result = $api_instance->viewSamplePost(body => $body);
@@ -4768,7 +5161,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"source\" : \"my_example_dataset\",\n  \"samplingMode\" : {\n    \"mode\" : \"uniform_probability\",\n    \"probability\" : 0.1,\n  },\n  \"resultName\" : \"my_example_sample\"\n}"
-} # Body_4 | Which dataset to sample from and how to sample it (optional)
+} # Body_5 | Which dataset to sample from and how to sample it (optional)
 
 try: 
     # Create a new dataset as a sample of an existing dataset
@@ -4800,7 +5193,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_4"
+        "$ref" : "#/components/schemas/body_5"
       },
       "examples" : {
         "default" : {
@@ -4939,9 +5332,9 @@ public class DefaultApiExample {
     public static void main(String[] args) {
         
         DefaultApi apiInstance = new DefaultApi();
-        Body_5 body = {
+        Body_6 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
-}; // Body_5 | The vizual script and associated options
+}; // Body_6 | The vizual script and associated options
         try {
             inline_response_200_6 result = apiInstance.vizualCreatePost(body);
             System.out.println(result);
@@ -4960,9 +5353,9 @@ public class DefaultApiExample {
 
     public static void main(String[] args) {
         DefaultApi apiInstance = new DefaultApi();
-        Body_5 body = {
+        Body_6 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
-}; // Body_5 | The vizual script and associated options
+}; // Body_6 | The vizual script and associated options
         try {
             inline_response_200_6 result = apiInstance.vizualCreatePost(body);
             System.out.println(result);
@@ -4978,7 +5371,7 @@ public class DefaultApiExample {
   <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
   </div> -->
                             <div class="tab-pane" id="examples-Default-vizualCreatePost-0-objc">
-                              <pre class="prettyprint"><code class="language-cpp">Body_5 *body = {
+                              <pre class="prettyprint"><code class="language-cpp">Body_6 *body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
 }; // The vizual script and associated options (optional)
 
@@ -5004,7 +5397,7 @@ var api = new TheMimirAnnotatedDataStore.DefaultApi()
 var opts = { 
   'body': {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
-} // {{Body_5}} The vizual script and associated options
+} // {{Body_6}} The vizual script and associated options
 };
 var callback = function(error, data, response) {
   if (error) {
@@ -5035,7 +5428,7 @@ namespace Example
         {
 
             var apiInstance = new DefaultApi();
-            var body = new Body_5(); // Body_5 | The vizual script and associated options (optional) 
+            var body = new Body_6(); // Body_6 | The vizual script and associated options (optional) 
 
             try
             {
@@ -5060,7 +5453,7 @@ require_once(__DIR__ . '/vendor/autoload.php');
 $api_instance = new Swagger\Client\ApiDefaultApi();
 $body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
-}; // Body_5 | The vizual script and associated options
+}; // Body_6 | The vizual script and associated options
 
 try {
     $result = $api_instance->vizualCreatePost($body);
@@ -5077,7 +5470,7 @@ use WWW::SwaggerClient::Configuration;
 use WWW::SwaggerClient::DefaultApi;
 
 my $api_instance = WWW::SwaggerClient::DefaultApi->new();
-my $body = WWW::SwaggerClient::Object::Body_5->new(); # Body_5 | The vizual script and associated options
+my $body = WWW::SwaggerClient::Object::Body_6->new(); # Body_6 | The vizual script and associated options
 
 eval { 
     my $result = $api_instance->vizualCreatePost(body => $body);
@@ -5099,7 +5492,7 @@ from pprint import pprint
 api_instance = swagger_client.DefaultApi()
 body = {
   "value" : "{\n  \"input\" : \"my_example_dataset\",\n  \"script\" : [\n    { \"id\" : \"deletecolumn\", \"column\" : 1 }\n  ],\n  \"resultName\" : \"my_example_vizual_result\",\n  \"compile\" : true\n}"
-} # Body_5 | The vizual script and associated options (optional)
+} # Body_6 | The vizual script and associated options (optional)
 
 try: 
     # Create a dataset by applying a Vizual script to an existing dataset
@@ -5131,7 +5524,7 @@ except ApiException as e:
   "content" : {
     "application/json" : {
       "schema" : {
-        "$ref" : "#/components/schemas/body_5"
+        "$ref" : "#/components/schemas/body_6"
       },
       "examples" : {
         "default" : {

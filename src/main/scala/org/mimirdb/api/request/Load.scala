@@ -1,21 +1,31 @@
 package org.mimirdb.api.request
 
+import java.io.{
+  IOException,
+  FileNotFoundException
+}
 import play.api.libs.json._
 import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.types.StructField
 import com.typesafe.scalalogging.LazyLogging
 
-import org.mimirdb.api.{ Request, Response, Tuple }
-import org.mimirdb.api.MimirAPI
+import org.mimirdb.api.{ 
+  Request, 
+  Response, 
+  Tuple, 
+  MimirAPI,
+  FormattedError,
+  CreateResponse
+}
 import org.mimirdb.data.{ 
   Catalog, 
   FileFormat, 
-  LoadConstructor
+  LoadConstructor,
+  InlineConstructor
 }
 import org.mimirdb.lenses.Lenses
-import java.io.IOException
-import org.mimirdb.api.FormattedError
-import org.apache.spark.deploy.rest.ErrorResponse
-import java.io.FileNotFoundException
+import org.mimirdb.spark.Schema
+import org.mimirdb.spark.Schema.fieldFormat
 
 
 case class LoadRequest (
@@ -32,9 +42,11 @@ case class LoadRequest (
             /* options for spark datasource api */
                   backendOption: Seq[Tuple],
             /* optionally provide dependencies */
-                  dependencies: Seq[String],
+                  dependencies: Option[Seq[String]],
             /* optionally provide an output name */
-                  resultName: Option[String]
+                  resultName: Option[String],
+            /* optional properties */
+                  properties: Option[Map[String,JsValue]]
 ) extends Request {
 
   lazy val output = 
@@ -52,7 +64,7 @@ case class LoadRequest (
       "DATASOURCE_" + hint + "_" + (lensNameBase.toString().replace("-", ""))
     }
 
-  def handle: JsValue = {
+  def handle: CreateResponse = {
     try { 
       val sparkOptions = backendOption.map { tup => tup.name -> tup.value }
 
@@ -97,7 +109,8 @@ case class LoadRequest (
       var loadConstructor = LoadConstructor(
         url = url,
         format = storageFormat,
-        sparkOptions = finalSparkOptions
+        sparkOptions = finalSparkOptions,
+        contextText = humanReadableName
       )
 
       // Infer types if necessary
@@ -110,7 +123,13 @@ case class LoadRequest (
       }
 
       // And finally save the dataframe constructor
-      MimirAPI.catalog.put(output, loadConstructor, Set())
+      val df = MimirAPI.catalog.put(
+        name = output, 
+        constructor = loadConstructor, 
+        dependencies = dependencies.getOrElse { Seq() }.toSet, 
+        properties = properties.getOrElse { Map.empty }
+      )
+      return CreateResponse(output, Schema(df), properties.getOrElse { Map.empty })
     } catch {
       case e: FileNotFoundException => 
         throw FormattedError(e, s"Can't Load URL [Not Found]: $file")
@@ -118,7 +137,6 @@ case class LoadRequest (
         throw FormattedError(e, s"Error Loading $file (${e.getMessage()}")
     }
 
-    return Json.toJson(LoadResponse(output))
   }
 }
 
@@ -126,12 +144,39 @@ object LoadRequest {
   implicit val format: Format[LoadRequest] = Json.format
 }
 
-case class LoadResponse (
-            /* name of resulting table */
-                  name: String
-) extends Response
+case class LoadInlineRequest(
+  schema: Seq[StructField],
+  data: Seq[Seq[JsValue]],
+  dependencies: Option[Seq[String]],
+  resultName: Option[String],
+  properties: Option[Map[String, JsValue]],
+  humanReadableName: Option[String],
+) extends Request
+{
+  lazy val output = 
+    resultName.getOrElse {
+      val lensNameBase = (
+        schema 
+        + data.hashCode().toString
+        + dependencies.hashCode().toString
+        + properties.hashCode().toString
+      ).hashCode()
+      val hint = humanReadableName.getOrElse { "UNNAMED_TABLE" }.replaceAll("[^a-zA-Z]", "")
+      "INLINE_" + hint + "_" + (lensNameBase.toString().replace("-", ""))
+    }
 
-object LoadResponse {
-  implicit val format: Format[LoadResponse] = Json.format
+  def handle: CreateResponse =
+  {
+    val df = MimirAPI.catalog.put(
+      name = output,
+      constructor = InlineConstructor(schema, data),
+      dependencies = dependencies.getOrElse { Seq() }.toSet, 
+      properties = properties.getOrElse { Map.empty }
+    )
+    CreateResponse(output, Schema(df), properties.getOrElse { Map.empty })
+  }
 }
 
+object LoadInlineRequest {
+  implicit val format: Format[LoadInlineRequest] = Json.format
+}

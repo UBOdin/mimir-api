@@ -5,12 +5,13 @@ import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 
-import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI, Schema } 
+import play.api.libs.json._
+import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI } 
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
 import org.mimirdb.data.RangeConstructor
 import play.api.libs.json.{ JsString, JsNull }
-import org.mimirdb.spark.SparkPrimitive
+import org.mimirdb.spark.{ SparkPrimitive, Schema }
 
 
 class QuerySpec 
@@ -47,7 +48,7 @@ class QuerySpec
               (op: DataContainer => T): T = 
     op(Query(query, includeUncertainty, sparkSession = spark))
 
-  def schemaOf(query: String): Seq[Schema] =
+  def schemaOf(query: String): Seq[StructField] =
     Query.getSchema(query, spark)
 
   def queryTable[T](
@@ -57,22 +58,22 @@ class QuerySpec
     offset: Integer = null,
     includeUncertainty: Boolean = false
   )(op: DataContainer => T): T = 
-    op( QueryTableRequest(
+    op( Json.toJson(QueryTableRequest(
           table,
           Option(columns),
           Option(limit).map { _.toInt },
           Option(offset).map { _.toLong },
           includeUncertainty
-        ).handle.as[DataContainer] )
+        ).handle).as[DataContainer] )
 
   "Basic Query Functions" >> {
     "Look up schemas" >> {
       schemaOf("SELECT * FROM QuerySpec") must beEqualTo(
         Seq(
-          Schema("id", "long"), 
-          Schema("val", "long"), 
-          Schema("str", "string"), 
-          Schema("somestr", "string")
+          StructField("id", Schema.decodeType("long"), false), 
+          StructField("val", Schema.decodeType("long"), false), 
+          StructField("str", Schema.decodeType("string"), false), 
+          StructField("somestr", Schema.decodeType("string"), false)
         )
       )
     }

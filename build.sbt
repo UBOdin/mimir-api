@@ -30,7 +30,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.1",
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.2-SNAPSHOT",
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API

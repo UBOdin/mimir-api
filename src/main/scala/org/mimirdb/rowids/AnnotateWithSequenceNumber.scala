@@ -1,6 +1,7 @@
 package org.mimirdb.rowids
 
-import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.{ SparkSession, DataFrame, Column }
+import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.AliasIdentifier
 import org.apache.spark.sql.catalyst.analysis._
@@ -12,11 +13,13 @@ import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.plans.JoinType
 
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 
 object AnnotateWithSequenceNumber
 {
   val ATTRIBUTE = "__MIMIR_ROW_INDEX"
   val FIELD_TYPE = StructField(ATTRIBUTE, LongType)
+  val DEFAULT_FIRST_ROW = 0
 
   def withSequenceNumber(df: DataFrame)(op: DataFrame => DataFrame): DataFrame =
   {
@@ -158,17 +161,8 @@ object AnnotateWithSequenceNumber
        .map { row => row.getLong(0) -> row.getLong(1) }
        .toMap
 
-    def lookupFirstIdentifier(partition: Expression) =
-      ScalaUDF(
-        (partitionId:Int) => firstPerPartitionIdentifierMap(partitionId),
-        LongType,
-        Seq(partition),
-        Seq(false),
-        Seq(IntegerType),
-        Some("FIRST_IDENTIFIER_FOR_PARTITION"), /*name hint*/
-        true, /*nullable*/
-        true, /*deterministic*/
-      )
+    val lookupFirstIdentifier =
+      udf { (partitionId:Int) => firstPerPartitionIdentifierMap(partitionId) }
 
     Project(
       plan.output :+ ResolvedAlias(
@@ -177,7 +171,7 @@ object AnnotateWithSequenceNumber
           INTERNAL_ID,
           Add(
             INTERNAL_ID,
-            lookupFirstIdentifier(PARTITION_ID)
+            lookupFirstIdentifier(new Column(PARTITION_ID)).expr
           )
         )), attribute
       ),

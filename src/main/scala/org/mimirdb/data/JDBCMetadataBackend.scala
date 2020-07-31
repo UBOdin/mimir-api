@@ -9,6 +9,8 @@ import play.api.libs.json._
 
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.expressions.Literal
+import java.io.ByteArrayInputStream
+import java.util.Base64
 
 class JDBCMetadataBackend(val protocol: String, val filename: String)
   extends MetadataBackend
@@ -73,6 +75,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
         case (LongType, i) => results.getLong(i+1)
         case (DoubleType, i) => results.getDouble(i+1)
         case (StringType, i) => results.getString(i+1)
+        case (BinaryType, i) => Base64.getDecoder().decode(results.getString(i+1))
         case (ArrayType(_, _), i) => Json.parse(results.getString(i+1)).as[Seq[JsValue]]
         case (StructType(_), i) => Json.parse(results.getString(i+1)).as[Map[String,JsValue]]
         case (MapType(StringType, _, _), i) => Json.parse(results.getString(i+1)).as[Map[String,JsValue]]
@@ -97,6 +100,9 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
         case LongType => stmt.setLong(i + 1, v.asInstanceOf[Long])
         case DoubleType => stmt.setDouble(i + 1, v.asInstanceOf[Double])
         case StringType => stmt.setString(i + 1, v.asInstanceOf[String])
+        case BinaryType => stmt.setString(i + 1, 
+          Base64.getEncoder().encodeToString(v.asInstanceOf[scala.Array[Byte]]))
+          // stmt.setBlob(i+1, new ByteArrayInputStream(v.asInstanceOf[scala.Array[Byte]]))
         case ArrayType(_, _) 
            | StructType(_)
            | MapType(StringType, _, _) => stmt.setString(i + 1, v.asInstanceOf[JsValue].toString)
@@ -125,13 +131,22 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
       val name    = row(1).toString.trim.toUpperCase
       val rawType = row(2).toString.trim
 
-      name -> DataType.fromDDL(rawType)
+      name -> (rawType match {
+        case "blob" => BinaryType
+        case _ => DataType.fromDDL(rawType)
+      })
     }
 
     if(ret.isEmpty) { None } else { Some(ret) }
   }
 
   val ID_COLUMN = "MIMIR_ID"
+
+  private def stringForType(t: DataType): String =
+    t match {
+      case BinaryType => "blob"
+      case _ => t.simpleString
+    }
 
   def registerMap(category: String, migrations: Seq[MapMigration]): MetadataMap =
   {
@@ -141,6 +156,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
       case (_, LongType 
              | StringType 
              | DoubleType 
+             | BinaryType
              | ArrayType(_, _) 
              | StructType(_)
              | MapType(StringType, _, _)) => false
@@ -182,7 +198,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
                       case Some(x) => s" DEFAULT $x"
                     }
                     val addColumn = 
-                      s"ALTER TABLE `$category` ADD COLUMN `$column` ${t.simpleString} $default;"
+                      s"ALTER TABLE `$category` ADD COLUMN `$column` ${stringForType(t)} $default;"
                     stmt.executeUpdate(addColumn)
                     stmtNeedsClose = true
                   }
@@ -206,7 +222,7 @@ class JDBCMetadataBackend(val protocol: String, val filename: String)
             val create = s"CREATE TABLE `$category`("+
               (  
                 s"`$ID_COLUMN` string PRIMARY KEY NOT NULL" +:
-                schema.map { case (name, t) => s"`$name` `${t.simpleString}`"}
+                schema.map { case (name, t) => s"`$name` `${stringForType(t)}`"}
               ).mkString(",")+
             ")"
             val stmt = conn.createStatement()

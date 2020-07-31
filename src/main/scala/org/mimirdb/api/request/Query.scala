@@ -1,19 +1,18 @@
 package org.mimirdb.api.request
 
 import org.apache.spark.sql.{ SparkSession, DataFrame, Row }
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{ StructType, StructField }
 import org.apache.spark.sql.execution.{ ExtendedMode => SelectedExplainMode }
 import org.apache.spark.sql.SparkSession
 
 import play.api.libs.json._
 
-import org.mimirdb.api.{ Request, Response, Schema }
-import org.mimirdb.api.MimirAPI
-import org.mimirdb.caveats.{ Caveat, CaveatSet }
+import org.mimirdb.api.{ Request, Response, JsonResponse, MimirAPI }
+import org.mimirdb.caveats.{ Caveat, CaveatSet, Constants => Caveats }
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.rowids.AnnotateWithRowIds
-import org.mimirdb.caveats.{ Constants => Caveats }
-import org.mimirdb.spark.SparkPrimitive
+import org.mimirdb.spark.{ SparkPrimitive, Schema }
+import org.mimirdb.spark.Schema.fieldFormat
 import org.mimirdb.api.CaveatFormat._
 import org.mimirdb.util.TimerUtils
 
@@ -38,10 +37,10 @@ case class QueryMimirRequest (
     if(includeReasons.getOrElse(false)) {
       throw new UnsupportedOperationException("IncludeReasons is no longer supported")
     }
-    Json.toJson(Query(
+    Query(
       query,
       includeUncertainty.getOrElse(true)
-    ))
+    )
   }
 }
 
@@ -75,11 +74,12 @@ case class QueryTableRequest (
     // Filter down to the right columns... dropping the sequence number if needed
     df = df.select(columnNames.map { df(_) }:_*)
 
-    Json.toJson(Query(
+    Query(
       df,
       includeCaveats = includeUncertainty,
-      limit = limit
-    ))
+      limit = limit,
+      computedProperties = MimirAPI.catalog.getProperties(table)
+    )
   }
 }
 
@@ -92,21 +92,36 @@ case class SchemaForQueryRequest (
             /* query string to get schema for - sql */
                   query: String
 ) extends Request {
-  def handle = Json.toJson(SchemaList(Query.getSchema(query)))
+  def handle = SchemaList(Query.getSchema(query), Map.empty)
 }
 
 object SchemaForQueryRequest {
-implicit val format: Format[SchemaForQueryRequest] = Json.format
+  implicit val format: Format[SchemaForQueryRequest] = Json.format
+}
+
+case class SchemaForTableRequest (
+            /* table name */
+                  table: String
+) extends Request {
+  def handle = SchemaList(
+    Schema(MimirAPI.catalog.get(table)),
+    MimirAPI.catalog.getProperties(table)
+  )
+}
+
+object SchemaForTableRequest {
+  implicit val format: Format[SchemaForTableRequest] = Json.format
 }
 
 case class DataContainer (
-                  schema: Seq[Schema],
+                  schema: Seq[StructField],
                   data: Seq[Seq[Any]],
                   prov: Seq[String],
                   colTaint: Seq[Seq[Boolean]],
                   rowTaint: Seq[Boolean],
-                  reasons: Seq[Seq[Caveat]]
-) extends Response
+                  reasons: Seq[Seq[Caveat]],
+                  properties: Map[String,JsValue]
+) extends JsonResponse[DataContainer]
 
 object DataContainer {
   implicit val format: Format[DataContainer] = Format(
@@ -114,8 +129,8 @@ object DataContainer {
       def reads(data: JsValue): JsResult[DataContainer] =
       {
         val parsed = data.as[Map[String,JsValue]]
-        val schema = parsed("schema").as[Seq[Schema]]
-        val sparkSchema = schema.map { _.t }
+        val schema = parsed("schema").as[Seq[StructField]]
+        val sparkSchema = schema.map { _.dataType }
         JsSuccess(
           DataContainer(
             schema,
@@ -127,14 +142,15 @@ object DataContainer {
             parsed("prov").as[Seq[String]],
             parsed("colTaint").as[Seq[Seq[Boolean]]],
             parsed("rowTaint").as[Seq[Boolean]],
-            parsed("reasons").as[Seq[Seq[Caveat]]]
+            parsed("reasons").as[Seq[Seq[Caveat]]],
+            parsed("properties").as[Map[String,JsValue]]
           )
         )
       }
     },
     new Writes[DataContainer] { 
       def writes(data: DataContainer): JsValue = {
-        val sparkSchema = data.schema.map { _.t }
+        val sparkSchema = data.schema.map { _.dataType }
         Json.obj(
           "schema" -> data.schema,
           "data" -> data.data.map { row => 
@@ -145,7 +161,8 @@ object DataContainer {
           "prov" -> data.prov,
           "colTaint" -> data.colTaint,
           "rowTaint" -> data.rowTaint,
-          "reasons" -> data.reasons
+          "reasons" -> data.reasons,
+          "properties" -> data.properties
         )
       }
     }
@@ -153,8 +170,9 @@ object DataContainer {
 }
 
 case class SchemaList (
-    schema: Seq[Schema]
-) extends Response
+    schema: Seq[StructField],
+    properties: Map[String, JsValue]
+) extends JsonResponse[SchemaList]
 
 object SchemaList {
   implicit val format: Format[SchemaList] = Json.format
@@ -179,7 +197,8 @@ object Query
     apply(
       sparkSession.sql(query), 
       includeCaveats = includeCaveats, 
-      limit = limit
+      limit = limit,
+      computedProperties = Map.empty
     )
   }
 
@@ -191,13 +210,15 @@ object Query
     apply(
       query, 
       includeCaveats = includeCaveats, 
-      limit = None
+      limit = None,
+      computedProperties = Map.empty
     )
   }
   def apply(
     query: DataFrame,
     includeCaveats: Boolean,
-    limit: Option[Int]
+    limit: Option[Int],
+    computedProperties: Map[String,JsValue]
   ): DataContainer =
   {
 
@@ -281,14 +302,15 @@ object Query
       results.map { row => s"${row.get(identifierAnnotation)}" }.toSeq,
       colTaint, 
       rowTaint,
-      Seq()
+      Seq(),
+      computedProperties
     )
   }
 
   def getSchema(
     query: String,
     sparkSession: SparkSession = MimirAPI.sparkSession
-  ): Seq[Schema] = { 
+  ): Seq[StructField] = { 
     MimirAPI.catalog.populateSpark()
     Schema(sparkSession.sql(query))
   }

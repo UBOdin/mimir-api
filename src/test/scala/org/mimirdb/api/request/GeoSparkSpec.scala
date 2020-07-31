@@ -3,17 +3,17 @@ package org.mimirdb.api.request
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.SharedSparkTestInstance
-import org.mimirdb.api.{ MimirAPI, Schema } 
+import play.api.libs.json._
+import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.LensConstructor
 import org.mimirdb.lenses.Lenses
 import play.api.libs.json.JsString
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
-import org.mimirdb.api.MimirAPI
-
+import org.mimirdb.api.CreateResponse
 
 class GeoSparkSpec 
   extends Specification
@@ -38,10 +38,11 @@ class GeoSparkSpec
                     detectHeaders     = true,
                     humanReadableName = Some("social_dist"),
                     backendOption     = Seq(),
-                    dependencies      = Seq(),
-                    resultName        = Some("social_dist")
+                    dependencies      = Some(Seq()),
+                    resultName        = Some("social_dist"),
+                    properties        = Some(Map.empty)
                   )
-    val response = request.handle.as[LoadResponse]
+    val response = Json.toJson(request.handle).as[CreateResponse]
     
     val request2 = LoadRequest(
                     file              = "test_data/census_geo.csv",
@@ -50,10 +51,11 @@ class GeoSparkSpec
                     detectHeaders     = true,
                     humanReadableName = Some("census_geo"),
                     backendOption     = Seq(),
-                    dependencies      = Seq(),
-                    resultName        = Some("census_geo")
+                    dependencies      = Some(Seq()),
+                    resultName        = Some("census_geo"),
+                    properties        = Some(Map.empty)
                   )
-    val response2 = request2.handle.as[LoadResponse]
+    val response2 = Json.toJson(request2.handle).as[CreateResponse]
     
       
   }
@@ -62,7 +64,7 @@ class GeoSparkSpec
               (op: DataContainer => T): T = 
     op(Query(query, includeUncertainty, sparkSession = spark))
 
-  def schemaOf(query: String): Seq[Schema] =
+  def schemaOf(query: String): Seq[StructField] =
     Query.getSchema(query, spark)
 
   "Geospark" >> {
@@ -74,18 +76,21 @@ class GeoSparkSpec
          |FROM social_dist
          |LEFT JOIN census_geo
          |on census_geo.CENSUS_BLOCK_GROUP = social_dist.ORIGIN_CENSUS_BLOCK_GROUP""".stripMargin,
-         Some("social_dist_geo")
+         Some("social_dist_geo"),
+         None
       ).handle
       
       CreateViewRequest(Map(("social_dist_geo","social_dist_geo")),
           "SELECT ST_Envelope_Aggr(social_dist_geo.PT_SHAPE) AS BOUND FROM social_dist_geo",
-          Some("social_dist_bound")
+          Some("social_dist_bound"),
+         None
       ).handle 
       
       CreateViewRequest(Map(("social_dist_bound","social_dist_bound")),
           s"""SELECT ST_Transform(BOUND, 'epsg:4326','epsg:3857') AS TRANS_BOUND
           FROM social_dist_bound""",
-         Some("social_dist_bound_trans")
+         Some("social_dist_bound_trans"),
+         None
       ).handle 
 
       
@@ -96,7 +101,8 @@ class GeoSparkSpec
           FROM social_dist_geo
           LEFT JOIN social_dist_bound_trans
         """,
-         Some("social_dist_pixel")
+         Some("social_dist_pixel"),
+         None
       ).handle 
       
       query("SELECT * FROM social_dist_geo"){ result => 

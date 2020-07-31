@@ -25,7 +25,7 @@ class CatalogSpec
         LoadConstructor(
           "test_data/r.csv",
           "csv",
-          Map()
+          Map(), 
         ),
         Set[String]()
       ).collect().map { _.toSeq }
@@ -44,7 +44,7 @@ class CatalogSpec
         LoadConstructor(
           "test_data/r.csv",
           "csv",
-          Map()
+          Map(),
         ),
         Set[String]()
       )

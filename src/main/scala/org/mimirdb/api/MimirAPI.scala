@@ -43,6 +43,7 @@ import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 
 import org.apache.spark.sql.AnalysisException
 import org.mimirdb.data.MetadataBackend
+import org.mimirdb.blobs.BlobStore
 
 //import org.apache.spark.ui.FixWebUi
 
@@ -57,6 +58,7 @@ object MimirAPI extends LazyLogging {
   var catalog: Catalog = null
   var server: Server = null
   var conf: MimirConfig = null
+  var blobs: BlobStore = null
 
   def main(args: Array[String])
   {
@@ -84,7 +86,7 @@ object MimirAPI extends LazyLogging {
 
     // populate spark after lens initialization
     // For safety, drop any tables that are now invalid... it's easy to reload them later
-    catalog.populateSpark(forgetInvalidTables = true)
+    // catalog.populateSpark(forgetInvalidTables = true)
     
     // Start the server
     runServer(conf.port())
@@ -113,6 +115,7 @@ object MimirAPI extends LazyLogging {
     }
     val staging = new LocalFSStagingProvider(conf.staging())
     catalog = new Catalog(metadata, staging, sparkSession)
+    blobs = new BlobStore(metadata)
   }
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {
@@ -161,155 +164,167 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
     def ellipsize(text: String, len: Int): String =
       if(text.size > len){ text.substring(0, len-3)+"..." } else { text }
 
-    override def doPost(req : HttpServletRequest, responseObject : HttpServletResponse) = {
-        val text = scala.io.Source.fromInputStream(req.getInputStream).mkString 
-        logger.info(s"MimirAPI POST ${req.getPathInfo}")
-        logger.debug(text)
-        val routePattern = "\\/api\\/v2(\\/[a-zA-Z\\/]+)".r
-        val os = responseObject.getOutputStream()
-        responseObject.setHeader("Content-type", "text/json");
-        val response:JsValue = 
-          req.getPathInfo match {
-            case routePattern(route) => {
-              try{
-                val input:JsValue = Json.parse(text)
-                val handler:Request = 
-                  route match {
-                    case "/eval/scala"           => input.as[CodeEvalRequest]
-                    case "/eval/R"               => input.as[CodeEvalRequest]
-                    case "/dataSource/load"      => input.as[LoadRequest]
-                    case "/dataSource/unload"    => input.as[UnloadRequest]
-                    case "/lens/create"          => input.as[CreateLensRequest]
-                    case "/view/create"          => input.as[CreateViewRequest]
-                    case "/view/sample"          => input.as[CreateSampleRequest]
-                    case "/vizual/create"        => input.as[VizualRequest]
-                    case "/annotations/cell"     => input.as[ExplainCellRequest]
-                    case "/annotations/all"      => input.as[ExplainEverythingRequest]
-                    case "/query/data"           => input.as[QueryMimirRequest]
-                    case "/query/table"          => input.as[QueryTableRequest]
-                    case "/schema"               => input.as[SchemaForQueryRequest]
-                    case "/annotations/feedback" => {
-                      throw new UnsupportedOperationException("Feedback No Longer Supported")
-                    }
-                    case "/adaptive/create" => {
-                      throw new UnsupportedOperationException("Adaptive Schemas No Longer Exist")
-                    }
-                  }
-                  handler.handle
-              } catch {
-                case e@JsResultException(errors) =>
-                  Json.toJson(ErrorResponse(
-                    e.getClass().getCanonicalName(),
-                    s"Error(s) parsing API request\n${ellipsize(text, 100)}\n"+stringifyJsonParseErrors(errors).mkString("\n"),
-                    e.getStackTrace.map(_.toString).mkString("\n")
-                  ))
 
-                case e: EOFException => 
-                  Json.toJson(ErrorResponse(
-                    e.getClass.getCanonicalName(),
-                    e.getMessage(), 
-                    e.getStackTrace.map(_.toString).mkString("\n")
-                  ))
-        
-                case e: FileNotFoundException =>
-                  Json.toJson(ErrorResponse(
-                    e.getClass.getCanonicalName(),
-                    e.getMessage(), 
-                    e.getStackTrace.map(_.toString).mkString("\n")
-                  ))
-        
-                case e: SQLException => {
-                  logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
-                  Json.toJson(ErrorResponse(
-                    e.getClass.getCanonicalName(),
-                    e.getMessage(), 
-                    e.getStackTrace.map(_.toString).mkString("\n")
-                  ))
-                }
-        
-                case e: AnnotationException => {
-                  logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
-                  Json.toJson(ErrorResponse(
-                    e.getClass.getCanonicalName(),
-                    e.getMessage(), 
-                    e.getStackTrace.map(_.toString).mkString("\n")
-                  ))
-                }
-                case e: AnalysisException => {
-                  logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
-                  Json.toJson(ErrorResponse(
-                    e.getClass.getCanonicalName(),
-                    s"SQL Exception: ${e.getMessage}",
-                    e.getStackTrace.map(_.toString).mkString("\n")
-                  ))                  
-                }
-                case FormattedError(errorResponse) => {
-                  logger.debug(s"Internally Formatted Error: ${errorResponse.errorType}")
-                  Json.toJson(errorResponse)
-                }
-        
-                case e: Throwable => {
-                  logger.error("MimirAPI POST ERROR: ", e)
-                  Json.toJson(ErrorResponse(
-                    e.getClass.getCanonicalName(),
-                    "An error occurred...", 
-                    s"""|${getThrowableMessage(e)}
-                        |Caused by:
-                        |${getThrowableMessage(Option(e.getCause).getOrElse(e))}"""
-                        .stripMargin
-                  ))
-                }
-              }  
-            }
-            case _ => {
-              logger.error(s"MimirAPI POST Not Handled: ${req.getPathInfo}")
-              Json.toJson(ErrorResponse(
-                "MimirAPI POST Not Handled",
-                "Unknown Request:"+ req.getPathInfo, 
-                Thread.currentThread().getStackTrace.map(_.toString).mkString("\n") 
-              ))
-            }
-          } 
-        val responseString = Json.stringify(response)
-        logger.trace(s"RESPONSE: $responseString")
-        os.write(responseString.getBytes)
-        os.flush()
-        os.close() 
+    def process(
+      handler: Request, 
+      output: HttpServletResponse, 
+    ){
+      val response = 
+        try {
+          handler.handle
+        } catch {
+          case e: EOFException => 
+            ErrorResponse(
+              e.getClass.getCanonicalName(),
+              e.getMessage(), 
+              e.getStackTrace.map(_.toString).mkString("\n")
+            )
+
+          case e: FileNotFoundException =>
+            ErrorResponse(
+              e.getClass.getCanonicalName(),
+              e.getMessage(), 
+              e.getStackTrace.map(_.toString).mkString("\n")
+            )
+
+          case e: SQLException => {
+            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            ErrorResponse(
+              e.getClass.getCanonicalName(),
+              e.getMessage(), 
+              e.getStackTrace.map(_.toString).mkString("\n")
+            )
+          }
+
+          case e: AnnotationException => {
+            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            ErrorResponse(
+              e.getClass.getCanonicalName(),
+              e.getMessage(), 
+              e.getStackTrace.map(_.toString).mkString("\n")
+            )
+          }
+          case e: AnalysisException => {
+            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            ErrorResponse(
+              e.getClass.getCanonicalName(),
+              s"SQL Exception: ${e.getMessage}",
+              e.getStackTrace.map(_.toString).mkString("\n")
+            )                  
+          }
+          case FormattedError(errorResponse) => {
+            logger.debug(s"Internally Formatted Error: ${errorResponse.errorType}")
+            errorResponse
+          }
+
+          case e: Throwable => {
+            logger.error("MimirAPI ERROR: ", e)
+            ErrorResponse(
+              e.getClass.getCanonicalName(),
+              "An error occurred...", 
+              s"""|${getThrowableMessage(e)}
+                  |Caused by:
+                  |${getThrowableMessage(Option(e.getCause).getOrElse(e))}"""
+                  .stripMargin
+            )
+          }
+        }
+
+      response.write(output)
     }
-    override def doGet(req : HttpServletRequest, resp : HttpServletResponse) = {
+
+    def processJson[Q <: Request](
+      req: HttpServletRequest, 
+      output: HttpServletResponse
+    )(
+      implicit format: Format[Q]
+    ){
+      val text = scala.io.Source.fromInputStream(req.getInputStream).mkString 
+      try { 
+        logger.debug(s"$text")
+        process(Json.parse(text).as[Q], output)
+      } catch {
+        case e@JsResultException(errors) =>
+          ErrorResponse(
+            e.getClass().getCanonicalName(),
+            s"Error(s) parsing API request\n${ellipsize(text, 100)}\n"+stringifyJsonParseErrors(errors).mkString("\n"),
+            e.getStackTrace.map(_.toString).mkString("\n")
+          ).write(output)
+      }
+
+    }
+
+
+    def fourOhFour(req: HttpServletRequest, output: HttpServletResponse)
+    {
+      output.setStatus(HttpServletResponse.SC_NOT_FOUND)
+      logger.error(s"MimirAPI ${req.getMethod} Not Handled: ${req.getPathInfo}")
+      ErrorResponse(
+        s"MimirAPI ${req.getMethod} Not Handled: ${req.getPathInfo}",
+        "Unknown Request:"+ req.getPathInfo, 
+        Thread.currentThread().getStackTrace.map(_.toString).mkString("\n") 
+      ).write(output)
+    }
+
+    val PREFIX = "\\/api\\/v2(\\/.*)".r
+
+    override def doPost(req: HttpServletRequest, output: HttpServletResponse)
+    {
+      logger.info(s"MimirAPI POST ${req.getPathInfo}")
+      req.getPathInfo match {
+        case PREFIX(route) => 
+          route match {
+            case "/eval/scala"           => processJson[CodeEvalRequest](req, output)
+            case "/eval/R"               => processJson[CodeEvalRequest](req, output)
+            case "/dataSource/load"      => processJson[LoadRequest](req, output)
+            case "/dataSource/inlined"   => processJson[LoadInlineRequest](req, output)
+            case "/dataSource/unload"    => processJson[UnloadRequest](req, output)
+            case "/lens/create"          => processJson[CreateLensRequest](req, output)
+            case "/view/create"          => processJson[CreateViewRequest](req, output)
+            case "/view/sample"          => processJson[CreateSampleRequest](req, output)
+            case "/vizual/create"        => processJson[VizualRequest](req, output)
+            case "/annotations/cell"     => processJson[ExplainCellRequest](req, output)
+            case "/annotations/all"      => processJson[ExplainEverythingRequest](req, output)
+            case "/query/data"           => processJson[QueryMimirRequest](req, output)
+            case "/query/table"          => processJson[QueryTableRequest](req, output)
+            case "/schema"               => processJson[SchemaForQueryRequest](req, output)
+            case "/tableInfo"            => processJson[SchemaForTableRequest](req, output)
+            case _                       => fourOhFour(req, output)
+          }
+        case _                           => fourOhFour(req, output)
+      }
+    }
+    
+    val HEAD = "\\/([^\\/]+)/(.*)".r
+    val TAIL = "([^\\/]+)".r
+
+    override def doPut(req: HttpServletRequest, output: HttpServletResponse)
+    {
+      logger.info(s"MimirAPI PUT ${req.getPathInfo}")
+      req.getPathInfo match {
+        case PREFIX(route) => 
+          route match {
+            case HEAD("blob", TAIL(id))  => process(CreateBlobRequest(req, id), output)
+            case "/blob"                 => process(CreateBlobRequest(req), output)
+            case _                       => fourOhFour(req, output)
+          }
+        case _                           => fourOhFour(req, output)
+      }
+    }
+    override def doGet(req: HttpServletRequest, output: HttpServletResponse) = {
       logger.info(s"MimirAPI GET ${req.getPathInfo}")
-        
-      val routePattern = "\\/api\\/v2(\\/[a-zA-Z\\/]+)".r
-        req.getPathInfo match {
-          case routePattern(route) => {
-            try{
-              val os = resp.getOutputStream()
-              resp.setHeader("Content-type", "text/json");
-              val response = 
-                route match {
-                  case "/lens" => {
-                    Json.toJson(LensList(Lenses.supportedLenses))
-                  }
-                  case "/adaptive" => {
-                    throw new UnsupportedOperationException("Adaptive Schemas No Longer Exist")
-                  }
-                }
-              os.write(Json.stringify(response).getBytes)
-              os.flush()
-              os.close() 
-            } catch {
-              case t: Throwable => {
-                logger.error("MimirAPI GET ERROR: ", t)
-                throw t
-              }
-            }
+      req.getPathInfo match {
+        case PREFIX(route) => 
+          route match {
+            case "/lens"                    => LensList(Lenses.supportedLenses).write(output)
+            case HEAD("blob", TAIL(id))     => process(GetBlobRequest(id), output)
+            case HEAD("tableInfo", TAIL(id))=> process(SchemaForTableRequest(id), output)
+            case _                          => fourOhFour(req, output)
           }
-          case _ => {
-            logger.error(s"MimirAPI GET Not Handled: ${req.getPathInfo}")
-            throw new Exception("request Not handled: " + req.getPathInfo)
-          }
-        }  
+        case _                              => fourOhFour(req, output)
+      }
     }
+
     def getThrowableMessage(e:Throwable):String = {
       s"""|${e.getMessage()}
           |${e.getStackTrace.mkString("\n")}""".stripMargin

@@ -98,7 +98,7 @@ object MoveColumn
 //////////////////////////
 
 case class MoveRow(
-  row: Long,
+  row: String,
   position: Long
 ) extends Command
 object MoveRow
@@ -159,8 +159,9 @@ object RowSelection
     new Reads[RowSelection] {
       def reads(j: JsValue): JsResult[RowSelection] =
         j match { 
-          case x: JsNumber => JsSuccess(RowsById(Set(x.as[Long])))
-          case x: JsArray => JsSuccess(RowsById(x.as[Seq[Long]].toSet))
+          case x: JsNumber => JsSuccess(RowsById(Set(x.as[Long].toString)))
+          case x: JsString => JsSuccess(RowsById(Set(x.as[String])))
+          case x: JsArray => JsSuccess(RowsById(x.as[Seq[String]].toSet))
           case JsNull => JsSuccess(AllRows())
           case _ => JsError("Not a valid row selection")
         }
@@ -176,7 +177,7 @@ object RowSelection
 
 }
 
-case class RowsById(rows: Set[Long]) extends RowSelection
+case class RowsById(rows: Set[String]) extends RowSelection
 {
   def predicate = 
     if(rows.isEmpty) { lit(false) }
@@ -193,7 +194,7 @@ case class AllRows() extends RowSelection
 case class UpdateCell(
   column: Int,
   row: Option[RowSelection],
-  value: String
+  value: Option[String]
 ) extends Command
 {
   def getRows = row.getOrElse { AllRows() }

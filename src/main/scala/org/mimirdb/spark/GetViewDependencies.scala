@@ -14,6 +14,6 @@ object GetViewDependencies
     plan.collect { 
       // case View(table, _, _) => table.identifier.unquotedString
       case UnresolvedRelation(table) => table.last:String
-      case SubqueryAlias(identifier, _) => identifier.identifier
+      case SubqueryAlias(identifier, _) => identifier.name
     }.toSet
 }
