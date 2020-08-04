@@ -58,10 +58,11 @@ jobs:
       - docker logs --tail 150 vizier-auth
       - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.vizier.io
       - if [ "$VIZIER_DOM_TEST" == "empty-list-message" ]; then 
-          if [ "$TRAVIS_BRANCH" == "master" ]; then 
+          if [ "$TRAVIS_BRANCH" == "master" ]; then
+              echo "pushing docker container to docker.vizier.io";
               bash -c "docker push docker.vizier.io/vizier-auth && docker push docker.vizier.io/python-executor";
           else
-              echo "not pushing to since building ${TRAVIS_BRANCH} not master."
+              echo "not pushing to since building ${TRAVIS_BRANCH} not master.";
           fi
         else
           exit 1;
