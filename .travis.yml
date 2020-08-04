@@ -60,6 +60,8 @@ jobs:
       - if [ "$VIZIER_DOM_TEST" == "empty-list-message" ]; then 
           if [ "$TRAVIS_BRANCH" == "master" ]; then 
               bash -c "docker push docker.vizier.io/vizier-auth && docker push docker.vizier.io/python-executor";
+          else
+              echo "not pushing to since building ${TRAVIS_BRANCH} not master."
           fi
         else
           exit 1;
