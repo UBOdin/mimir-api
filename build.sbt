@@ -30,7 +30,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.1",
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.2-SNAPSHOT",
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
@@ -59,7 +59,7 @@ libraryDependencies ++= Seq(
   "org.eclipse.jetty"             %   "jetty-servlets"           % "9.4.10.v20180503",
   "org.eclipse.jetty"             %   "jetty-util"               % "9.4.10.v20180503",
   "org.eclipse.jetty"             %   "jetty-webapp"             % "9.4.10.v20180503",
-  
+
   //Data Source Support
   //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
@@ -68,11 +68,11 @@ libraryDependencies ++= Seq(
   "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws")),
   "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  
+
   //Scala eval support
   "org.scala-lang"                %   "scala-reflect"            % scalaVersion.value,
   "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
-  
+
   //GIS Support
   "org.datasyslab"                %  "geospark"                  % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws")),
   "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
@@ -80,18 +80,18 @@ libraryDependencies ++= Seq(
 
   //Other data importers
   "com.databricks"                %% "spark-xml"                 % "0.9.0",
-  
+
   //Google Sheets Datasource
   "info.mimirdb"                  %% "spark-google-spreadsheets" % "0.6.4",
-  
+
   //excel data loading
   "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1201-SNAPSHOT"
-  
+
 )
 
 ////// Generate a Coursier Bootstrap Jar
 // See https://get-coursier.io/docs
-// 
+//
 import scala.sys.process.{Process, ProcessLogger}
 lazy val bootstrap = taskKey[Unit]("Generate Bootstrap Jar")
 bootstrap := {
@@ -107,7 +107,7 @@ bootstrap := {
       "-o", coursier_bin,
       coursier_url
     )) ! logger match {
-      case 0 => 
+      case 0 =>
       case n => sys.error(s"Could not download Coursier")
     }
     Process(List(
@@ -118,7 +118,7 @@ bootstrap := {
 
   println("Coursier available.  Generating Repository List")
 
-  val resolverArgs = resolvers.value.map { 
+  val resolverArgs = resolvers.value.map {
     case r: MavenRepository => Seq("-r", r.root)
   }.flatten
 
@@ -129,7 +129,7 @@ bootstrap := {
   for(resolver <- resolverArgs){
     println("  "+resolver)
   }
-  
+
   println("Generating Mimir-API Server binary")
   Process(List(
     coursier_bin,
@@ -140,14 +140,14 @@ bootstrap := {
     "-r", "central",
     "-M", "mimir.MimirVizier"
   )++resolverArgs) ! logger match {
-      case 0 => 
+      case 0 =>
       case n => sys.error(s"Bootstrap failed")
   }
 }
 
 
 ////// Publishing Metadata //////
-// use `sbt publish make-pom` to generate 
+// use `sbt publish make-pom` to generate
 // a publishable jar artifact and its POM metadata
 
 publishMavenStyle := true
@@ -166,7 +166,7 @@ pomExtra := <url>http://mimirdb.info</url>
   </scm>
 
 /////// Publishing Options ////////
-// use `sbt publish` to update the package in 
+// use `sbt publish` to update the package in
 // your own local ivy cache
 
 publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
