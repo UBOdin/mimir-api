@@ -1,6 +1,6 @@
-branches:
-  only:
-  - master
+# branches:
+#   only:
+#   - master
 
 jobs:
   include:
@@ -58,7 +58,9 @@ jobs:
       - docker logs --tail 150 vizier-auth
       - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.vizier.io
       - if [ "$VIZIER_DOM_TEST" == "empty-list-message" ]; then 
-          bash -c "docker push docker.vizier.io/vizier-auth && docker push docker.vizier.io/python-executor";
+          if [ "$TRAVIS_BRANCH" == "master" ]; then 
+              bash -c "docker push docker.vizier.io/vizier-auth && docker push docker.vizier.io/python-executor";
+          fi
         else
           exit 1;
         fi
