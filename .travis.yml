@@ -62,9 +62,10 @@ jobs:
               echo "pushing docker container to docker.vizier.io";
               bash -c "docker push docker.vizier.io/vizier-auth && docker push docker.vizier.io/python-executor";
           else
-              echo "not pushing to since building ${TRAVIS_BRANCH} not master.";
-          fi
+              echo "not pushing since building ${TRAVIS_BRANCH} not master.";
+          fi;
         else
+          echo "push failed";
           exit 1;
         fi
 
