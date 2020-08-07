@@ -24,7 +24,7 @@ resolvers += Resolver.mavenLocal
 
 excludeDependencies ++= Seq(
   // Hadoop brings in more logging backends.  Kill it with fire.
-  ExclusionRule("org.slf4j", "slf4j-log4j12"),
+  ExclusionRule("org.slf4j", "slf4j-log4j12")
 )
 
 // Custom Dependencies
