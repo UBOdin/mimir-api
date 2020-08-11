@@ -6,6 +6,7 @@ import org.specs2.specification.BeforeAll
 
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.MimirAPI
+import org.mimirdb.lenses.Lenses
 
 
 class CreateLensSpec 
@@ -17,11 +18,11 @@ class CreateLensSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   "CreateLens" >> {
-    "TYPE_INFERENCE" >> {
+    Lenses.typeInference >> {
       val request = CreateLensRequest(
                       "TEST_R",
                       JsNull, 
-                      "TYPE_INFERENCE",
+                      Lenses.typeInference,
                       false,
                       Some("A TEST"),
                       None,

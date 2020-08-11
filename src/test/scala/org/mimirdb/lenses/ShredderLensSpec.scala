@@ -25,7 +25,7 @@ class ShredderLensSpec
 {
   def beforeAll = SharedSparkTestInstance.initAPI
   
-  lazy val lens = Lenses("SHRED")
+  lazy val lens = Lenses(Lenses.shred)
 
   def shred[T](
     file: String, 

@@ -21,13 +21,13 @@ class MissingValueLensSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   "Missing Value Lens" >> {
-    val missingValue = Lenses("MISSING_VALUE")
+    val missingValue = Lenses(Lenses.missingValue)
     missingValue must not(beNull)
     val df = dataset("TEST_R")
     val request = CreateLensRequest(
                       "TEST_R",
                       JsNull, 
-                      "TYPE_INFERENCE",
+                      Lenses.typeInference,
                       false,
                       Some("A TEST"),
                       None,
@@ -38,7 +38,7 @@ class MissingValueLensSpec
     val requestMV = CreateLensRequest(
                       response.name,
                       mvconfigDefault, 
-                      "MISSING_VALUE",
+                      Lenses.missingValue,
                       false,
                       Some("A TEST"),
                       None,

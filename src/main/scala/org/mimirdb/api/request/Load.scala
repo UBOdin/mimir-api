@@ -117,7 +117,7 @@ case class LoadRequest (
       if(inferTypes){
         loadConstructor = loadConstructor.withLens(
           MimirAPI.sparkSession, 
-          "TYPE_INFERENCE", 
+          "type_inference", 
           "in " +humanReadableName.getOrElse { file }
         )
       }

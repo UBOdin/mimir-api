@@ -21,7 +21,7 @@ class TypeInferenceLensSpec
   }
 
   "Type Inference Lens" >> {
-    val lens = Lenses("TYPE_INFERENCE")
+    val lens = Lenses(Lenses.typeInference)
     val df = dataset("TI_ERROR_R")
     val config = lens.train(df, JsNull)
 

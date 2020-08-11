@@ -5,15 +5,24 @@ import org.mimirdb.data.Catalog
 
 object Lenses
 {
+  val typeInference = "type_inference" 
+  val missingKey    = "missing_key"    
+  val picker        = "picker"         
+  val repairKey     = "repair_key"     
+  val comment       = "comment"        
+  val missingValue  = "missing_value"  
+  val pivot         = "pivot"          
+  val shred         = "shred" 
+  val geocode       = "geocode"
   val implementations = scala.collection.mutable.Map[String, Lens](
-    "TYPE_INFERENCE"   -> TypeInferenceLens,
-    "MISSING_KEY"      -> MissingKeyLens,
-    "PICKER"           -> MergeAttributesLens,
-    "REPAIR_KEY"       -> RepairKeyLens,
-    "COMMENT"          -> CommentLens,
-    "MISSING_VALUE"    -> MissingValueLens,
-    "PIVOT"            -> PivotLens,
-    "SHRED"            -> ShredderLens
+    typeInference      -> TypeInferenceLens,
+    missingKey         -> MissingKeyLens,
+    picker             -> MergeAttributesLens,
+    repairKey          -> RepairKeyLens,
+    comment            -> CommentLens,
+    missingValue       -> MissingValueLens,
+    pivot              -> PivotLens,
+    shred              -> ShredderLens           
   )
 
   def supportedLenses = implementations.keys.toSeq
@@ -24,7 +33,7 @@ object Lenses
     geocoders: Seq[Geocoder], 
     catalog: Catalog, 
     cacheFormat:String = "json",
-    label:String = "GEOCODE"
+    label:String = geocode
   )
   {
     implementations.put(label, new GeocodingLens(

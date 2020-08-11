@@ -30,7 +30,7 @@ object SharedSparkTestInstance
     if(typeInference){
       constructor = constructor.withLens(
         MimirAPI.sparkSession, 
-        "TYPE_INFERENCE", 
+        Lenses.typeInference, 
         "in "+name
       )
     }

@@ -20,7 +20,7 @@ class RepairKeyLensSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   "Repair Key Lens Without Weights" >> {
-    val lens = Lenses("REPAIR_KEY")
+    val lens = Lenses(Lenses.repairKey)
     val df = dataset("TEST_R")
     val config = lens.train(df, Json.toJson(RepairKeyLensConfig("A")))
 
@@ -41,7 +41,7 @@ class RepairKeyLensSpec
     // https://github.com/VizierDB/web-ui/issues/148
 
     SharedSparkTestInstance.loadCSV("ISSUE_148", "test_data/web_ui_147.csv")
-    val lens = Lenses("REPAIR_KEY")
+    val lens = Lenses(Lenses.repairKey)
     val df = dataset("ISSUE_148")
     val config = lens.train(df, Json.toJson(RepairKeyLensConfig("A")))
 

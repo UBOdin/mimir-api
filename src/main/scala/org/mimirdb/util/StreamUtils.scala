@@ -8,11 +8,12 @@ object StreamUtils
 {
   def readAll(stream: InputStream): Array[Byte] =
   {
-    val data = mutable.Buffer[(Int, Array[Byte])]()
+    //val data = mutable.Buffer[(Int, Array[Byte])]()
+    val data = mutable.Buffer[Int]()
     var bytesRead = 0
     while(bytesRead >= 0){
       try {
-        val target = stream.available()
+        /*val target = stream.available()
         if(target > 0) {
           val buffer:Array[Byte] = new Array[Byte](target)
           bytesRead = stream.read(buffer)
@@ -22,6 +23,10 @@ object StreamUtils
         } else {
           bytesRead = target
           Thread.sleep(100)
+        }*/
+        bytesRead = stream.read()
+        if(bytesRead > 0){
+          data.append( bytesRead )
         }
       } catch {
         case _:IOException => bytesRead = -1
@@ -29,7 +34,8 @@ object StreamUtils
     }
     // Shortcut 1: If we didn't read anything, return an empty array
     if(data.size == 0) { return Array[Byte]() }
-    if(data.size == 1) { 
+    else return data.map(i => i.toByte).toArray
+    /*if(data.size == 1) { 
       val (count, block) = data(0)
       // Shortcut 2: If the block is exactly correct, return it
       if(block.size <= count) { return block }
@@ -44,6 +50,6 @@ object StreamUtils
       System.arraycopy(block, 0, ret, idx, count)
       idx += count
     }
-    return ret
+    return ret*/
   }
 }

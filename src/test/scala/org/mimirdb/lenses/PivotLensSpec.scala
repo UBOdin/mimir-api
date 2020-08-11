@@ -21,7 +21,7 @@ class PivotLensSpec
 
   def beforeAll = SharedSparkTestInstance.initAPI
 
-  lazy val pivot = Lenses("PIVOT")
+  lazy val pivot = Lenses(Lenses.pivot)
 
   def test[T](
     target: String = "A",

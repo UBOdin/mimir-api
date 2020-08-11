@@ -26,7 +26,7 @@ class GeocodingLensSpec
 
   "Geocoding Lens" >> {
 
-    val geocoder = Lenses("GEOCODE")
+    val geocoder = Lenses(Lenses.geocode)
     val df = MimirAPI.catalog.get("GEO")
     val config = geocoder.train(df, Json.obj(
       "houseColumn"  -> STRNUMBER,

@@ -139,13 +139,13 @@ class QuerySpec
     {
       val table = "SEQ"
       val output = "QUERY_MKL"
-      val missingKey = Lenses("MISSING_KEY")
+      val missingKey = Lenses(Lenses.missingKey)
       val df = dataset(table)
       val config = missingKey.train(df, JsString("KEY"))
       MimirAPI.catalog.put(
         output,
         LensConstructor(
-          "MISSING_KEY",
+          Lenses.missingKey,
           table, 
           config, 
           "in " + table  

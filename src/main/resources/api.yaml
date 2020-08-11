@@ -24,9 +24,9 @@ paths:
                 simple:
                   value:
                     lensList:
-                      - TYPE_INFERENCE
-                      - MISSING_KEY
-                      - COMMENT
+                      - type_inference
+                      - missing_key
+                      - comment
               schema:
                 type: object
                 properties:
@@ -281,7 +281,7 @@ paths:
                 value: |-
                   {
                     "input" : "my_example_dataset",
-                    "type" : "TYPE_INFERENCE",
+                    "type" : "type_inference",
                     "params" : {},
                     "materialize" : "false",
                     "humanReadableName" : "An example dataset"
