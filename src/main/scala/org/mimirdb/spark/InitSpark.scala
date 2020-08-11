@@ -6,6 +6,7 @@ import org.apache.spark.serializer.KryoSerializer
 import org.datasyslab.geosparkviz.core.Serde.GeoSparkVizKryoRegistrator
 import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
 import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
+import org.mimirdb.caveats.Caveats
 
 object InitSpark
 {
@@ -27,6 +28,7 @@ object InitSpark
     GeoSparkSQLRegistrator.registerAll(sparkSession)
     GeoSparkVizRegistrator.registerAll(sparkSession)
     System.setProperty("geospark.global.charset", "utf8")
+    Caveats.registerAllUDFs(sparkSession)
   }
-  
+
 }

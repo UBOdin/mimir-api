@@ -24,7 +24,7 @@ object WithSemiStableIdentifier
     def ResolvedAlias(expr: Expression, attr: Attribute): NamedExpression =
       Alias(expr, attr.name)(attr.exprId)
 
-    val planWithPartitionedIdentifierAttributes = 
+    val planWithPartitionedIdentifierAttributes =
       Project(
         plan.output ++ Seq(
           ResolvedAlias(SparkPartitionID(), PARTITION_ID),
@@ -33,11 +33,11 @@ object WithSemiStableIdentifier
         plan
       )
 
-    /** 
-     * id offset for input rows for a given session (Seq of Integers) 
-     * 
+    /**
+     * id offset for input rows for a given session (Seq of Integers)
+     *
      * For each partition, determine the difference between the identifier
-     * assigned to elements of the partition, and the true ROWID. This 
+     * assigned to elements of the partition, and the true ROWID. This
      * offset value is computed as:
      *   [true id of the first element of the partition]
      *     - [first assigned id of the partition]
@@ -45,21 +45,21 @@ object WithSemiStableIdentifier
      * The true ID is computed by a windowed aggregate over the counts
      * of all partitions with earlier identifiers. The window includes
      * the count of the current partition, so that gets subtracted off.
-     * 
+     *
      * The first assigned ID is simply obtained by the FIRST aggregate.
      *   [[ Oliver: Might MIN be safer? ]]
      *
-     * Calling this function pre-computes and caches the resulting 
-     * partition-id -> offset map.  Because the partition-ids are 
-     * sequentially assigned, starting from zero, we can represent the 
+     * Calling this function pre-computes and caches the resulting
+     * partition-id -> offset map.  Because the partition-ids are
+     * sequentially assigned, starting from zero, we can represent the
      * Map more efficiently as a Sequence.
-     * 
-     * The map might change every session, so the return value of this 
+     *
+     * The map might change every session, so the return value of this
      * function should not be cached between sessions.
      */
-    val planToComputeFirstPerPartitionIdentifier = 
+    val planToComputeFirstPerPartitionIdentifier =
       Project(Seq(
-        PARTITION_ID, 
+        PARTITION_ID,
         ResolvedAlias(
           Add(
             Subtract(
@@ -69,26 +69,26 @@ object WithSemiStableIdentifier
                     Sum(COUNT_ATTR),
                     Complete,false),
                   WindowSpecDefinition(
-                    Seq(), 
-                    Seq(SortOrder(PARTITION_ID, Ascending)), 
+                    Seq(),
+                    Seq(SortOrder(PARTITION_ID, Ascending)),
                     UnspecifiedFrame)
-                ), 
+                ),
                 COUNT_ATTR),
               INTERNAL_ID
             ),
             Literal(offset)
           ),COUNT_ATTR)
-        ), 
+        ),
         Sort(
-          Seq(SortOrder(PARTITION_ID, Ascending)), 
-          true,   
+          Seq(SortOrder(PARTITION_ID, Ascending)),
+          true,
           Aggregate(
             Seq(PARTITION_ID),
             Seq(
-              PARTITION_ID, 
+              PARTITION_ID,
               ResolvedAlias(AggregateExpression(
                   Count(Seq(Literal(1))),Complete,false
-                ), COUNT_ATTR), 
+                ), COUNT_ATTR),
               ResolvedAlias(AggregateExpression(
                   First(INTERNAL_ID,Literal(false)),Complete,false
                 ),INTERNAL_ID)
@@ -96,8 +96,8 @@ object WithSemiStableIdentifier
           planWithPartitionedIdentifierAttributes)
         )
       )
-    
-    val firstPerPartitionIdentifierMap = 
+
+    val firstPerPartitionIdentifierMap =
       new DataFrame(
         session,
         planToComputeFirstPerPartitionIdentifier,
@@ -110,8 +110,17 @@ object WithSemiStableIdentifier
        .map { row => row.getLong(0) -> row.getLong(1) }
        .toMap
 
-    val lookupFirstIdentifier =
-      udf { (partitionId:Int) => firstPerPartitionIdentifierMap(partitionId) }
+    def lookupFirstIdentifier(partition: Expression) =
+      ScalaUDF(
+        (partitionId:Int) => firstPerPartitionIdentifierMap(partitionId),
+        LongType,
+        Seq(partition),
+        //Seq(false),
+        inputEncoders = Seq(Some(ExpressionEncoder[Int])),
+        udfName = Some("FIRST_IDENTIFIER_FOR_PARTITION"), /*name hint*/
+        nullable = true, /*nullable*/
+        udfDeterministic = true /*deterministic*/
+      )
 
     Project(
       plan.output :+ ResolvedAlias(MergeRowIds(

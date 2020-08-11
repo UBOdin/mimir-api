@@ -52,10 +52,18 @@ class PivotLensSpec
   "Pivot A Table To Multiple Rows" >> {
     test(keys = Seq("C")) { df => 
       df.columns.toSeq must contain(exactly("C", "B_1", "B_2", "B_4"))
+
+      val pos = (
+        df.columns.indexOf("C"),
+        df.columns.indexOf("B_1"),
+        df.columns.indexOf("B_2"),
+        df.columns.indexOf("B_4"),
+      )
+
       val result = df.stripCaveats.collect().toSeq
-                      .map { row => row.getString(0) -> (row.getString(1), 
-                                                         row.getString(2), 
-                                                         row.getString(3)) }
+                      .map { row => row.getString(pos._1) -> (row.getString(pos._2), 
+                                                              row.getString(pos._3), 
+                                                              row.getString(pos._4)) }
                       .toMap
       result must haveSize(5)
       result("1") must beEqualTo( ("3", "2", null) )
