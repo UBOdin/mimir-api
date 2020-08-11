@@ -1,6 +1,7 @@
 package org.mimirdb.rowids
 
-import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.{ SparkSession, DataFrame, Column }
+import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.analysis._
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
@@ -128,7 +129,7 @@ object WithSemiStableIdentifier
           INTERNAL_ID,
           Add(
             INTERNAL_ID,
-            lookupFirstIdentifier(PARTITION_ID)
+            lookupFirstIdentifier(new Column(PARTITION_ID)).expr
           )
         ) +: plan.output):_*
       ), attribute),

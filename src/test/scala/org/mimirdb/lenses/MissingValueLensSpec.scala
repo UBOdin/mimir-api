@@ -21,29 +21,31 @@ class MissingValueLensSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   "Missing Value Lens" >> {
-    val missingValue = Lenses("MISSING_VALUE")
+    val missingValue = Lenses(Lenses.missingValue)
     missingValue must not(beNull)
     val df = dataset("TEST_R")
     val request = CreateLensRequest(
                       "TEST_R",
                       JsNull, 
-                      "TYPE_INFERENCE",
+                      Lenses.typeInference,
                       false,
                       Some("A TEST"),
                       None,
+                      None
                     )
-    val response = request.handle.as[CreateLensResponse]
+    val response = Json.toJson(request.handle).as[CreateLensResponse]
     val mvconfigDefault = JsArray(IndexedSeq(/*JsString("B"),*/JsString("C")))
     val requestMV = CreateLensRequest(
-                      response.lensName,
+                      response.name,
                       mvconfigDefault, 
-                      "MISSING_VALUE",
+                      Lenses.missingValue,
                       false,
                       Some("A TEST"),
                       None,
+                      None
                     )
-    val responseMV = requestMV.handle.as[CreateLensResponse]
-    val result = Query(s"SELECT * FROM ${responseMV.lensName}",true).data
+    val responseMV = Json.toJson(requestMV.handle).as[CreateLensResponse]
+    val result = Query(s"SELECT * FROM ${responseMV.name}",true).data
     result.length must beEqualTo(7)
     //result(2)(1) must beEqualTo(2)
     result(3)(2) must beEqualTo(1)

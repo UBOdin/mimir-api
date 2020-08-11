@@ -3,7 +3,7 @@ package org.mimirdb.api.request
 import org.apache.spark.sql.SparkSession
 import play.api.libs.json._
 
-import org.mimirdb.api.{ Request, Response }
+import org.mimirdb.api.{ Request, JsonResponse }
 import org.mimirdb.api.MimirAPI
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.Dataset
@@ -11,6 +11,7 @@ import org.apache.spark.sql.Row
 import scala.tools.reflect.ToolBox
 import scala.reflect.runtime.currentMirror
 import java.io.File
+import scala.collection.mutable.Buffer
 
 case class CodeEvalRequest (
             /* scala source code to evaluate*/
@@ -19,12 +20,10 @@ case class CodeEvalRequest (
                   source: String
 ) extends Request {
   def handle = {
-    Json.toJson(
-      language match {
-        case "R"     => evalR(source)
-        case "scala" => evalScala(source)
-      }
-    )
+    language match {
+      case "R"     => evalR(source)
+      case "scala" => evalScala(source)
+    }
   }
 
   def evalR(source: String): CodeEvalResponse = ???
@@ -33,7 +32,13 @@ case class CodeEvalRequest (
   
   def evalScala(source : String) : CodeEvalResponse = {
     try {
-      CodeEvalResponse(Eval("import org.mimirdb.api.request.VizierDB\n"+source),"")
+      val result = Eval[OutputBuffer](
+        Eval.STANDARD_PREFIX + source + Eval.STANDARD_SUFFIX
+      )
+      CodeEvalResponse(
+        result.stdout.map { _.toString }.mkString("\n"),
+        result.stderr.map { _.toString }.mkString("\n")
+      )
     } catch {
       case t: Throwable => {
         //logger.error(s"Error Evaluating Scala Source", t)
@@ -44,6 +49,16 @@ case class CodeEvalRequest (
 }
 
 object Eval {
+
+  val STANDARD_PREFIX = """
+    import org.mimirdb.api.request.{ VizierDB, OutputBuffer }
+    val mimir_output_buffer = new OutputBuffer
+    import mimir_output_buffer.{print, println}
+  """
+
+  val STANDARD_SUFFIX = """
+    mimir_output_buffer
+  """
   
     def apply[A](string: String): A = {
       val toolbox = currentMirror.mkToolBox()
@@ -73,8 +88,24 @@ object VizierDB {
   def outputAnnotations(dsname:String) : String = {
     Explain(s"SELECT * FROM $dsname").map(_.toString).mkString("<br>")
   }
-  
 }
+
+class OutputBuffer {
+  val stderr = Buffer[Output]()
+  val stdout = Buffer[Output]()
+
+  def print(str: String, err:Boolean = false ) =
+    if(err) { stderr.append(StringOutput(str)) }
+    else    { stdout.append(StringOutput(str)) }
+  def println(str: String, err: Boolean = false) =
+    if(str.size == 0){ print("\n", err) }
+    else if(str(str.size-1) == '\n'){ print(str, err) }
+    else { print(str+"\n", err) }
+}
+
+sealed trait Output
+case class StringOutput(str: String) extends Output
+  { override def toString() = str }
 
 object CodeEvalRequest {
   implicit val format: Format[CodeEvalRequest] = Json.format
@@ -86,7 +117,7 @@ case class CodeEvalResponse (
                   stdout: String,
             /* stderr from evaluation of scala code */
                   stderr: String
-) extends Response
+) extends JsonResponse[CodeEvalResponse]
 
 object CodeEvalResponse {
   implicit val format: Format[CodeEvalResponse] = Json.format

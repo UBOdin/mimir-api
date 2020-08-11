@@ -19,7 +19,7 @@ class MergeAttributesLensSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   "Merge Attributes Lens" >> {
-    val lens = Lenses("PICKER")
+    val lens = Lenses(Lenses.picker)
     val df = dataset("TEST_R")
     val config = lens.train(df, 
       Json.toJson(

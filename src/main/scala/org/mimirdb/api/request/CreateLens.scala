@@ -2,11 +2,14 @@ package org.mimirdb.api.request
 
 import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.StructField
 import com.typesafe.scalalogging.LazyLogging
 
-import org.mimirdb.api.{ Request, Response, MimirAPI, Schema }
+import org.mimirdb.api.{ Request, JsonResponse, MimirAPI }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
+import org.mimirdb.spark.Schema
+import org.mimirdb.spark.Schema.fieldFormat
 
 case class CreateLensRequest (
             /* input for lens */
@@ -20,7 +23,9 @@ case class CreateLensRequest (
             /* optional human-readable name */
                   humanReadableName: Option[String],
             /* optional name for the result table */
-                  resultName: Option[String]
+                  resultName: Option[String],
+            /* optional properties */
+                  properties: Option[Map[String,JsValue]]
 ) 
   extends Request 
   with LazyLogging
@@ -45,9 +50,10 @@ case class CreateLensRequest (
         config, 
         "in " +humanReadableName.getOrElse { input }
       ),
-      Set(input)
+      Set(input),
+      properties = properties.getOrElse { Map.empty }
     )
-    Json.toJson(CreateLensResponse(output, config))
+    CreateLensResponse(output, config)
   }
 }
 
@@ -58,10 +64,11 @@ object CreateLensRequest
 
 case class CreateLensResponse (
             /* name of resulting lens */
-                  lensName: String,
+                  name: String,
                   config: JsValue,
-                  schema: Seq[Schema]
-) extends Response
+                  schema: Seq[StructField],
+                  properties: Map[String, JsValue]
+) extends JsonResponse[CreateLensResponse]
 
 object CreateLensResponse {
   implicit val format: Format[CreateLensResponse] = Json.format
@@ -70,6 +77,7 @@ object CreateLensResponse {
     CreateLensResponse(
       output, 
       config, 
-      Schema(MimirAPI.catalog.get(output).schema)
+      MimirAPI.catalog.get(output).schema.fields,
+      Map.empty
     )
 }

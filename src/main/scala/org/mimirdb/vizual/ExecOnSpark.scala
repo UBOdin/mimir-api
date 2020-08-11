@@ -21,7 +21,7 @@ object ExecOnSpark
   {
     logger.debug(s"Applying $command")
     logger.trace(s"   ... on: $input") 
-    command match {
+    command match { 
       case DeleteColumn(position) => 
         {
           val (pre, post) = input.columns.splitAt(position)
@@ -42,8 +42,7 @@ object ExecOnSpark
           val (pre, post):(Seq[Column], Seq[Column]) = 
             position.map { columns.splitAt(_) }
                     .getOrElse { (columns, Seq()) }
-
-          input.select( ((pre :+ lit(null).as(column)) ++ post):_* )
+          input.select( ((pre :+ lit(null).cast(StringType).as(column)) ++ post):_* )
         }
       case InsertRow(position) =>  
         {
@@ -134,7 +133,7 @@ object ExecOnSpark
                                        else { input(c) } }
           input.select(newSchema:_*)
         }
-      case UpdateCell(column, rows, value) => 
+      case UpdateCell(column, rows, valueMaybe) => 
         {
           val targetColumn: StructField = input.schema.fields(column)
 
@@ -144,10 +143,14 @@ object ExecOnSpark
           var base = col(targetColumn.name)
           // If the expression is prefixed with an '=', treat it as an interpreted expression
           // If it's empty, treat it as a null
-          val update: Column = value match {
+          val update: Column = valueMaybe match {
             /////////////////////////////////////////////
 
-            case "" => {
+            case None => {
+              lit(null)
+            }
+
+            case Some("") => {
               // We interpret blanks depending on the type of the column.  If the column is
               // string-typed, we treat it as a string.  If the column is not, we treat it as
               // a null.
@@ -156,7 +159,7 @@ object ExecOnSpark
 
             /////////////////////////////////////////////
 
-            case _ if value(0) == '=' => {
+            case Some(value) if value(0) == '=' => {
               // If the user gives us a formula, we have a bit more information about their intent.
               // If we can safely cast the expression type to the column type, we do that.
               // If not, maybe we can safely cast the column type to the expression type.  
@@ -220,10 +223,11 @@ object ExecOnSpark
 
             /////////////////////////////////////////////
 
-            case _ => {
+            case Some(value) => {
               // If we're here, we've been given a literal to interpret.  This is a wee bit tricky
               // since we need to figure out how to cast it.  Start with the column's native data
               // type.
+              println(s"$value -> ${targetColumn.dataType}")
               val update = Cast(lit(value).expr, targetColumn.dataType).eval()
 
               // If the updated value can't be interpreted in the column's native data type, 

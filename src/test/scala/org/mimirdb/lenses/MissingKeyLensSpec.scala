@@ -18,7 +18,7 @@ class MissingKeyLensSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   "Missing Key Lens" >> {
-    val missingKey = Lenses("MISSING_KEY")
+    val missingKey = Lenses(Lenses.missingKey)
     val df = dataset("SEQ")
     val config = missingKey.train(df, JsString("KEY"))
     val parsedConfig = config.as[MissingKeyLensConfig]
@@ -36,7 +36,7 @@ class MissingKeyLensSpec
     // https://github.com/VizierDB/web-ui/issues/147
     SharedSparkTestInstance.loadCSV("ISSUE_147", "test_data/web_ui_147.csv")
 
-    val missingKey = Lenses("MISSING_KEY")
+    val missingKey = Lenses(Lenses.missingKey)
     val df = dataset("ISSUE_147")
     val config = missingKey.train(df, JsString("A"))
 

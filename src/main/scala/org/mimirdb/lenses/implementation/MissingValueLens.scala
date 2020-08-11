@@ -52,12 +52,15 @@ object MissingValueLensConfig
   {
     val modelUuid = UUID.randomUUID().toString()
     val colsStrategy = cols.map(mvcol => {
-      val t = df.schema(mvcol).dataType
+      val field = df.schema.fields
+                    .find { _.name.equalsIgnoreCase(mvcol) }
+                    .getOrElse { throw new IllegalArgumentException(
+                                    s"No column named '$mvcol'.  Available: ${df.schema.fieldNames.mkString(", ")}")}
       val modelPath = s"${MimirAPI.conf.dataDir()}${File.separator}${modelUuid}-${mvcol}.model"
-      t match {
+      field.dataType match {
         //case nt:NumericType => MissingValueImputerConfig(classOf[MeanMedianImputer].getSimpleName , mvcol, "mean", modelPath)
         //case BooleanType => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, mvcol, "GradientBoostedTreeBinary", modelPath)
-        case x => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, mvcol, "NaiveBayes", modelPath)
+        case x => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, field.name, "NaiveBayes", modelPath)
       }
       
     })

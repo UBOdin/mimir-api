@@ -2,9 +2,12 @@ package org.mimirdb.api.request
 
 import play.api.libs.json._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.StructField
 
-import org.mimirdb.api.{ Request, Response, MimirAPI }
+import org.mimirdb.api.{ Request, JsonResponse, MimirAPI }
 import org.mimirdb.vizual.{ Command, VizualScriptConstructor }
+import org.mimirdb.spark.Schema
+import org.mimirdb.spark.Schema.fieldFormat
 
 case class VizualRequest (
   input: String,
@@ -31,13 +34,13 @@ case class VizualRequest (
       }
 
     // Just add to the catalog and move on (we can get fancier later)
-    MimirAPI.catalog.put(
+    val df = MimirAPI.catalog.put(
       output,
       VizualScriptConstructor(simplified, input),
       Set(input),
       true
     )
-    Json.toJson(VizualResponse(output, simplified))
+    VizualResponse(output, simplified, Schema(df), Map.empty)
   }
 }
 
@@ -50,8 +53,12 @@ case class VizualResponse (
             /* name of resulting view */
                   name: String,
             /* revised/simplified script */
-                  script: Seq[Command]
-) extends Response
+                  script: Seq[Command],
+            /* resulting schema */
+                  schema: Seq[StructField],
+            /* any properties associated with the result */
+                  properties: Map[String, JsValue]
+) extends JsonResponse[VizualResponse]
 
 object VizualResponse {
   implicit val format: Format[VizualResponse] = Json.format
