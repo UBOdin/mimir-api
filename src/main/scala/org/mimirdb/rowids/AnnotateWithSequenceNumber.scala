@@ -182,7 +182,7 @@ object AnnotateWithSequenceNumber
           INTERNAL_ID,
           Add(
             INTERNAL_ID,
-            lookupFirstIdentifier(new Column(PARTITION_ID)).expr
+            lookupFirstIdentifier(new Column(PARTITION_ID).expr)
           )
         )), attribute
       ),
