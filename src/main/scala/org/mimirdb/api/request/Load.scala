@@ -8,6 +8,7 @@ import play.api.libs.json._
 import org.apache.spark.sql.{ SparkSession, DataFrame }
 import org.apache.spark.sql.types.StructField
 import com.typesafe.scalalogging.LazyLogging
+import org.mimirdb.spark.Schema.fieldFormat
 
 import org.mimirdb.api.{ 
   Request, 
@@ -46,7 +47,9 @@ case class LoadRequest (
             /* optionally provide an output name */
                   resultName: Option[String],
             /* optional properties */
-                  properties: Option[Map[String,JsValue]]
+                  properties: Option[Map[String,JsValue]],
+            /* proposed schema */
+                  proposedSchema: Seq[StructField]
 ) extends Request {
 
   lazy val output = 
@@ -86,7 +89,7 @@ case class LoadRequest (
       storageFormat match {
 
         // The Google Sheets loader expects to see only the last two path components of 
-        // the sheet URL.  Rewrite full URLs if the user wants.
+        // the sheet URL.  Rewrite full URLs if the user provides the full path.
         case FileFormat.GOOGLE_SHEETS => {
           url = url.split("/").reverse.take(2).reverse.mkString("/")
         }
@@ -110,7 +113,8 @@ case class LoadRequest (
         url = url,
         format = storageFormat,
         sparkOptions = finalSparkOptions,
-        contextText = humanReadableName
+        contextText = humanReadableName,
+        proposedSchema = proposedSchema
       )
 
       // Infer types if necessary

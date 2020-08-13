@@ -30,7 +30,8 @@ class PropertiesSpec
       properties        = Some(Map(
         "shazbot" -> JsString("frobbed"),
         "dingbat" -> Json.obj("a" -> JsNumber(123), "b" -> JsNull)
-      ))
+      )),
+      proposedSchema    = Seq()
     ).handle
     val result = 
       Json.toJson(QueryTableRequest("R_WITH_PROPERTIES", None, None, None, true)

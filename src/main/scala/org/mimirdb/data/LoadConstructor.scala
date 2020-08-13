@@ -7,6 +7,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.DataFrameReader
 import org.apache.spark.sql.execution.datasources.csv.TextInputCSVDataSource
+import org.mimirdb.spark.Schema.fieldFormat
 
 import org.mimirdb.lenses.Lenses
 import org.mimirdb.caveats.implicits._
@@ -21,7 +22,8 @@ case class LoadConstructor(
   format: String,
   sparkOptions: Map[String, String],
   lenses: Seq[(String, JsValue, String)] = Seq(),
-  contextText: Option[String] = None
+  contextText: Option[String] = None,
+  proposedSchema: Seq[StructField] = Seq()
 ) 
   extends DataFrameConstructor
   with LazyLogging
@@ -44,14 +46,75 @@ case class LoadConstructor(
     return df
   }
 
+  /**
+   * Merge the proposed schema with the actual schema obtained from the
+   * data loader to obtain the actual schema we should emit.
+   *
+   * If the proposed schema is too short, fields off the end will use 
+   * their default names.
+   * 
+   * If the proposed schema is too long, it will be truncated.
+   */
+  def actualizeProposedSchema(currSchema: Seq[StructField]): Seq[StructField] =
+  {
+    val targetSchemaFields: Seq[StructField] = 
+      if(proposedSchema.size > currSchema.size){
+        proposedSchema.take(currSchema.size)
+      } else if(proposedSchema.size < currSchema.size){
+        proposedSchema ++ currSchema.toSeq.drop(proposedSchema.size)
+      } else {
+        proposedSchema
+      }
+    assert(currSchema.size == targetSchemaFields.size)
+    return targetSchemaFields
+  }
+
+  def convertToProposedSchema(df: DataFrame): DataFrame =
+  {
+    if(proposedSchema.size == 0 || proposedSchema.equals(df.schema.fields.toSeq)){
+      return df
+    } else {
+      val currSchema = df.schema.fields
+      val targetSchemaFields = actualizeProposedSchema(currSchema)
+
+      df.select(
+        (targetSchemaFields.zip(currSchema).map { 
+          case (target, curr) => 
+            if(target.dataType.equals(curr.dataType)){
+              if(target.name.equals(curr.name)){
+                df(curr.name)
+              } else {
+                df(curr.name).as(target.name)
+              }
+            } else {
+              df(curr.name).cast(target.dataType).as(target.name)
+            }
+      }):_*)
+    }
+
+  }
+
   def loadWithoutCaveats(spark: SparkSession): DataFrame = 
   {
     var parser = spark.read.format(format)
     for((option, value) <- sparkOptions){
       parser = parser.option(option, value)
     }
-    parser.load(url)
+    var df = parser.load(url)
+    df = convertToProposedSchema(df)
+    return df
   }
+
+  val LEADING_WHITESPACE = raw"^[ \t\n\r]+"
+  val INVALID_LEADING_CHARS = raw"^[^a-zA-Z_]+"
+  val INVALID_INNER_CHARS = raw"[^a-zA-Z0-9_]+"
+
+  def cleanColumnName(name: String): String =
+    name.replaceAll(LEADING_WHITESPACE, "")
+        .replaceAll(INVALID_LEADING_CHARS, "_")
+        .replaceAll(INVALID_INNER_CHARS, "_")
+
+
 
   def loadCSVWithCaveats(spark: SparkSession): DataFrame =
   {
@@ -80,14 +143,18 @@ case class LoadConstructor(
       } else { None }
 
     val baseSchema = 
-      TextInputCSVDataSource.inferFromDataset(
-        spark, 
-        data.map { _.getAs[String](0) },
-        data.take(1).headOption.map { _.getAs[String](0) },
-        options
+      StructType(
+        actualizeProposedSchema(
+          TextInputCSVDataSource.inferFromDataset(
+            spark, 
+            data.map { _.getAs[String](0) },
+            data.take(1).headOption.map { _.getAs[String](0) },
+            options
+          ).map { column => 
+            StructField(cleanColumnName(column.name), column.dataType)
+          }
+        )
       )
-
-    // println(baseSchema)
 
     val annotatedSchema = 
       baseSchema.add(ERROR_COL, StringType)
@@ -99,7 +166,9 @@ case class LoadConstructor(
           options,
           source = contextText.getOrElse { "CSV File" }
         )
+
         headerChecker.checkHeaderColumnNames(firstLine)
+
         AnnotateWithSequenceNumber.withSequenceNumber(data) { 
           _.filter(col(AnnotateWithSequenceNumber.ATTRIBUTE) =!= 
                     AnnotateWithSequenceNumber.DEFAULT_FIRST_ROW)
@@ -148,7 +217,8 @@ case class LoadConstructor(
         Lenses(lens).train(construct(spark), initialConfig), 
         contextText
       ),
-      Some(contextText)
+      Some(contextText),
+      proposedSchema
     )
   }
 }
