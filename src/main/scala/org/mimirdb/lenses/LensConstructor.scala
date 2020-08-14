@@ -12,7 +12,7 @@ case class LensConstructor(
 ) extends DataFrameConstructor
 {
   def construct(spark: SparkSession, evalContext: Map[String, DataFrame]): DataFrame =
-    Lenses(name).create(evalContext(input), config, context)
+    Lenses(name.toLowerCase()).create(evalContext(input), config, context)
 }
 
 object LensConstructor 
