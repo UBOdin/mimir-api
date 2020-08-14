@@ -23,7 +23,7 @@ case class LoadConstructor(
   sparkOptions: Map[String, String],
   lenses: Seq[(String, JsValue, String)] = Seq(),
   contextText: Option[String] = None,
-  proposedSchema: Seq[StructField] = Seq()
+  proposedSchema: Option[Seq[StructField]] = None
 ) 
   extends DataFrameConstructor
   with LazyLogging
@@ -57,21 +57,25 @@ case class LoadConstructor(
    */
   def actualizeProposedSchema(currSchema: Seq[StructField]): Seq[StructField] =
   {
-    val targetSchemaFields: Seq[StructField] = 
-      if(proposedSchema.size > currSchema.size){
-        proposedSchema.take(currSchema.size)
-      } else if(proposedSchema.size < currSchema.size){
-        proposedSchema ++ currSchema.toSeq.drop(proposedSchema.size)
-      } else {
-        proposedSchema
-      }
-    assert(currSchema.size == targetSchemaFields.size)
-    return targetSchemaFields
+    proposedSchema match { 
+      case None => return currSchema
+      case Some(realProposedSchema) => 
+        val targetSchemaFields: Seq[StructField] = 
+          if(realProposedSchema.size > currSchema.size){
+            realProposedSchema.take(currSchema.size)
+          } else if(realProposedSchema.size < currSchema.size){
+            realProposedSchema ++ currSchema.toSeq.drop(realProposedSchema.size)
+          } else {
+            realProposedSchema
+          }
+        assert(currSchema.size == targetSchemaFields.size)
+        return targetSchemaFields
+    }
   }
 
   def convertToProposedSchema(df: DataFrame): DataFrame =
   {
-    if(proposedSchema.size == 0 || proposedSchema.equals(df.schema.fields.toSeq)){
+    if(proposedSchema.isEmpty || proposedSchema.get.equals(df.schema.fields.toSeq)){
       return df
     } else {
       val currSchema = df.schema.fields

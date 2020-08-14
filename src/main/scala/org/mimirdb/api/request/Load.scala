@@ -49,7 +49,7 @@ case class LoadRequest (
             /* optional properties */
                   properties: Option[Map[String,JsValue]],
             /* proposed schema */
-                  proposedSchema: Seq[StructField]
+                  proposedSchema: Option[Seq[StructField]]
 ) extends Request {
 
   lazy val output = 

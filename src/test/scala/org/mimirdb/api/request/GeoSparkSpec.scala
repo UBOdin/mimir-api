@@ -41,7 +41,7 @@ class GeoSparkSpec
                     dependencies      = Some(Seq()),
                     resultName        = Some("social_dist"),
                     properties        = Some(Map.empty),
-                    proposedSchema    = Seq()
+                    proposedSchema    = None
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
     
@@ -55,7 +55,7 @@ class GeoSparkSpec
                     dependencies      = Some(Seq()),
                     resultName        = Some("census_geo"),
                     properties        = Some(Map.empty),
-                    proposedSchema    = Seq()
+                    proposedSchema    = None
                   )
     val response2 = Json.toJson(request2.handle).as[CreateResponse]
     

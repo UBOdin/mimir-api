@@ -113,13 +113,13 @@ class Catalog(
     format: String = bulkStorageFormat,
     replaceIfExists: Boolean = true,
     properties: Map[String, JsValue] = Map.empty,
-    proposedSchema: Seq[StructField] = Seq()
+    proposedSchema: Option[Seq[StructField]] = None
   )
   {
     val url = staging.stage(df, format, Some(name))
     put(
       name, 
-      LoadConstructor(url, format, Map(), Seq(), None, Seq()),
+      LoadConstructor(url, format, Map(), Seq(), None, proposedSchema),
       Set(),
       replaceIfExists,
       properties = properties

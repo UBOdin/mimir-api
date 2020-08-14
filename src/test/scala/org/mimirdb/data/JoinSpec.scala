@@ -41,7 +41,7 @@ class JoinSpec
                     dependencies      = None,
                     resultName        = Some("covid_us_county"),
                     properties        = None,
-                    proposedSchema    = Seq()
+                    proposedSchema    = None
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
   }
