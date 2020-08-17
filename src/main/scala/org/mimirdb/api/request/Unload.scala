@@ -60,8 +60,12 @@ case class UnloadRequest (
       if(fileIsEmpty){ Seq[String]() }
       else {
         val filedir = new File(file)
-        filedir.listFiles.filter(_.isFile)
-          .map(_.getName).toSeq
+        if(filedir.isDirectory()){
+          filedir.listFiles.filter(_.isFile)
+            .map(_.getName).toSeq
+        }
+        else if(filedir.isFile() && filedir.exists()) Seq[String](filedir.getName)
+        else Seq[String]()
       }
 
     UnloadResponse(outputFiles)
