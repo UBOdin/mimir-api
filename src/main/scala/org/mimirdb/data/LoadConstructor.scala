@@ -40,7 +40,7 @@ case class LoadConstructor(
       }
 
     df = lenses.foldLeft(df) {
-      (df, lens) => Lenses(lens._1).create(df, lens._2, lens._3)
+      (df, lens) => Lenses(lens._1.toLowerCase()).create(df, lens._2, lens._3)
     }
 
     return df
