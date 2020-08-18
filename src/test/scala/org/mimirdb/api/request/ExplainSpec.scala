@@ -24,7 +24,8 @@ class ExplainSpec
     
     val df = AnnotateWithRowIds(MimirAPI.catalog.get("TYPED_R"))
     val firstRowid = 
-      df.select(df(AnnotateWithRowIds.ATTRIBUTE))
+      df.filter(df("B").isNull)
+        .select(df(AnnotateWithRowIds.ATTRIBUTE))
         .take(1)
         .head
         .getInt(0)
