@@ -71,7 +71,7 @@ class GeoSparkSpec
 
   "Geospark" >> {
     "perform simple spacial queries with caveats" >> {
-      CreateViewRequest(Map(("social_dist","social_dist"),("census_geo","census_geo")),
+      CreateViewRequest(Map(("social_dist","social_dist"),("census_geo","census_geo")),None,
       s"""SELECT social_dist.*, census_geo.LATITUDE, census_geo.LONGITUDE,
          |  ST_Point(CAST(census_geo.LONGITUDE AS Decimal(24,20)),
          |       CAST(census_geo.LATITUDE AS Decimal(24,20))) AS PT_SHAPE
@@ -82,13 +82,13 @@ class GeoSparkSpec
          None
       ).handle
       
-      CreateViewRequest(Map(("social_dist_geo","social_dist_geo")),
+      CreateViewRequest(Map(("social_dist_geo","social_dist_geo")),None,
           "SELECT ST_Envelope_Aggr(social_dist_geo.PT_SHAPE) AS BOUND FROM social_dist_geo",
           Some("social_dist_bound"),
          None
       ).handle 
       
-      CreateViewRequest(Map(("social_dist_bound","social_dist_bound")),
+      CreateViewRequest(Map(("social_dist_bound","social_dist_bound")),None,
           s"""SELECT ST_Transform(BOUND, 'epsg:4326','epsg:3857') AS TRANS_BOUND
           FROM social_dist_bound""",
          Some("social_dist_bound_trans"),
@@ -96,7 +96,7 @@ class GeoSparkSpec
       ).handle 
 
       
-      CreateViewRequest(Map(("social_dist_geo","social_dist_geo"), ("social_dist_bound","social_dist_bound"), ("social_dist_bound_trans","social_dist_bound_trans")),
+      CreateViewRequest(Map(("social_dist_geo","social_dist_geo"), ("social_dist_bound","social_dist_bound"), ("social_dist_bound_trans","social_dist_bound_trans")),None,
       s"""SELECT ST_Pixelize(ST_Transform(PT_SHAPE, 'epsg:4326','epsg:3857'), 256, 256, 
           social_dist_bound_trans.TRANS_BOUND) AS PIXEL, 
           social_dist_geo.PT_SHAPE 

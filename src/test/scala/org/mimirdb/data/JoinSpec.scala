@@ -55,7 +55,7 @@ class JoinSpec
 
   "JoinSpec" >> {
     "perform simple spacial queries with caveats" >> {
-      CreateViewRequest(Map(("covid_us_county","covid_us_county")),
+      CreateViewRequest(Map(("covid_us_county","covid_us_county")),None,
       s"""SELECT first(covid_us_county.COUNTY) AS COUNTY, 
           |       first(covid_us_county.STATE) AS STATE, 
           |       covid_us_county.FIPS, 
@@ -68,7 +68,7 @@ class JoinSpec
          None
       ).handle
       
-      CreateViewRequest(Map(("covid_us_county","covid_us_county")),
+      CreateViewRequest(Map(("covid_us_county","covid_us_county")),None,
       s"""SELECT first(covid_us_county.COUNTY) AS COUNTY, 
           |       first(covid_us_county.STATE) AS STATE, 
           |       covid_us_county.FIPS, 
@@ -81,7 +81,7 @@ class JoinSpec
          None
       ).handle
       
-      CreateViewRequest(Map(("covid_us_county_03_eom","covid_us_county_03_eom"),("covid_us_county_04_eom","covid_us_county_04_eom")),
+      CreateViewRequest(Map(("covid_us_county_03_eom","covid_us_county_03_eom"),("covid_us_county_04_eom","covid_us_county_04_eom")),None,
           s"""SELECT covid_us_county_04_eom.COUNTY,
               |       covid_us_county_04_eom.STATE,
               |       covid_us_county_04_eom.FIPS,

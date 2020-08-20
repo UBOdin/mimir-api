@@ -9,15 +9,41 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.catalyst.expressions.{ Expression, PythonUDF }
 import org.apache.spark.PythonUDFWorkaround // defined in mimir-api
 
-class PythonUDFBuilder(pythonPath: String)
+/**
+ * Utility class for converting Vizier-exported python functions for use in
+ * spark.  
+ *
+ * @param   pythonPath      The path to the python executable
+ * 
+ * Basic workflow:
+ * ```
+ * val pythonUDF = PythonUDFBuilder()
+ * val pickle = pythonUDF.pickle(... code ...)
+ * val udf = pythonUDF(pickle)
+ * 
+ * val result: Expression = udf(Seq(expr1, expr2, ...)): 
+ * ```
+ */
+class PythonUDFBuilder(val pythonPath: String)
   extends LazyLogging
 {
 
   def apply(vizierFunctionScript: String): (Seq[Expression] => PythonUDF) = 
     apply(pickle(vizierFunctionScript))
 
-  def apply(pickled: Array[Byte]): (Seq[Expression] => PythonUDF) = 
+  def apply(vizierFunctionScript: String, name: String): (Seq[Expression] => PythonUDF) = 
+    apply(pickle(vizierFunctionScript), name = Some(name))
+
+  def apply(
+    pickled: Array[Byte], 
+    name: Option[String] = None,
+    dataType: Option[DataType] = None
+  ): (Seq[Expression] => PythonUDF) = 
   {
+    val actualName = name.getOrElse { python(GET_NAME(pickled)).replaceAll("\n", "") }
+    lazy val actualDataType = dataType.getOrElse { 
+      DataType.fromJson(python(GET_DT(pickled)).replaceAll("\n", "")) 
+    }
     return (args: Seq[Expression]) => PythonUDFWorkaround(
       command = pickled,
       envVars = new java.util.HashMap(),
@@ -25,10 +51,10 @@ class PythonUDFBuilder(pythonPath: String)
       pythonExec = pythonPath,
       pythonVer = version
     )(
-      name = "TEST_FUNCTION",
-      dataType = IntegerType,
+      name = actualName,
+      dataType = actualDataType,
       children = args,
-      evalType = 100,
+      evalType = 100, // SQL_BATCHED_UDF
       true
     )
   }
@@ -55,11 +81,11 @@ class PythonUDFBuilder(pythonPath: String)
       .split("\\.").take(2).mkString(".")
 
 
-  def GENERATE_PICKLE(vizier_fn: String) = s"""
-import cloudpickle
+  def GENERATE_PICKLE(vizier_fn: String, t: DataType = StringType) = s"""
+from pyspark import cloudpickle
 import sys
 import base64
-from pyspark.sql.types import IntegralType
+from pyspark.sql.types import StringType
 
 class VizierUDFExtractor:
   def __init__(self):
@@ -68,17 +94,45 @@ class VizierUDFExtractor:
     self.fn = fn
     return fn
 vizierdb = VizierUDFExtractor()
+def return_type(data_type):
+  def wrap(fn):
+    fn.__return_type__ = data_type
+    return fn
+  return wrap
 
 ${vizier_fn}
 
 assert(vizierdb.fn is not None)
-pickled_fn = cloudpickle.dumps((vizierdb.fn, IntegralType()))
+pickled_fn = cloudpickle.dumps((vizierdb.fn, vizierdb.fn.__return_type__))
 encoded_fn = base64.encodebytes(pickled_fn)
 print(encoded_fn.decode())
 """
 
+  def GET_NAME(pickled: Array[Byte]) = s"""
+from pyspark import cloudpickle
+import base64
+
+encoded_fn = "${new String(Base64.getEncoder().encode(pickled)).replaceAll("\n", "")}"
+pickled_fn = base64.decodebytes(encoded_fn.encode())
+fn = cloudpickle.loads(pickled_fn)[0]
+print(fn.__name__)
+"""
+
+  def GET_DT(pickled: Array[Byte]) = s"""
+from pyspark import cloudpickle
+import base64
+
+encoded_fn = "${new String(Base64.getEncoder().encode(pickled)).replaceAll("\n", "")}"
+pickled_fn = base64.decodebytes(encoded_fn.encode())
+fn = cloudpickle.loads(pickled_fn)[0]
+if(hasattr(fn, "__return_type__")):
+  print(fn.__return_type__.json())
+else:
+  print('"string"')
+"""
+
   def RUN_PICKLE(pickled: Array[Byte], args: String) = s"""
-import cloudpickle
+from pyspark import cloudpickle
 import base64
 
 encoded_fn = "${new String(Base64.getEncoder().encode(pickled)).replaceAll("\n", "")}"
@@ -86,4 +140,19 @@ pickled_fn = base64.decodebytes(encoded_fn.encode())
 fn = cloudpickle.loads(pickled_fn)[0]
 print(fn(${args}))
 """
+
+}
+
+object PythonUDFBuilder
+{
+  def apply(pythonPath: Option[String] = None): PythonUDFBuilder = 
+    return new PythonUDFBuilder(
+      pythonPath.getOrElse { defaultPython() }
+    )
+
+  def defaultPython(): String =
+    Process(Seq("which", "python3"))
+      .lineStream
+      .headOption
+      .getOrElse { throw new RuntimeException("Can't find python3") }
 }

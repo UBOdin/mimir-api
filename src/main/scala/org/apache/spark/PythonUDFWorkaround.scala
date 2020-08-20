@@ -7,6 +7,18 @@ import org.apache.spark.api.python.PythonFunction
 import org.apache.spark.sql.catalyst.expressions.{ PythonUDF, Expression, ExprId, NamedExpression }
 import org.apache.spark.api.python.PythonAccumulatorV2
 
+/**
+ * A utility method to construct PythonUDF objects from within Mimir
+ *
+ * This class exists because PythonFunction is (justifiably) package-private.  However,
+ * we want to be able to import Python code, and we also don't need to tage advantage of
+ * the full range of functionality available through PythonUDF.  This functionality is 
+ * used mainly in org.mimirdb.spark.PythonUDFBuilder
+ * 
+ * Key simplifications:
+ *  - Broadcast variables are NOT supported.
+ *  - Accumulator variables are NOT supported.
+ */
 object PythonUDFWorkaround
 {
   def apply(
