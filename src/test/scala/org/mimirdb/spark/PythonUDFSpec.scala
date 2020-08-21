@@ -67,7 +67,6 @@ def add_one(x):
     ).handle
 
     val df = MimirAPI.catalog.get(response.name)
-    df.show()
 
     val addOneResults = df.collect()
     addOneResults.size must beEqualTo(8)
