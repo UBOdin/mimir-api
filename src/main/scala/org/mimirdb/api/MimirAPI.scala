@@ -174,6 +174,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
           handler.handle
         } catch {
           case e: EOFException => 
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -181,6 +182,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             )
 
           case e: FileNotFoundException =>
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -188,7 +190,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             )
 
           case e: SQLException => {
-            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -197,7 +199,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
           }
 
           case e: AnnotationException => {
-            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -205,7 +207,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             )
           }
           case e: AnalysisException => {
-            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               s"SQL Exception: ${e.getMessage}",
@@ -214,6 +216,9 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
           }
           case FormattedError(errorResponse) => {
             logger.debug(s"Internally Formatted Error: ${errorResponse.errorType}")
+            logger.error(s"Internally Formatted Error: ${errorResponse.errorType}" + 
+                "\n" + errorResponse.errorMessage + 
+                "\n" + errorResponse.stackTrace) 
             errorResponse
           }
 
