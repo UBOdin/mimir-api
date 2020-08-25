@@ -30,7 +30,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.1",
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.1" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
@@ -65,7 +65,7 @@ libraryDependencies ++= Seq(
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
   //"com.amazonaws"                 %   "aws-java-sdk-core"        % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   //"com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws")),
+  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
 
