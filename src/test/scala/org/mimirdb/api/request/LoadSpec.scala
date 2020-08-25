@@ -197,7 +197,7 @@ class LoadSpec
     df.schema.fields(2) must beEqualTo(StructField("C", StringType))
   }
   
-  "load files from s3" >> {
+  /*"load files from s3" >> {
     val request = LoadRequest(
                     file              = "s3a://mimir-test-data/test/data/mv.csv",
                     format            = "csv",
@@ -250,5 +250,5 @@ class LoadSpec
     MimirAPI.catalog.get(response.name)
                     .count() must be equalTo(44)
 
-  }
+  }*/
 }
