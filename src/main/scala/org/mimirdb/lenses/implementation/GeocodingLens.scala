@@ -130,15 +130,25 @@ class GeocodingLens(
            .fieldNames
            .map { field => col("_1").getField(field).as(field) } 
         :+ when(array_size(coordinates) >= 2, element_at(coordinates, 1))
-             .otherwise(null).as(config.lat)
+             .otherwise(null).as(
+                 input.schema.fieldNames.foldLeft( 0 ){ (init, curr) => if( curr.asInstanceOf[String].startsWith(config.lat)) init+1 else init } match {
+                   case 0 => config.lat
+                   case colCnt => s"${config.lat}_${colCnt}"
+                 }) 
         :+ when(array_size(coordinates) >= 2, element_at(coordinates, 2))
-             .otherwise(null).as(config.lon)
+             .otherwise(null).as(
+                 input.schema.fieldNames.foldLeft( 0 ){ (init, curr) => if( curr.asInstanceOf[String].startsWith(config.lon)) init+1 else init } match {
+                   case 0 => config.lon
+                   case colCnt => s"${config.lon}_${colCnt}"
+                 }) 
       ):_*
 
     )
   }
 
 }
+
+
 
 abstract class Geocoder(val name: String) extends Serializable {
 
