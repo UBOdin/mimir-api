@@ -249,12 +249,22 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
         logger.debug(s"$text")
         process(Json.parse(text).as[Q], output)
       } catch {
-        case e@JsResultException(errors) =>
+        case e@JsResultException(errors) => {
+          logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
           ErrorResponse(
             e.getClass().getCanonicalName(),
             s"Error(s) parsing API request\n${ellipsize(text, 100)}\n"+stringifyJsonParseErrors(errors).mkString("\n"),
             e.getStackTrace.map(_.toString).mkString("\n")
           ).write(output)
+        }
+        case e:Throwable => {
+          logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+          ErrorResponse(
+            e.getClass().getCanonicalName(),
+            s"Error(s) parsing API request\n${ellipsize(text, 100)}\n",
+            e.getStackTrace.map(_.toString).mkString("\n")
+          ).write(output)
+        }
       }
 
     }

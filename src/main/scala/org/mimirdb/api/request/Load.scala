@@ -118,7 +118,7 @@ case class LoadRequest (
       )
 
       // Infer types if necessary
-      if(inferTypes){
+      if(inferTypes && proposedSchema.getOrElse(Seq()).isEmpty){
         loadConstructor = loadConstructor.withLens(
           MimirAPI.sparkSession, 
           "type_inference", 

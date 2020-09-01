@@ -238,6 +238,18 @@ class Catalog(
       try {
         get(view).createOrReplaceTempView(view)
       } catch {
+        //TODO: This is a hack to cleanup the logs for missing data files
+        //  without forgetting invalid tables.  This does not prevent performance hit 
+        //  trying to load the missing tables.  
+        case pathNf:org.apache.spark.sql.AnalysisException 
+          if pathNf.message.startsWith("Path does not exist") => {
+            logger.warn(s"Couldn't safely preload $view: ${pathNf.message}")
+            if(forgetInvalidTables){
+              logger.warn(s"Forgetting $view")
+              logger.warn(views.get(view).get._2.asInstanceOf[String])
+              views.rm(view)
+            }
+          }
         case e:Exception => {
           logger.error(s"Couldn't safely preload $view.\n$e")
           if(forgetInvalidTables){
