@@ -72,6 +72,13 @@ object ErrorResponse {
     )
 }
 
+case class SuccessResponse(message: String) extends JsonResponse[SuccessResponse] {}
+
+object SuccessResponse
+{
+  implicit val format: Format[SuccessResponse] = Json.format
+}
+
 
 case class LensList (
     lensTypes: Seq[String]

@@ -19,6 +19,7 @@ import org.mimirdb.util.TimerUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
+import com.google.common.collect.Table
 
 case class QueryMimirRequest (
             /* input for query */
@@ -47,6 +48,8 @@ case class QueryMimirRequest (
 object QueryMimirRequest {
   implicit val format: Format[QueryMimirRequest] = Json.format
 }
+
+/***************************************************************************************/
 
 case class QueryTableRequest (
             /* input for query */
@@ -87,6 +90,7 @@ object QueryTableRequest {
   implicit val format: Format[QueryTableRequest] = Json.format
 }
 
+/***************************************************************************************/
 
 case class SchemaForQueryRequest (
             /* query string to get schema for - sql */
@@ -98,6 +102,8 @@ case class SchemaForQueryRequest (
 object SchemaForQueryRequest {
   implicit val format: Format[SchemaForQueryRequest] = Json.format
 }
+
+/***************************************************************************************/
 
 case class SchemaForTableRequest (
             /* table name */
@@ -112,6 +118,23 @@ case class SchemaForTableRequest (
 object SchemaForTableRequest {
   implicit val format: Format[SchemaForTableRequest] = Json.format
 }
+
+/***************************************************************************************/
+
+case class SizeOfTableRequest (
+            /* table name */
+                  table: String
+) extends Request {
+  def handle = TableSize(
+    MimirAPI.catalog.get(table).count()
+  )
+}
+
+object SizeOfTableRequest {
+  implicit val format: Format[SizeOfTableRequest] = Json.format
+}
+
+/***************************************************************************************/
 
 case class DataContainer (
                   schema: Seq[StructField],
@@ -169,6 +192,8 @@ object DataContainer {
   )
 }
 
+/***************************************************************************************/
+
 case class SchemaList (
     schema: Seq[StructField],
     properties: Map[String, JsValue]
@@ -178,7 +203,21 @@ object SchemaList {
   implicit val format: Format[SchemaList] = Json.format
 }
 
+/***************************************************************************************/
+
+case class TableSize (
+    size: Long,
+) extends JsonResponse[TableSize]
+
+object TableSize {
+  implicit val format: Format[TableSize] = Json.format
+}
+
+/***************************************************************************************/
+
 class ResultTooBig extends Exception("The datsaet is too big to copy.  Try a sample or a LIMIT query instead.")
+
+/***************************************************************************************/
 
 object Query
   extends LazyLogging

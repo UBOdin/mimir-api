@@ -304,14 +304,15 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             case "/query/table"          => processJson[QueryTableRequest](req, output)
             case "/schema"               => processJson[SchemaForQueryRequest](req, output)
             case "/tableInfo"            => processJson[SchemaForTableRequest](req, output)
+            case "/garbageCollect"       => process(GarbageCollectRequest(), output)
             case _                       => fourOhFour(req, output)
           }
         case _                           => fourOhFour(req, output)
       }
     }
     
-    val HEAD = "\\/([^\\/]+)/(.*)".r
-    val TAIL = "([^\\/]+)".r
+    val HEAD = "\\/([^\\/]+)(/.*)".r
+    val TAIL = "/([^\\/]+)".r
 
     override def doPut(req: HttpServletRequest, output: HttpServletResponse)
     {
@@ -331,12 +332,14 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       req.getPathInfo match {
         case PREFIX(route) => 
           route match {
-            case "/lens"                    => LensList(Lenses.supportedLenses).write(output)
-            case HEAD("blob", TAIL(id))     => process(GetBlobRequest(id), output)
-            case HEAD("tableInfo", TAIL(id))=> process(SchemaForTableRequest(id), output)
-            case _                          => fourOhFour(req, output)
+            case "/lens"                                    => LensList(Lenses.supportedLenses).write(output)
+            case HEAD("blob", TAIL(id))                     => process(GetBlobRequest(id), output)
+            case HEAD("tableInfo", TAIL(id))                => process(SchemaForTableRequest(id), output)
+            case HEAD("tableInfo", HEAD(id, TAIL("schema")))=> process(SchemaForTableRequest(id), output)
+            case HEAD("tableInfo", HEAD(id, TAIL("size")))  => process(SizeOfTableRequest(id), output)
+            case _                                          => fourOhFour(req, output)
           }
-        case _                              => fourOhFour(req, output)
+        case _                                              => fourOhFour(req, output)
       }
     }
 

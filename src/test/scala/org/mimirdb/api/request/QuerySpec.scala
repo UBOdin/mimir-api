@@ -232,6 +232,10 @@ class QuerySpec
         result.data must beEqualTo(data.drop(2).take(2))
       }
     }
+
+    "Get Table Sizes" >> { 
+      SizeOfTableRequest("TEST_R").handle.size must beEqualTo(7)
+    }
   }
 
 }
