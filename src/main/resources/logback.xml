@@ -22,6 +22,9 @@
 
   <!--+++++++++++++++++++++++  Lenses  +++++++++++++++++++++++++-->
   <logger name="org.mimirdb.lenses.implementation.CommentLens$"            level="INFO" />
+
+  <!--+++++++++++++++++++++++  Data Load  +++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.data.LoadConstructor"                          level="INFO" />
     
   <root level="ERROR">
     <appender-ref ref="STDOUT" />

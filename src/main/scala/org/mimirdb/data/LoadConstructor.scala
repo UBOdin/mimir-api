@@ -54,22 +54,53 @@ case class LoadConstructor(
    * their default names.
    * 
    * If the proposed schema is too long, it will be truncated.
+   *
+   * In either case, duplicate names will have _# appended
    */
   def actualizeProposedSchema(currSchema: Seq[StructField]): Seq[StructField] =
   {
-    proposedSchema match { 
-      case None => return currSchema
-      case Some(realProposedSchema) => 
-        val targetSchemaFields: Seq[StructField] = 
-          if(realProposedSchema.size > currSchema.size){
-            realProposedSchema.take(currSchema.size)
-          } else if(realProposedSchema.size < currSchema.size){
-            realProposedSchema ++ currSchema.toSeq.drop(realProposedSchema.size)
-          } else {
-            realProposedSchema
-          }
-        assert(currSchema.size == targetSchemaFields.size)
-        return targetSchemaFields
+    val schema: Seq[StructField] = 
+      proposedSchema match { 
+        case None => currSchema
+        case Some(realProposedSchema) => 
+          val targetSchemaFields: Seq[StructField] = 
+            if(realProposedSchema.size > currSchema.size){
+              realProposedSchema.take(currSchema.size)
+            } else if(realProposedSchema.size < currSchema.size){
+              realProposedSchema ++ currSchema.toSeq.drop(realProposedSchema.size)
+            } else {
+              realProposedSchema
+            }
+          assert(currSchema.size == targetSchemaFields.size)
+          targetSchemaFields
+      }
+
+    val duplicateNames:Seq[String] = 
+      schema.groupBy { column => column.name.toLowerCase }
+            .map { case (name, elems) => (name, elems.size) }
+            .filter { _._2 > 1 }
+            .map { _._1 }
+            .toSeq
+
+    logger.trace(s"PROPOSED SCHEMA: $schema")
+
+    if(duplicateNames.isEmpty){ return schema }
+    else {
+      logger.trace(s"Duplicate Names: $duplicateNames")
+      var duplicateNameMap = duplicateNames.map { _ -> 1 }.toMap
+      return schema.map { column => 
+                duplicateNameMap.get(column.name.toLowerCase) match {
+                  case None => column
+                  case Some(idx) => 
+                    duplicateNameMap = duplicateNameMap + (column.name.toLowerCase -> (idx+1))
+                    StructField(
+                      s"${column.name}_$idx", 
+                      column.dataType, 
+                      column.nullable, 
+                      column.metadata
+                    )
+                }
+              }
     }
   }
 
@@ -124,6 +155,8 @@ case class LoadConstructor(
   {
     // based largely on Apache Spark's DataFrameReader's csv(Dataset[String]) method
 
+    logger.debug(s"LOADING CSV FILE: $url")
+
     import spark.implicits._
     val ERROR_COL = "__MIMIR_CSV_LOAD_ERROR"
     val extraOptions = Map(
@@ -141,10 +174,14 @@ case class LoadConstructor(
            .format("text")
            .load(url)
     
+    logger.trace(s"SCHEMA: ${data.schema}")
+
     val maybeFirstLine = 
       if(options.headerFlag){
         data.take(1).headOption.map { _.getAs[String](0) }
       } else { None }
+
+    logger.trace(s"Maybe First Line: $maybeFirstLine")
 
     val baseSchema = 
       StructType(
@@ -159,6 +196,8 @@ case class LoadConstructor(
           }
         )
       )
+
+    logger.trace(s"BASE SCHEMA: ${baseSchema}")
 
     val annotatedSchema = 
       baseSchema.add(ERROR_COL, StringType)
