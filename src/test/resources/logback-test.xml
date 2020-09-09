@@ -24,6 +24,8 @@
   <logger name="org.mimirdb.lenses.AnnotateImplicitHeuristics$" level="ERROR" />
   <logger name="org.mimirdb.lenses.CaveatedCast$"               level="ERROR" />
 
+  <!--++++++++++++++++++++++++  Spark  ++++++++++++++++++++++++++-->
+  <logger name="org.mimirdb.spark.InjectedSparkSQL"             level="ERROR" />
   
   <root level="ERROR">
     <appender-ref ref="STDOUT" />

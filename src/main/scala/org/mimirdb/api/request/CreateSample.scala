@@ -159,8 +159,8 @@ case class CreateSampleRequest (
                   properties: Option[Map[String,JsValue]]
 ) extends Request with DataFrameConstructor {
 
-  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
-    samplingMode.apply(context(source), seed.getOrElse { new Random().nextLong })
+  def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
+    samplingMode.apply(context(source)(), seed.getOrElse { new Random().nextLong })
 
   def handle = {
     if(!MimirAPI.catalog.exists(source)){

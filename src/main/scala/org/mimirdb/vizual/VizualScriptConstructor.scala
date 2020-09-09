@@ -10,8 +10,8 @@ case class VizualScriptConstructor(
 )
   extends DataFrameConstructor
 {
-  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
-    ExecOnSpark(context(input), script)
+  def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
+    ExecOnSpark(context(input)(), script)
 }
 
 object VizualScriptConstructor 

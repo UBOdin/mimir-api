@@ -10,6 +10,8 @@ import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.util.ErrorUtils
 import org.mimirdb.spark.{ GetViewDependencies, Schema }
 import org.mimirdb.spark.Schema.fieldFormat
+import org.mimirdb.spark.InjectedSparkSQL
+import com.typesafe.scalalogging.LazyLogging
 
 
 
@@ -22,7 +24,11 @@ case class CreateViewRequest (
                   resultName: Option[String],
             /* optional properties */
                   properties: Option[Map[String,JsValue]]
-)  extends Request with DataFrameConstructor {
+)  
+  extends Request 
+  with DataFrameConstructor 
+  with LazyLogging
+{
 
   lazy val output = 
     resultName.getOrElse {
@@ -30,14 +36,9 @@ case class CreateViewRequest (
       "VIEW_" + (lensNameBase.toString().replace("-", ""))
     }
 
-  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
+  def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
   {
-    // Create temp views so that we can reference mimir tables by name
-    // TODO: ensure that this isn't a race condition!
-    for((userFacingName, internalName) <- input){
-      context(internalName).createOrReplaceTempView(userFacingName)
-    }
-    var df = spark.sql(query)
+    var df = InjectedSparkSQL(spark)(query, context, allowMappedTablesOnly = true)
     df = AnnotateImplicitHeuristics(df)
     return df 
   }
@@ -52,7 +53,8 @@ case class CreateViewRequest (
       )
     } catch {
       case e:AnalysisException => {
-        val msg =  ErrorUtils.prettyAnalysisEror(e, query)
+        e.printStackTrace()
+        val msg =  ErrorUtils.prettyAnalysisError(e, query)
         println(s"##############\n$msg\n##############")
         throw FormattedError(ErrorResponse(e,msg))
       }

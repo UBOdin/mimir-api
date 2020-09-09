@@ -10,6 +10,7 @@ import org.mimirdb.caveats.{ Caveat, CaveatSet }
 import org.mimirdb.api.CaveatFormat._
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.rowids.AnnotateWithRowIds
+import org.mimirdb.spark.InjectedSparkSQL
 
 case class ExplainCellRequest (
             /* query to explain */
@@ -94,8 +95,7 @@ object Explain
     spark: SparkSession = MimirAPI.sparkSession
   ): Seq[CaveatSet] = 
   {
-    MimirAPI.catalog.populateSpark()
-    var df = spark.sql(query)
+    var df = InjectedSparkSQL(spark)(query, MimirAPI.catalog.allTableConstructors)
     val selectedCols = 
       Option(cols).getOrElse { df.schema.fieldNames.toSeq }.toSet
     if(rows != null){

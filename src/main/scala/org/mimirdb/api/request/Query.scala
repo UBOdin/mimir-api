@@ -19,6 +19,7 @@ import org.mimirdb.util.TimerUtils
 import com.typesafe.scalalogging.LazyLogging
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
+import org.mimirdb.spark.InjectedSparkSQL
 
 case class QueryMimirRequest (
             /* input for query */
@@ -193,9 +194,8 @@ object Query
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): DataContainer = 
   {
-    MimirAPI.catalog.populateSpark()
     apply(
-      sparkSession.sql(query), 
+      InjectedSparkSQL(sparkSession)(query, MimirAPI.catalog.allTableConstructors),
       includeCaveats = includeCaveats, 
       limit = limit,
       computedProperties = Map.empty
@@ -311,8 +311,8 @@ object Query
     query: String,
     sparkSession: SparkSession = MimirAPI.sparkSession
   ): Seq[StructField] = { 
-    MimirAPI.catalog.populateSpark()
-    Schema(sparkSession.sql(query))
+    val df = InjectedSparkSQL(sparkSession)(query, MimirAPI.catalog.allTableConstructors)
+    Schema(df)
   }
 
 }

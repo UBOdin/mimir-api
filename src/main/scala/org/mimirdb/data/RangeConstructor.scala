@@ -15,7 +15,7 @@ case class RangeConstructor(
 {
   def construct(
     spark: SparkSession, 
-    context: Map[String, DataFrame] = Map()
+    context: Map[String, () => DataFrame] = Map()
   ): DataFrame =
   {
     spark.range(start, end, step).toDF
