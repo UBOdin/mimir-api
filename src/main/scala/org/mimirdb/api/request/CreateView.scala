@@ -38,7 +38,11 @@ case class CreateViewRequest (
 
   def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
   {
-    var df = InjectedSparkSQL(spark)(query, context, allowMappedTablesOnly = true)
+    var df = InjectedSparkSQL(spark)(
+                  query, 
+                  input.mapValues { context(_) },
+                  allowMappedTablesOnly = true
+              )
     df = AnnotateImplicitHeuristics(df)
     return df 
   }
