@@ -138,7 +138,7 @@ bootstrap := {
     "-f",
     "-o", "bin/mimir-api",
     "-r", "central",
-    "-M", "mimir.MimirVizier"
+    "-M", "org.mimirdb.api.MimirAPI"
   )++resolverArgs) ! logger match {
       case 0 =>
       case n => sys.error(s"Bootstrap failed")
