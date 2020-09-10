@@ -30,7 +30,7 @@ case class LoadConstructor(
 {
   def construct(
     spark: SparkSession, 
-    context: Map[String, DataFrame] = Map()
+    context: Map[String, () => DataFrame] = Map()
   ): DataFrame =
   {
     var df =

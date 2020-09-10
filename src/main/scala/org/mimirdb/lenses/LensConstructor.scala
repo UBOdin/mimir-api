@@ -11,8 +11,8 @@ case class LensConstructor(
   context: String
 ) extends DataFrameConstructor
 {
-  def construct(spark: SparkSession, evalContext: Map[String, DataFrame]): DataFrame =
-    Lenses(name.toLowerCase()).create(evalContext(input), config, context)
+  def construct(spark: SparkSession, evalContext: Map[String, () => DataFrame]): DataFrame =
+    Lenses(name.toLowerCase()).create(evalContext(input)(), config, context)
 }
 
 object LensConstructor 

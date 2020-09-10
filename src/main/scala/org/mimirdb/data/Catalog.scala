@@ -140,7 +140,7 @@ class Catalog(
     val context = 
       dependencies
         .toSeq
-        .map { dep => dep -> get(dep) }
+        .map { dep => dep -> { () => get(dep) } }
         .toMap 
 
     logger.debug(s"PUT $name:\n$constructor")
@@ -197,7 +197,7 @@ class Catalog(
     val dependencies = 
       Json.parse(components(2).asInstanceOf[String])
         .as[Seq[String]]
-        .map { dep => dep -> get(dep) }
+        .map { dep => dep -> { () => get(dep) } }
         .toMap
 
     val deserializerClass = 
@@ -232,8 +232,16 @@ class Catalog(
     cache.remove(name)
   }
 
+  /**
+   * Return a map of constructors (suitable for use with InjectedSparkSQL) for all tables
+   * known to the catalog
+   */
+  def allTableConstructors: Map[String, () => DataFrame] =
+    views.keys.map { k => k -> { () => get(k) }}.toMap
+
   def populateSpark(targets: Iterable[String] = views.keys, forgetInvalidTables: Boolean = false)
   {
+    logger.error("populateSpark is deprecated.  Use org.mimirdb.spark.InjectedSparkSQL with Catalog.allTableConstructors instead")
     for(view <- views.keys){
       try {
         get(view).createOrReplaceTempView(view)

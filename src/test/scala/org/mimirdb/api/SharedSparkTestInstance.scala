@@ -70,7 +70,6 @@ object SharedSparkTestInstance
           Seq(TestCaseGeocoder),
           MimirAPI.catalog
         )
-        MimirAPI.catalog.populateSpark()
       }
     }
   }
