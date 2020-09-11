@@ -1,0 +1,123 @@
+For Each Column:
+  - column:
+      id: 
+      name: 
+      type:
+  - values:
+    For each Bucket:
+    - name: 
+      count:
+  - binSize:
+  - stats:
+      count:
+      distinctValueCount
+      sum
+      mean
+      stdDev
+      min
+      max
+
+
+-----
+
+
+[
+  {
+    "column": {
+      "id": 0,
+      "name": "TKEY",
+      "type": "short"
+    },
+    "values": [
+      {
+        "name": "1",
+        "count": 2
+      },
+      {
+        "name": "2",
+        "count": 2
+      },
+      {
+        "name": "3",
+        "count": 2
+      },
+      {
+        "name": "5",
+        "count": 2
+      }
+    ],
+    "binSize": -1,
+    "stats": {
+      "count": 8,
+      "distinctValueCount": 4,
+      "sum": 0,
+      "mean": 0,
+      "stdDev": 78,
+      "min": null,
+      "max": null
+    }
+  },
+  {
+    "column": {
+      "id": 1,
+      "name": "A",
+      "type": "float"
+    },
+    "values": [
+      {
+        "name": "4",
+        "count": 6
+      },
+      {
+        "name": "6.400000095367432",
+        "count": 2
+      }
+    ],
+    "binSize": -1,
+    "stats": {
+      "count": 8,
+      "distinctValueCount": 2,
+      "sum": 0,
+      "mean": 0,
+      "stdDev": 177.92000244140627,
+      "min": null,
+      "max": null
+    }
+  },
+  {
+    "column": {
+      "id": 2,
+      "name": "B",
+      "type": "string"
+    },
+    "values": [
+      {
+        "name": "5.0",
+        "count": 1
+      },
+      {
+        "name": "3.5",
+        "count": 1
+      },
+      {
+        "name": "2.0",
+        "count": 1
+      },
+      {
+        "name": "4.0",
+        "count": 1
+      }
+    ],
+    "binSize": -1,
+    "stats": {
+      "count": 8,
+      "distinctValueCount": 4,
+      "sum": 0,
+      "mean": 0,
+      "stdDev": 57.25,
+      "min": null,
+      "max": null
+    }
+  }
+]
+
