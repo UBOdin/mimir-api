@@ -30,4 +30,5 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     descr = "spark master.",
     default = Some("local")
   )
+  val experimental = opt[List[String]]("X", default = Some(List[String]()))
 }

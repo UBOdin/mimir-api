@@ -44,6 +44,7 @@ import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 import org.apache.spark.sql.AnalysisException
 import org.mimirdb.data.MetadataBackend
 import org.mimirdb.blobs.BlobStore
+import org.mimirdb.util.ExperimentalOptions
 
 //import org.apache.spark.ui.FixWebUi
 
@@ -66,6 +67,9 @@ object MimirAPI extends LazyLogging {
     logger.debug("debug is enabled")
     conf = new MimirConfig(args);
     conf.verify
+
+    // Prepare Experiments
+    ExperimentalOptions.enable(conf.experimental())
 
     // Initialize Spark
     sparkSession = InitSpark.local

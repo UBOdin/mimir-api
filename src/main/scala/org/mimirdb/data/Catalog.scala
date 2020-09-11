@@ -8,6 +8,8 @@ import java.sql.SQLException
 import java.net.URI
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
 import org.apache.spark.sql.catalyst.analysis.UnresolvedException
+import org.mimirdb.profiler.DataProfiler
+import org.mimirdb.util.ExperimentalOptions
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -131,7 +133,8 @@ class Catalog(
     constructor: T, 
     dependencies: Set[String], 
     replaceIfExists: Boolean = true,
-    properties: Map[String, JsValue] = Map.empty
+    properties: Map[String, JsValue] = Map.empty,
+    runProfiler: Boolean = ExperimentalOptions.isEnabled("PROFILER-ON")
   )(implicit format: Format[T]): DataFrame = {
     if(!replaceIfExists && views.exists(name)){
       throw new SQLException(s"View $name already exists")
@@ -151,6 +154,8 @@ class Catalog(
 
     logger.debug(s"... with dataframe:\n${df.queryExecution.analyzed.treeString}")
 
+    val profile = if(runProfiler){ DataProfiler(df) } else { Map() }
+
     // Save the view
     views.put(
       name,
@@ -158,7 +163,7 @@ class Catalog(
         constructor.deserializer.toString,
         Json.toJson(constructor).toString,
         Json.toJson(dependencies.toSeq).toString,
-        Json.toJson(properties).toString
+        Json.toJson(profile ++ properties).toString
       )
     )
 
@@ -176,6 +181,43 @@ class Catalog(
     Json.parse(components(3).asInstanceOf[String])
       .as[Map[String,JsValue]]
   }
+
+  def setProperties(name: String, properties: Map[String, JsValue])
+  {
+    val (field, components) = views.get(name).getOrElse {
+      throw new UnresolvedException(
+        UnresolvedRelation(Seq(name)),
+        "lookup"
+      )
+    }
+    views.put(field, 
+      components.patch(3, Seq(Json.toJson(properties).toString), 1)
+    )
+  }
+
+  def updateProperties(name: String, properties: Map[String, JsValue])
+  {
+    val (field, components) = views.get(name).getOrElse {
+      throw new UnresolvedException(
+        UnresolvedRelation(Seq(name)),
+        "lookup"
+      )
+    }
+    val oldProperties = 
+      Json.parse(components(3).asInstanceOf[String])
+        .as[Map[String,JsValue]]
+    views.put(field, 
+      components.patch(3, Seq(Json.toJson(oldProperties ++ properties).toString), 1)
+    )
+  }
+
+  def profile(name: String)
+  {
+    val df = get(name)
+    val properties = DataProfiler(df)
+    updateProperties(name, properties)
+  }
+
 
   def get(name: String): DataFrame = 
   {
