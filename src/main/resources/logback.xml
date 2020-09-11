@@ -25,6 +25,7 @@
 
   <!--+++++++++++++++++++++++  Data Load  +++++++++++++++++++++++++-->
   <logger name="org.mimirdb.data.LoadConstructor"                          level="INFO" />
+  <logger name="org.mimirdb.data.Catalog"                                  level="INFO" />
     
   <root level="ERROR">
     <appender-ref ref="STDOUT" />

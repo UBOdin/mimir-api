@@ -154,7 +154,12 @@ class Catalog(
 
     logger.debug(s"... with dataframe:\n${df.queryExecution.analyzed.treeString}")
 
-    val profile = if(runProfiler){ DataProfiler(df) } else { Map() }
+    val profile = if(runProfiler){ 
+      logger.debug("... running profiler")
+      DataProfiler(df) 
+    } else { Map() }
+
+    logger.debug(s"... with properties:\n${profile ++ properties}")
 
     // Save the view
     views.put(
