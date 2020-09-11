@@ -23,7 +23,7 @@ trait DataFrameConstructor
 
   /**
    * The companion object including a deserialization method.
-   * @return          The class of companion object extending the DataFrameConstructorCodec trait
+   * @return          The class name of an object extending the DataFrameConstructorCodec trait
    *
    * By default, this assumes a companion object of the same name as the base class.
    */
