@@ -2,6 +2,7 @@ package org.mimirdb.profiler
 
 import org.apache.spark.sql.DataFrame
 import play.api.libs.json.{ Json, JsValue }
+import org.mimirdb.util.ExperimentalOptions
 
 object DataProfiler
 {
@@ -12,7 +13,8 @@ object DataProfiler
   val profilers = Seq[ProfilerModule](
     StaticStats,
     AggregateStats
-  )
+  ) ++ (if(ExperimentalOptions.isEnabled("SKIP-HISTOGRAM")) { None }
+        else { Some(HistogramStats) })
 
   def apply(df: DataFrame): Map[String, JsValue] = 
   {
