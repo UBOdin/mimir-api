@@ -70,6 +70,9 @@ object MimirAPI extends LazyLogging {
 
     // Prepare Experiments
     ExperimentalOptions.enable(conf.experimental())
+    for(option <- ExperimentalOptions.enabled){
+      println(s"... Initializing with experiment $option")
+    }
 
     // Initialize Spark
     sparkSession = InitSpark.local
