@@ -98,6 +98,8 @@ object BuildCategories
 object HistogramStats extends ProfilerModule
 {
   val NUM_BUCKETS = 10
+  val DISTINCT_VALUE_THRESHOLD = 20
+  val COUNT_THRESHOLD = 5000
 
   val depends = (Set(), Set("column", "distinctValueCount", "min", "max"))
   val provides = (Set(), Set("values"))
@@ -118,7 +120,9 @@ object HistogramStats extends ProfilerModule
             val max = props("max").as[Float]
             val buckets = (1 until NUM_BUCKETS).map { idx => min + (max - min) * (idx.toDouble / NUM_BUCKETS) }
             Some(name -> udaf(BuildHistogram(min, buckets.toArray)).apply(df(name).cast(FloatType)))
-          } else if(props.get("distinctValueCount").map { _.as[Int] < 50 }.getOrElse(false)) {
+          } else if(props.get("distinctValueCount")
+                         .map { _.as[Int] < DISTINCT_VALUE_THRESHOLD }
+                         .getOrElse(false)) {
             Some(name -> udaf(BuildCategories).apply(df(name).cast(StringType)))
           } else {
             None
@@ -126,6 +130,14 @@ object HistogramStats extends ProfilerModule
         }
         .zipWithIndex
         .map { case ((name, fn), idx) => (name, fn, idx) }
+
+    val count = inputs._1("count").as[Long]
+
+    val (sample, scale):(DataFrame, Float) = 
+      if(count > COUNT_THRESHOLD){ 
+        val sampleRate = COUNT_THRESHOLD.toFloat / count
+        (df.sample(sampleRate), (1 / sampleRate).toFloat)
+      } else { (df, 1.0.toFloat) }
 
     val resultRow:Row = 
       df.select(query.map { _._2 }:_*)
@@ -142,7 +154,7 @@ object HistogramStats extends ProfilerModule
                        .map { row => 
                           Map(
                             "name" -> JsString(row.getString(0)),
-                            "count" -> JsNumber(row.getLong(1))
+                            "count" -> JsNumber((row.getLong(1).toFloat * scale).toLong)
                           )
                        }.toSeq
             )
