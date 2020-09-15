@@ -348,7 +348,7 @@ object Catalog
   ): Map[String,String] = 
   {
     format match {
-      case FileFormat.CSV | FileFormat.CSV_WITH_ERRORCHECKING =>
+      case FileFormat.CSV | FileFormat.CSV_WITH_ERRORCHECKING | FileFormat.EXCEL =>
         defaultLoadCSVOptions ++ Map("header" -> header.toString)
       case FileFormat.GOOGLE_SHEETS => defaultLoadGoogleSheetOptions
       case _ => Map()
