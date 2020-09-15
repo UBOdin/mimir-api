@@ -38,7 +38,9 @@ case class UnloadRequest (
 
     val writer = 
       backendOption.foldLeft(
-        df.write.format(format) 
+        if(format == FileFormat.EXCEL && backendOption.find(_.name.equals("header")).isEmpty)
+          df.write.format(format).option("header", true) 
+        else df.write.format(format)
       ) { 
         case (writer, Tuple("mode", mode))  => writer.mode(mode)
         case (writer, Tuple(option, value)) => writer.option(option, value) 
