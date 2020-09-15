@@ -27,7 +27,14 @@ case class UnloadRequest (
   def handle = {
     val sparkOptions = backendOption.map { tup => tup.name -> tup.value } 
 
-    val df = MimirAPI.catalog.get(input)
+    val df = format match {
+      case FileFormat.CSV | 
+           FileFormat.JSON |
+           FileFormat.TEXT | 
+           FileFormat.XML |
+           FileFormat.EXCEL => MimirAPI.catalog.get(input).coalesce(1)
+      case _ => MimirAPI.catalog.get(input)
+    }
 
     val writer = 
       backendOption.foldLeft(
