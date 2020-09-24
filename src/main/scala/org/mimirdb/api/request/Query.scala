@@ -24,6 +24,8 @@ import org.mimirdb.spark.InjectedSparkSQL
 case class QueryMimirRequest (
             /* input for query */
                   input: Option[String],
+            /* tables for query */
+                  views: Option[Map[String,String]],
             /* query string - sql */
                   query: String,
             /* include taint in response */
@@ -40,7 +42,11 @@ case class QueryMimirRequest (
     }
     Query(
       query,
-      includeUncertainty.getOrElse(true)
+      includeUncertainty.getOrElse(true),
+      views = views.map { _.mapValues { baseTable => 
+                        { () => MimirAPI.catalog.get(baseTable) }
+                    } } 
+                   .getOrElse { MimirAPI.catalog.allTableConstructors }
     )
   }
 }
@@ -229,11 +235,12 @@ object Query
     query: String,
     includeCaveats: Boolean,
     limit: Option[Int] = None,
-    sparkSession: SparkSession = MimirAPI.sparkSession
+    sparkSession: SparkSession = MimirAPI.sparkSession,
+    views: Map[String, () => DataFrame] = MimirAPI.catalog.allTableConstructors
   ): DataContainer = 
   {
     apply(
-      InjectedSparkSQL(sparkSession)(query, MimirAPI.catalog.allTableConstructors),
+      InjectedSparkSQL(sparkSession)(query, views),
       includeCaveats = includeCaveats, 
       limit = limit,
       computedProperties = Map.empty
