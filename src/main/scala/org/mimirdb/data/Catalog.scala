@@ -41,7 +41,7 @@ import org.mimirdb.util.ExperimentalOptions
  */
 class Catalog(
   metadata: MetadataBackend, 
-  staging: StagingProvider,
+  val staging: StagingProvider,
   spark: SparkSession,
   bulkStorageFormat: FileFormat.T = FileFormat.PARQUET,
 ) extends LazyLogging
@@ -223,13 +223,10 @@ class Catalog(
     updateProperties(name, properties)
   }
 
-
-  def get(name: String): DataFrame = 
+  def getConstructor(
+    name: String
+  ): (DataFrameConstructor, Map[String, ()=>DataFrame]) =
   {
-    if(cache contains name){
-      return cache(name)
-    }
-
     val (_, components) = views.get(name).getOrElse {
       throw new UnresolvedException(
         UnresolvedRelation(Seq(name)),
@@ -256,9 +253,26 @@ class Catalog(
            .asInstanceOf[DataFrameConstructorCodec]
     val constructor = deserializer(constructorJson)
 
+    return (constructor, dependencies)
+  }
+
+  def get(name: String): DataFrame = 
+  {
+    if(cache contains name){
+      return cache(name)
+    }
+    val (constructor, dependencies) = getConstructor(name)
     val df = constructor.construct(spark, dependencies)
 
     cache.put(name, df)
+
+    return df
+  }
+
+  def getProvenance(name: String): DataFrame =
+  {
+    val (constructor, dependencies) = getConstructor(name)
+    val df = constructor.provenance(spark, dependencies)
 
     return df
   }

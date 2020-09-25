@@ -11,6 +11,7 @@ case class RangeConstructor(
   step: Long
 )
   extends DataFrameConstructor
+  with DefaultProvenance
   with LazyLogging
 {
   def construct(

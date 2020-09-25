@@ -27,6 +27,7 @@ case class LoadConstructor(
 ) 
   extends DataFrameConstructor
   with LazyLogging
+  with DefaultProvenance
 {
   def construct(
     spark: SparkSession, 
