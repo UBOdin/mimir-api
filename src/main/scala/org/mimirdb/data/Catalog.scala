@@ -225,7 +225,7 @@ class Catalog(
 
   def getConstructor(
     name: String
-  ): (DataFrameConstructor, Map[String, ()=>DataFrame]) =
+  ): (DataFrameConstructor, Seq[String]) =
   {
     val (_, components) = views.get(name).getOrElse {
       throw new UnresolvedException(
@@ -238,11 +238,11 @@ class Catalog(
       components(0).asInstanceOf[String]
     val constructorJson = 
       Json.parse(components(1).asInstanceOf[String])
+
+
     val dependencies = 
       Json.parse(components(2).asInstanceOf[String])
         .as[Seq[String]]
-        .map { dep => dep -> { () => get(dep) } }
-        .toMap
 
     val deserializerClass = 
       Class.forName(deserializerClassName)
@@ -262,7 +262,12 @@ class Catalog(
       return cache(name)
     }
     val (constructor, dependencies) = getConstructor(name)
-    val df = constructor.construct(spark, dependencies)
+    val df = constructor.construct(
+      spark,
+      dependencies
+        .map { dep => dep -> { () => get(dep) } }
+        .toMap
+    )
 
     cache.put(name, df)
 
@@ -272,8 +277,12 @@ class Catalog(
   def getProvenance(name: String): DataFrame =
   {
     val (constructor, dependencies) = getConstructor(name)
-    val df = constructor.provenance(spark, dependencies)
-
+    val df = constructor.provenance(
+      spark, 
+      dependencies
+        .map { dep => dep -> { () => getProvenance(dep) } }
+        .toMap
+    )
     return df
   }
 
