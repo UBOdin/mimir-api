@@ -304,6 +304,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             case "/lens/create"          => processJson[CreateLensRequest](req, output)
             case "/view/create"          => processJson[CreateViewRequest](req, output)
             case "/view/sample"          => processJson[CreateSampleRequest](req, output)
+            case "/view/materialize"     => processJson[MaterializeRequest](req, output)
             case "/vizual/create"        => processJson[VizualRequest](req, output)
             case "/annotations/cell"     => processJson[ExplainCellRequest](req, output)
             case "/annotations/all"      => processJson[ExplainEverythingRequest](req, output)

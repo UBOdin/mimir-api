@@ -5,7 +5,7 @@ import org.apache.spark.sql.{ DataFrame, SparkSession, AnalysisException }
 import org.apache.spark.sql.types.StructField
 
 import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, ErrorResponse, FormattedError }
-import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
+import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, DefaultProvenance }
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.util.ErrorUtils
 import org.mimirdb.spark.{ GetViewDependencies, Schema }
@@ -28,6 +28,7 @@ case class CreateViewRequest (
   extends Request 
   with DataFrameConstructor 
   with LazyLogging
+  with DefaultProvenance
 {
 
   lazy val output = 
