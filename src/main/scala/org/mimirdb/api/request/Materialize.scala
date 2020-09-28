@@ -22,7 +22,7 @@ case class MaterializeRequest(
   def handle: MaterializeResponse = 
   {
     MimirAPI.catalog.put(
-      table, 
+      output, 
       MaterializeConstructor(table, MimirAPI.catalog),
       Set(table)
     )
