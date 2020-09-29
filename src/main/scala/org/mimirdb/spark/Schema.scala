@@ -18,6 +18,7 @@ object Schema {
     t match  {
       case "varchar" => StringType
       case "int" => IntegerType
+      case "real" => DoubleType
       case "geometry" => 
         SqlUDTRegistrationProxy.getUDT(t)
       case _ if t.startsWith("array:") => 
