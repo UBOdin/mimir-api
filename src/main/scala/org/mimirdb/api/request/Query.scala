@@ -122,11 +122,17 @@ object SchemaForQueryRequest {
 
 case class SchemaForTableRequest (
             /* table name */
-                  table: String
+                  table: String,
+            /* force a profiler run */
+                  profile: Option[Boolean]
 ) extends Request {
   def handle = SchemaList(
     Schema(MimirAPI.catalog.get(table)),
-    MimirAPI.catalog.getProperties(table)
+    (if(profile.getOrElse(false)) { 
+      MimirAPI.catalog.profile(table)
+     } else { 
+      MimirAPI.catalog.getProperties(table)
+    })
   )
 }
 
