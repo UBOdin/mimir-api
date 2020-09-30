@@ -67,7 +67,9 @@ case class QueryTableRequest (
             /* starting point to begin returning rows */
                   offset: Option[Long],
             /* include taint in response */
-                  includeUncertainty: Boolean
+                  includeUncertainty: Boolean,
+            /* force profiling */
+                  profile: Option[Boolean]
 ) extends Request {
   def handle = {
     var df = MimirAPI.catalog.get(table)
@@ -82,6 +84,13 @@ case class QueryTableRequest (
 
     // Filter down to the right columns... dropping the sequence number if needed
     df = df.select(columnNames.map { df(_) }:_*)
+
+    val properties = 
+      if(profile.getOrElse(false)){
+        MimirAPI.catalog.profile(table)
+      } else {
+        MimirAPI.catalog.getProperties(table)
+      }
 
     Query(
       df,
