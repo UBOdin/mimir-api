@@ -42,7 +42,7 @@ import org.mimirdb.util.TaskDeduplicator
  */
 class Catalog(
   metadata: MetadataBackend, 
-  staging: StagingProvider,
+  val staging: StagingProvider,
   spark: SparkSession,
   bulkStorageFormat: FileFormat.T = FileFormat.PARQUET,
 ) extends LazyLogging
@@ -239,13 +239,10 @@ class Catalog(
     }
   }
 
-
-  def get(name: String): DataFrame = 
+  def getConstructor(
+    name: String
+  ): (DataFrameConstructor, Seq[String]) =
   {
-    if(cache contains name){
-      return cache(name)
-    }
-
     val (_, components) = views.get(name).getOrElse {
       throw new UnresolvedException(
         UnresolvedRelation(Seq(name)),
@@ -257,11 +254,11 @@ class Catalog(
       components(0).asInstanceOf[String]
     val constructorJson = 
       Json.parse(components(1).asInstanceOf[String])
+
+
     val dependencies = 
       Json.parse(components(2).asInstanceOf[String])
         .as[Seq[String]]
-        .map { dep => dep -> { () => get(dep) } }
-        .toMap
 
     val deserializerClass = 
       Class.forName(deserializerClassName)
@@ -272,10 +269,36 @@ class Catalog(
            .asInstanceOf[DataFrameConstructorCodec]
     val constructor = deserializer(constructorJson)
 
-    val df = constructor.construct(spark, dependencies)
+    return (constructor, dependencies)
+  }
+
+  def get(name: String): DataFrame = 
+  {
+    if(cache contains name){
+      return cache(name)
+    }
+    val (constructor, dependencies) = getConstructor(name)
+    val df = constructor.construct(
+      spark,
+      dependencies
+        .map { dep => dep -> { () => get(dep) } }
+        .toMap
+    )
 
     cache.put(name, df)
 
+    return df
+  }
+
+  def getProvenance(name: String): DataFrame =
+  {
+    val (constructor, dependencies) = getConstructor(name)
+    val df = constructor.provenance(
+      spark, 
+      dependencies
+        .map { dep => dep -> { () => getProvenance(dep) } }
+        .toMap
+    )
     return df
   }
 
