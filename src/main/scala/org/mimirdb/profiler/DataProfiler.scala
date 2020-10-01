@@ -1,11 +1,14 @@
 package org.mimirdb.profiler
 
 import org.apache.spark.sql.DataFrame
-import play.api.libs.json.{ Json, JsValue }
+import play.api.libs.json._
 import org.mimirdb.util.ExperimentalOptions
+import play.api.libs.json.JsArray
 
 object DataProfiler
 {
+  val IS_PROFILED = "is_profiled"
+
   type DatasetProperty = String
   type ColumnProperty = String
   type ColumnName = String
@@ -21,7 +24,9 @@ object DataProfiler
     val (datasetProperties, columnProperties) = 
       profilers.foldLeft(
         (
-          Map[DatasetProperty, JsValue](), 
+          Map[DatasetProperty, JsValue](
+            IS_PROFILED -> JsArray(Seq(JsString("mimir")))
+          ), 
           df.columns.map { _ -> Map[ColumnProperty, JsValue]() }.toMap
         )
       ) { case (accum, profiler) => 

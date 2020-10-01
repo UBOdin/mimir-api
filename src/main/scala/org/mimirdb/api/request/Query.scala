@@ -67,7 +67,9 @@ case class QueryTableRequest (
             /* starting point to begin returning rows */
                   offset: Option[Long],
             /* include taint in response */
-                  includeUncertainty: Boolean
+                  includeUncertainty: Boolean,
+            /* force profiling */
+                  profile: Option[Boolean]
 ) extends Request {
   def handle = {
     var df = MimirAPI.catalog.get(table)
@@ -82,6 +84,13 @@ case class QueryTableRequest (
 
     // Filter down to the right columns... dropping the sequence number if needed
     df = df.select(columnNames.map { df(_) }:_*)
+
+    val properties = 
+      if(profile.getOrElse(false)){
+        MimirAPI.catalog.profile(table)
+      } else {
+        MimirAPI.catalog.getProperties(table)
+      }
 
     Query(
       df,
@@ -113,11 +122,17 @@ object SchemaForQueryRequest {
 
 case class SchemaForTableRequest (
             /* table name */
-                  table: String
+                  table: String,
+            /* force a profiler run */
+                  profile: Option[Boolean]
 ) extends Request {
   def handle = SchemaList(
     Schema(MimirAPI.catalog.get(table)),
-    MimirAPI.catalog.getProperties(table)
+    (if(profile.getOrElse(false)) { 
+      MimirAPI.catalog.profile(table)
+     } else { 
+      MimirAPI.catalog.getProperties(table)
+    })
   )
 }
 

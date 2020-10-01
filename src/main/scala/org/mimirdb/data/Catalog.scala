@@ -10,6 +10,7 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
 import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 import org.mimirdb.profiler.DataProfiler
 import org.mimirdb.util.ExperimentalOptions
+import org.mimirdb.util.TaskDeduplicator
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -46,7 +47,8 @@ class Catalog(
   bulkStorageFormat: FileFormat.T = FileFormat.PARQUET,
 ) extends LazyLogging
 {
-  val cache = scala.collection.mutable.Map[String, DataFrame]()
+  val cache = scala.collection.concurrent.TrieMap[String, DataFrame]()
+  val profilingDeduplicator = new TaskDeduplicator[Map[String, JsValue]]()
  
   def this(sqlitedb: String, spark: SparkSession, downloads:String) = 
     this(
@@ -134,7 +136,7 @@ class Catalog(
     dependencies: Set[String], 
     replaceIfExists: Boolean = true,
     properties: Map[String, JsValue] = Map.empty,
-    runProfiler: Boolean = ExperimentalOptions.isEnabled("PROFILER-ON")
+    runProfiler: Boolean = ExperimentalOptions.isEnabled("PROFILE-EVERYTHING")
   )(implicit format: Format[T]): DataFrame = {
     if(!replaceIfExists && views.exists(name)){
       throw new SQLException(s"View $name already exists")
@@ -177,50 +179,64 @@ class Catalog(
 
   def getProperties(name: String): Map[String, JsValue] =
   {
-    val (_, components) = views.get(name).getOrElse {
-      throw new UnresolvedException(
-        UnresolvedRelation(Seq(name)),
-        "lookup"
-      )
+    synchronized {
+      val (_, components) = views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+      Json.parse(components(3).asInstanceOf[String])
+        .as[Map[String,JsValue]]
     }
-    Json.parse(components(3).asInstanceOf[String])
-      .as[Map[String,JsValue]]
   }
 
   def setProperties(name: String, properties: Map[String, JsValue])
   {
-    val (field, components) = views.get(name).getOrElse {
-      throw new UnresolvedException(
-        UnresolvedRelation(Seq(name)),
-        "lookup"
+    synchronized {
+      val (field, components) = views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+      views.put(field, 
+        components.patch(3, Seq(Json.toJson(properties).toString), 1)
       )
     }
-    views.put(field, 
-      components.patch(3, Seq(Json.toJson(properties).toString), 1)
-    )
   }
 
   def updateProperties(name: String, properties: Map[String, JsValue])
   {
-    val (field, components) = views.get(name).getOrElse {
-      throw new UnresolvedException(
-        UnresolvedRelation(Seq(name)),
-        "lookup"
+    synchronized {
+      val (field, components) = views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+      val oldProperties = 
+        Json.parse(components(3).asInstanceOf[String])
+          .as[Map[String,JsValue]]
+      views.put(field, 
+        components.patch(3, Seq(Json.toJson(oldProperties ++ properties).toString), 1)
       )
     }
-    val oldProperties = 
-      Json.parse(components(3).asInstanceOf[String])
-        .as[Map[String,JsValue]]
-    views.put(field, 
-      components.patch(3, Seq(Json.toJson(oldProperties ++ properties).toString), 1)
-    )
   }
 
-  def profile(name: String)
+  def profile(name: String): Map[String,JsValue] =
   {
-    val df = get(name)
-    val properties = DataProfiler(df)
-    updateProperties(name, properties)
+    val properties = getProperties(name)
+    if(properties contains DataProfiler.IS_PROFILED){
+      return properties
+    } else {
+      return profilingDeduplicator.deduplicate(name) {
+        val df = get(name)
+        val properties = DataProfiler(df)
+        updateProperties(name, properties)
+        properties
+      }
+    }
   }
 
   def getConstructor(
