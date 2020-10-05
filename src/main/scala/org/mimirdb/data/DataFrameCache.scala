@@ -3,6 +3,8 @@ package org.mimirdb.data
 import org.apache.spark.sql.{ Row, DataFrame }
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
 import scala.collection.concurrent.TrieMap
+import com.typesafe.scalalogging.LazyLogging
+import org.mimirdb.util.TimerUtils.logTime
 
 /**
  * A simple LRU cache for dataframes
@@ -11,20 +13,25 @@ import scala.collection.concurrent.TrieMap
  *   DataFrameCache(tableName, df)(start, end)
  */
 object DataFrameCache
+  extends LazyLogging
 {
   /**
    * The number of rows in a buffer page
    */
   val BUFFER_PAGE = {
-    val str = System.getenv("DATAFRAME_CACHE_PAGE_ROWS")
-    if(str.equals("")) { 10000 } else { str.toInt }
+    Option(System.getenv("DATAFRAME_CACHE_PAGE_ROWS")) match {
+      case None | Some("") => 10000
+      case Some(str) => str.toLong
+    }
   }
   /**
    * The number of pages cached before we start evictions
    */
   val BUFFER_SIZE = {
-    val str = System.getenv("DATAFRAME_CACHE_PAGE_SIZE")
-    if(str.equals("")) { 100 } else { str.toInt }
+    Option(System.getenv("DATAFRAME_CACHE_PAGE_SIZE")) match {
+      case None | Some("") => 100
+      case Some(str) => str.toLong
+    }
   }
 
   /**
@@ -35,10 +42,19 @@ object DataFrameCache
   /**
    * The user-facing lookup function
    */
-  def apply(table: String, df: DataFrame): CachedDataFrame =
+  def apply(table: String)(df: => DataFrame): CachedDataFrame =
   {
-    cache.getOrElseUpdate(table, { new CachedDataFrame(df) } )
+    cache.getOrElseUpdate(table, { 
+      new CachedDataFrame(
+        AnnotateWithSequenceNumber(df),
+        table,
+        df.schema.fieldNames
+      ) 
+    })
   }
+
+  def get(table: String): Option[CachedDataFrame] =
+    cache.get(table)
 
   /**
    * Align start/end to page boundaries
@@ -46,7 +62,7 @@ object DataFrameCache
    * TODO: Enable some sort of prefetching, by expanding the range 
    * if start is close to end?
    */
-  def alignRange(start: Int, end: Int): (Int, Int) =
+  def alignRange(start: Long, end: Long): (Long, Long) =
   {
     (
       start - (start % BUFFER_PAGE), 
@@ -69,7 +85,7 @@ object DataFrameCache
 
     // If we need to free...
     if(pages > BUFFER_SIZE){
-      var freed = 0
+      var freed = 0l
       // Simple LRU: Iterate over the elements in order of last access
       for((table, entry) <- cache.toSeq.sortBy { -_._2.lastAccessed }){
         // Keep freeing until we've freed enough pages.
@@ -89,7 +105,7 @@ object DataFrameCache
     // enough to prevent that.
   }
 
-  def countPages(start: Int, end: Int): Int =
+  def countPages(start: Long, end: Long): Long =
   {
     ((end - start) / BUFFER_PAGE) + 
       (if((end-start) % BUFFER_PAGE > 0) { 1 } else { 0 })
@@ -97,34 +113,70 @@ object DataFrameCache
 }
 
 
-class CachedDataFrame(df: DataFrame)
+class CachedDataFrame(val df: DataFrame, table: String, fields: Seq[String])
+  extends LazyLogging
 {
   var lastAccessed = System.currentTimeMillis()
-  var bufferStart = 0
+  var bufferStart = 0l
   var buffer: Array[Row] = Array()
+  var computedSize = -1l
   
   def bufferEnd = bufferStart + buffer.size
 
-  def apply(start: Int, end: Int): Array[Row] = 
+  def apply(start: Long, end: Long): Array[Row] = 
   {
-    if(start < bufferStart || end >= bufferEnd){ 
+    logger.trace(s"$table($start, $end) w/ buffer @ [$bufferStart, $bufferEnd)")
+    if(!isBuffered(start, end)){ 
       rebuffer(start, end)
     }
     lastAccessed = System.currentTimeMillis()
-    buffer.slice(start - bufferStart, end - bufferEnd)
+    logger.trace(s"$table($start, $end) w/ slice: [${start-bufferStart}, ${end-bufferStart})")
+    buffer.slice(
+      (start - bufferStart).toInt, 
+      (end - bufferStart).toInt
+    )
   }
 
-  def rebuffer(start: Int, end: Int)
+  def size: Long =
   {
-    val (targetStart, targetEnd) = DataFrameCache.alignRange(start, end)
+    if(computedSize < 0){ computedSize = df.count() }
+    return computedSize
+  }
+
+  def collect(): Array[Row] = 
+  {
+    logger.trace(s"$table.collect()")
+    if(size < 0 || !isBuffered(0, size)){ bufferAll() }
+    return buffer
+  }
+
+  def isBuffered(start: Long, end: Long) =
+    (start >= bufferStart && end <= bufferEnd)
+
+  def bufferAll()
+  {
+    logger.trace(s"Buffering complete $table")
+    buffer = df.collect()
+    bufferStart = 0
     DataFrameCache.updatePageCount(this)
-    buffer = df.filter(
-                  (df(AnnotateWithSequenceNumber.ATTRIBUTE) >= targetStart)
-                    and
-                  (df(AnnotateWithSequenceNumber.ATTRIBUTE) < targetEnd)
-                )
-               .collect()
+  }
+
+  def rebuffer(start: Long, end: Long)
+  {
+    logger.trace(s"Rebuffering $table for $start - $end")
+    val (targetStart, targetEnd) = DataFrameCache.alignRange(start, end)
+    logger.trace(s"Rebuffering $table: [$start, $end) -> [$targetStart,$targetEnd)")
+    logTime(s"REBUFFER[$table/$start,$end]", df.toString()) {
+      buffer = df.filter(
+                    (df(AnnotateWithSequenceNumber.ATTRIBUTE) >= targetStart)
+                      and
+                    (df(AnnotateWithSequenceNumber.ATTRIBUTE) < targetEnd)
+                  )
+                 .collect()
+    }
+    logger.trace(s"Rebuffering: buffer for $table now has ${buffer.size} rows")
     bufferStart = targetStart
+    DataFrameCache.updatePageCount(this)
   }
 
   def pages = DataFrameCache.countPages(bufferStart, bufferEnd)

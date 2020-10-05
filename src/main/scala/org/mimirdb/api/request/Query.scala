@@ -15,11 +15,13 @@ import org.mimirdb.spark.{ SparkPrimitive, Schema }
 import org.mimirdb.spark.Schema.fieldFormat
 import org.mimirdb.api.CaveatFormat._
 import org.mimirdb.util.TimerUtils
+import org.mimirdb.data.DataFrameCache
 
 import com.typesafe.scalalogging.LazyLogging
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
 import org.mimirdb.spark.InjectedSparkSQL
+import org.mimirdb.util.ExperimentalOptions
 
 case class QueryMimirRequest (
             /* input for query */
@@ -77,14 +79,6 @@ case class QueryTableRequest (
     val columnNames:Seq[String] = 
       columns.getOrElse { df.schema.fieldNames }
 
-    if(!offset.isEmpty){
-      df = AnnotateWithSequenceNumber(df)
-      df = df.filter(df(AnnotateWithSequenceNumber.ATTRIBUTE) >= offset.get)
-    }
-
-    // Filter down to the right columns... dropping the sequence number if needed
-    df = df.select(columnNames.map { df(_) }:_*)
-
     val properties = 
       if(profile.getOrElse(false)){
         MimirAPI.catalog.profile(table)
@@ -93,10 +87,13 @@ case class QueryTableRequest (
       }
 
     Query(
-      df,
+      query = df,
       includeCaveats = includeUncertainty,
       limit = limit,
-      computedProperties = MimirAPI.catalog.getProperties(table)
+      offset = offset,
+      columns = Some(columnNames),
+      computedProperties = MimirAPI.catalog.getProperties(table),
+      cacheAs = if(ExperimentalOptions.isEnabled("CACHE-TABLES")){ Some(table) } else { None },
     )
   }
 }
@@ -258,7 +255,10 @@ object Query
       InjectedSparkSQL(sparkSession)(query, views),
       includeCaveats = includeCaveats, 
       limit = limit,
-      computedProperties = Map.empty
+      computedProperties = Map.empty,
+      offset = None,
+      cacheAs = None,
+      columns = None
     )
   }
 
@@ -271,17 +271,18 @@ object Query
       query, 
       includeCaveats = includeCaveats, 
       limit = None,
-      computedProperties = Map.empty
+      computedProperties = Map.empty,
+      offset = None,
+      cacheAs = None,
+      columns = None
     )
   }
-  def apply(
-    query: DataFrame,
-    includeCaveats: Boolean,
-    limit: Option[Int],
-    computedProperties: Map[String,JsValue]
-  ): DataContainer =
-  {
 
+  def build(
+    query: DataFrame, 
+    includeCaveats: Boolean
+  ): DataFrame =
+  {
     // The order of operations in this method is very methodically selected:
     // - AnnotateWithRowIds MUST come before any operation that modifies UNION operators, since
     //   the order of the children affects the identity of their elements.
@@ -293,10 +294,7 @@ object Query
     /////// Decorate any potentially erroneous heuristics
     df = AnnotateImplicitHeuristics(df)
 
-    /////// We need the schema before any annotations to produce the right outputs
-    val schema = Schema(df)
-
-    logger.trace(s"----------- RAW-QUERY-----------\nSCHEMA:{ ${schema.mkString(", ")} }\n${df.queryExecution.explainString(SelectedExplainMode)}")
+    logger.trace(s"----------- RAW-QUERY-----------\nSCHEMA:{ ${Schema(df).mkString(", ")} }\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
     /////// Add a __MIMIR_ROWID attribute
     df = AnnotateWithRowIds(df)
@@ -313,32 +311,140 @@ object Query
     logger.trace("############")
 
     logger.trace(s"----------- AFTER-CAVEATS -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
+  
+    return df    
+  }
 
-    if(!limit.isEmpty){
-      df = df.limit(limit.get)
-      logger.trace(s"----------- AFTER-LIMIT -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
+  def apply(
+    query: DataFrame,
+    includeCaveats: Boolean,
+    limit: Option[Int],
+    computedProperties: Map[String,JsValue],
+    offset: Option[Long],
+    cacheAs: Option[String],
+    columns: Option[Seq[String]]
+  ): DataContainer =
+  {
+
+    // With/Without caveats ends up with a different table, so 
+    // make sure to distinguish the identifiers.
+    val cacheIdentifier = cacheAs.map { 
+      (
+        (if(includeCaveats){ "+caveat:" } else { "-caveat:" })
+      ) + _
     }
 
+    // The route to generating results is different, depending on
+    // whether we're able to cache or not.
+    val (results, resultFields) =
+      cacheIdentifier match {
+        case Some(id) => {
+
+          // If we're allowed to use the cache...
+          logger.trace(s"Checking cache for `$id`")
+          val cache = DataFrameCache(id) { build(query, includeCaveats) }
+
+          // With the cache, we can defer limit/offset to the
+          // cache.
+          val start = offset.getOrElse { 0l }
+          val end = start + limit.map { _.toLong }
+                                 .getOrElse { cache.size }
+          
+          // Do our standard sanity check to avoid implosions
+          if(end-start >= RESULT_THRESHOLD){ 
+            throw new ResultTooBig()
+          }
+
+          val buffer = logTime("CACHE", cache.df.toString){
+            cache(start, end)
+          }
+
+          /* return */ (buffer, Schema(cache.df))
+        }
+
+        /***************************************/
+        case None => {
+
+          // If we're not allowed to use the cache
+          var df = build(query, includeCaveats)
+
+          // We can't offload limit/offset to the cache, so
+          // we need to modify the query to account for this.
+          if(!limit.isEmpty){
+            if(offset.isEmpty || offset.get == 0){
+              // Limit + no offset is directly supported by spark
+              df = df.limit(limit.get)
+            } else {
+              // Limit + offset requires us to use some manual
+              // result row numbering hackery.
+              df = AnnotateWithSequenceNumber(df)
+              df = df.filter(
+                (df(AnnotateWithSequenceNumber.ATTRIBUTE) >= offset.get)
+                  and
+                (df(AnnotateWithSequenceNumber.ATTRIBUTE) < (offset.get + limit.get))
+              )
+            }
+          } else if(!offset.isEmpty){
+            df = AnnotateWithSequenceNumber(df)
+            df = df.filter(
+              (df(AnnotateWithSequenceNumber.ATTRIBUTE) >= offset.get)
+            )            
+          }
+
+          logTime("QUERY", df.toString) {
+            val buffer = df.cache()
+                           .take(RESULT_THRESHOLD+1)
+            // We don't want to collect() naively, since if the
+            // result ends up being too big, we're going to 
+            // bring down the JVM.  Instead, we cap results at
+            // RESULT_THRESHOLD.  
+            //
+            // The simple thing to do here would be to call
+            // df.count() and make sure that the result
+            // has the right size.  This requires two separate 
+            // queries though, so we're going to take a simpler
+            // hack: Read 1+RESULT_THRESHOLD rows.  This should
+            // be minimally more expensive, while also letting
+            // us easily flag cases where RESULT_THRESHOLD is
+            // exceeded.
+            if(buffer.size >= RESULT_THRESHOLD){ 
+              throw new ResultTooBig()
+            }
+
+            /* return */ (buffer, Schema(df))
+          } // logTime
+        } // case None
+      }// cacheIdentifier match { ... }
+
     /////// Create a mapping from field name to position in the output tuples
-    val postAnnotationSchema = 
-      Schema(df)
+    val fieldLocationsByCaseInsentiveName = 
+      resultFields
         .zipWithIndex
-        .map { case (attribute, idx) => attribute.name.toLowerCase -> idx }
+        .map { case (attribute, idx) => 
+                  attribute.name.toLowerCase -> idx 
+        }
         .toMap
 
     /////// Compute attribute positions for later extraction
-    val fieldIndices = 
-      schema.map { attribute => postAnnotationSchema(attribute.name.toLowerCase) }
-    val identifierAnnotation = postAnnotationSchema(AnnotateWithRowIds.ATTRIBUTE.toLowerCase)
-
-    /////// Actually compute the final result
-    val results = logTime("QUERY", df.toString) {
-      val buffer = df.cache().take(RESULT_THRESHOLD+1)
-      if(buffer.size >= RESULT_THRESHOLD){ 
-        throw new ResultTooBig()
+    val fieldIndices:Seq[Int] = 
+      columns.getOrElse { query.schema.fieldNames.toSeq }
+             .map { field =>
+               fieldLocationsByCaseInsentiveName(field.toLowerCase)
+             }
+    val schema: Seq[StructField] =
+      columns match { 
+        case None => query.schema.fields.toSeq 
+        case Some(colNames) => {
+          val fieldLookup = 
+            query.schema
+                 .fields
+                 .map { f => f.name.toLowerCase() -> f }
+                 .toMap
+          colNames.map { f => fieldLookup(f.toLowerCase()) }
+        }
       }
-      buffer
-    }
+    val identifierAnnotation: Int = 
+      fieldLocationsByCaseInsentiveName(AnnotateWithRowIds.ATTRIBUTE.toLowerCase)
 
     /////// If necessary, extract which rows/cells are affected by caveats from
     /////// the result table.
