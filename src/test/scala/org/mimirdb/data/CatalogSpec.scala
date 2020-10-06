@@ -1,11 +1,11 @@
 package org.mimirdb.data
 
 import org.specs2.mutable.Specification
+import org.specs2.specification.BeforeAll
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.request.DataContainer
 import org.mimirdb.api.request.Query
 import play.api.libs.json.JsValue
-import org.specs2.specification.BeforeAll
 
 class CatalogSpec 
   extends Specification

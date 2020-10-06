@@ -16,6 +16,8 @@
   <!--++++++++++++++++++++++++  Data  ++++++++++++++++++++++++++-->
   <logger name="org.mimirdb.data.JDBCMetadataBackend"           level="ERROR" />
   <logger name="org.mimirdb.data.Catalog"                       level="ERROR" />
+  <logger name="org.mimirdb.data.DataFrameCache$"               level="INFO" />
+  <logger name="org.mimirdb.data.CachedDataFrame"               level="INFO" />
 
   <!--++++++++++++++++++++++++  Vizual  ++++++++++++++++++++++++++-->
   <logger name="org.mimirdb.vizual.ExecOnSpark"                 level="ERROR" />
