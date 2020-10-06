@@ -4,6 +4,7 @@ import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
 import scala.collection.concurrent.TrieMap 
 import play.api.libs.json.JsValue
+import java.util.concurrent.TimeUnit
 
 
 /**
@@ -33,32 +34,34 @@ import play.api.libs.json.JsValue
 class TaskDeduplicator[T]
 {
   val pending = TrieMap[String, Future[T]]()
+  val syncronizingContext = scala.concurrent.ExecutionContext
+    .fromExecutor(java.util.concurrent.Executors.newSingleThreadExecutor())
 
   def apply(alias: String, duration: Duration = Duration.Inf)(op: => T): T =
     deduplicate(alias)(op)
 
   def deduplicate(alias: String, duration: Duration = Duration.Inf)(op: => T): T = 
   {
-    val (future, needToDoCleanup) = 
+    val (needToDoCleanup, future) = 
       // atomically look up the provided alias in the pending
       // task index.  
-      synchronized {
-        if(pending contains alias){
+      Await.result(Future[(Boolean, Future[T])] {
+        (if(pending contains alias){
           // If present, it means the task is already
           // being processed.
-          (pending(alias), false)
+          false
         } else {
           // If not present, we have to create the task
-          val future = Future[T] {
+          pending += alias -> Future[T] {
             val ret = op
             op
           }(
             scala.concurrent.ExecutionContext.global
           )
-          pending += alias -> future
-          (future, true)
-        }
-      }
+          true
+        }, pending(alias))
+      }( syncronizingContext ), 
+      Duration.apply(10, TimeUnit.SECONDS))
 
     val result = Await.result(future, duration)
     if(needToDoCleanup){

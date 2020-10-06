@@ -21,14 +21,14 @@ class TaskDeduplicatorSpec
     // first, we get a 1
     val xFuture = Future {
       deduplicate("TEST_1") { 
-        Thread.sleep(2)
+        Thread.sleep(15)
         1
       }    
     }
 
     // Compute TEST_1 again, but this time return a 2.
     val y = deduplicate("TEST_1") {
-      Thread.sleep(2)
+      Thread.sleep(10)
       2
     }
 
