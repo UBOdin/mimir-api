@@ -30,6 +30,8 @@ object Schema {
   def encodeType(t: DataType): String =
     t match {
       case ArrayType(element, _) => s"array:${encodeType(element)}"
+      case DoubleType => "real"
+      case IntegerType => "int"
       case _ => t.typeName
     }
 
