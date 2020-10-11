@@ -15,7 +15,7 @@ import org.apache.spark.sql.AnalysisException
 import org.mimirdb.api.{ FormattedError, ErrorResponse }
 import org.apache.spark.sql.catalyst.catalog.{ CatalogTable, CatalogStorageFormat, CatalogTableType }
 import org.apache.spark.sql.catalyst.TableIdentifier
-
+import org.apache.spark.sql.catalyst.expressions.PlanExpression
 
 /**
  * Utilities for running Spark SQL queries with a post-processing step injected between
@@ -75,6 +75,13 @@ case class InjectedSparkSQL(spark: SparkSession)
     allowMappedTablesOnly: Boolean = false
   ): LogicalPlan =
   {
+    def recur(target: LogicalPlan) =
+      rewrite(
+        plan = target, 
+        tableMappings = tableMappings, 
+        allowMappedTablesOnly = allowMappedTablesOnly
+      )
+
     logger.debug(s"Rewriting...\n$plan")
     plan.transformUp { 
       case original @ UnresolvedRelation(Seq(identifier)) => 
@@ -105,6 +112,14 @@ case class InjectedSparkSQL(spark: SparkSession)
               AliasIdentifier(identifier.toLowerCase()),
               child
             )
+        }
+    }.transformAllExpressions { 
+      case nested: PlanExpression[_] => 
+        nested.plan match { 
+          case nestedPlan: LogicalPlan => 
+            nested.asInstanceOf[PlanExpression[LogicalPlan]]
+                  .withNewPlan(recur(nestedPlan))
+          case _ => nested
         }
     }
   }

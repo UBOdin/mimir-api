@@ -29,4 +29,18 @@ class SparkParserInjectionSpec
     inject("SELECT * FROM TEST_R", allowMappedTablesOnly = true) must throwA[FormattedError]
   }
 
+  "Access tables in nested queries" >> {
+    val df = inject(
+      """
+        SELECT B FROM R WHERE R.A IN (SELECT A FROM S)
+      """, 
+      Map(
+        "R" -> { () => MimirAPI.catalog.get("TEST_R") },
+        "S" -> { () => MimirAPI.catalog.get("TEST_R") }
+      )
+    )
+
+    df.count() must be equalTo(7l)
+  }
+
 }
