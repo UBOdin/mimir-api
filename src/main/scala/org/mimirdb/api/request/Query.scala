@@ -22,6 +22,7 @@ import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
 import org.mimirdb.spark.InjectedSparkSQL
 import org.mimirdb.util.ExperimentalOptions
+import org.apache.spark.sql.ArrowProxy
 
 case class QueryMimirRequest (
             /* input for query */
@@ -55,6 +56,35 @@ case class QueryMimirRequest (
 
 object QueryMimirRequest {
   implicit val format: Format[QueryMimirRequest] = Json.format
+}
+
+/***************************************************************************************/
+
+case class QueryDataFrameRequest (
+            /* input for query */
+                  input: Option[String],
+            /* query string - sql */
+                  query: String,
+            /* include taint in response */
+                  includeUncertainty: Option[Boolean],
+            /* include reasons in response */
+                  includeReasons: Option[Boolean]
+) extends Request {
+  def handle = {
+    if(!input.getOrElse("").equals("")){
+      throw new UnsupportedOperationException("Input substitutions are no longer supported")
+    }
+    if(includeReasons.getOrElse(false)) {
+      throw new UnsupportedOperationException("IncludeReasons is no longer supported")
+    }
+    val df = InjectedSparkSQL(MimirAPI.sparkSession)(query, MimirAPI.catalog.allTableConstructors)
+    val (port, secret) = ArrowProxy.writeToMemoryFile("/tmp/vizierdf", df)
+    ArrowInfo(port, secret)
+  }
+}
+
+object QueryDataFrameRequest {
+  implicit val format: Format[QueryDataFrameRequest] = Json.format
 }
 
 /***************************************************************************************/
@@ -150,6 +180,17 @@ case class SizeOfTableRequest (
 
 object SizeOfTableRequest {
   implicit val format: Format[SizeOfTableRequest] = Json.format
+}
+
+/***************************************************************************************/
+
+case class ArrowInfo (
+    port: Int,
+    secret: String
+) extends JsonResponse[ArrowInfo]
+
+object ArrowInfo {
+  implicit val format: Format[ArrowInfo] = Json.format
 }
 
 /***************************************************************************************/

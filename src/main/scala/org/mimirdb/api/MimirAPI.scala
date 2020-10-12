@@ -172,6 +172,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       if(text.size > len){ text.substring(0, len-3)+"..." } else { text }
 
 
+
     def process(
       handler: Request, 
       output: HttpServletResponse, 
@@ -309,6 +310,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             case "/annotations/cell"     => processJson[ExplainCellRequest](req, output)
             case "/annotations/all"      => processJson[ExplainEverythingRequest](req, output)
             case "/query/data"           => processJson[QueryMimirRequest](req, output)
+            case "/query/dataframe"      => processJson[QueryDataFrameRequest](req, output)
             case "/query/table"          => processJson[QueryTableRequest](req, output)
             case "/schema"               => processJson[SchemaForQueryRequest](req, output)
             case "/tableInfo"            => processJson[SchemaForTableRequest](req, output)
