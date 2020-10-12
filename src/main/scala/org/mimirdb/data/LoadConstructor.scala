@@ -123,7 +123,13 @@ case class LoadConstructor(
                 df(curr.name).as(target.name)
               }
             } else {
-              df(curr.name).cast(target.dataType).as(target.name)
+              import org.mimirdb.lenses.implicits._
+              df(curr.name)
+                .castWithCaveat(
+                  target.dataType, 
+                  s"${curr.name} from ${contextText.getOrElse(url)}"
+                )
+                .as(target.name)
             }
       }):_*)
     }
@@ -185,28 +191,29 @@ case class LoadConstructor(
     logger.trace(s"Maybe First Line: $maybeFirstLine")
 
     val baseSchema = 
-      StructType(
-        actualizeProposedSchema(
-          TextInputCSVDataSource.inferFromDataset(
-            spark, 
-            data.map { _.getAs[String](0) },
-            data.take(1).headOption.map { _.getAs[String](0) },
-            options
-          ).map { column => 
-            StructField(cleanColumnName(column.name), column.dataType)
-          }
-        )
+      actualizeProposedSchema(
+        TextInputCSVDataSource.inferFromDataset(
+          spark, 
+          data.map { _.getAs[String](0) },
+          data.take(1).headOption.map { _.getAs[String](0) },
+          options
+        ).map { column => 
+          StructField(cleanColumnName(column.name), column.dataType)
+        }
       )
 
     logger.trace(s"BASE SCHEMA: ${baseSchema}")
 
+    val stringSchema = 
+      baseSchema.map { field => StructField(field.name, StringType) }
+
     val annotatedSchema = 
-      baseSchema.add(ERROR_COL, StringType)
+      stringSchema :+ StructField(ERROR_COL, StringType)
 
     val dataWithoutHeader = 
       maybeFirstLine.map { firstLine => 
         val headerChecker = new CSVHeaderChecker(
-          baseSchema,
+          StructType(baseSchema),
           options,
           source = contextText.getOrElse { "CSV File" }
         )
@@ -224,7 +231,11 @@ case class LoadConstructor(
         col("value") as "raw",
         // when(col("value").isNull, null)
         // .otherwise(
-          from_csv( col("value"), annotatedSchema, extraOptions ++ sparkOptions )
+          from_csv( 
+            col("value"), 
+            StructType(annotatedSchema), 
+            extraOptions ++ sparkOptions 
+          )
         // ) 
       as "csv"
       ).caveatIf(
@@ -234,13 +245,24 @@ case class LoadConstructor(
           lit(s"'${contextText.map { " (in "+_+")" }.getOrElse {""}}")
         ),
         col("csv").isNull or not(col(s"csv.$ERROR_COL").isNull)
-      ).select(
-        baseSchema.fields.map { field => 
+      )
+        .select(
+        baseSchema.map { field => 
+              import org.mimirdb.lenses.implicits._
           // when(col("csv").isNull, null)
             // .otherwise(
               col("csv").getField(field.name)
+                        // Casting to string is a no-op, but is required here
+                        // because castWithCaveat needs to know the column
+                        // type, and dataWithCsvStruct isn't properly analyzed
+                        // yet.  
+                        .cast(StringType) 
+                        .castWithCaveat(
+                          field.dataType,
+                          s"${field.name} from ${contextText.getOrElse(url)}"
+                        )
             // )
-             .as(field.name)
+                        .as(field.name)
         }:_*
       )
   }
