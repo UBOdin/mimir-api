@@ -19,6 +19,7 @@ object InitSpark
       //.config("spark.eventLog.longForm.enabled", "true")
       .config("spark.serializer", classOf[KryoSerializer].getName)
       .config("spark.kryo.registrator", classOf[GeoSparkVizKryoRegistrator].getName)
+      .config("spark.kryoserializer.buffer.max", "2000m")
       .master("local[*]")
       .getOrCreate()
   }
