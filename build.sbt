@@ -74,10 +74,15 @@ libraryDependencies ++= Seq(
   "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
 
   //GIS Support
-  "org.datasyslab"                %  "geospark"                  % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws")),
-  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-
+  //Local
+  "org.datasyslab"                %  "geospark"                  % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet")),
+  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  //Snapshot Of MB's PR
+  //"org.datasyslab"                %  "geospark"                  % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet")),
+  //"org.datasyslab"                %  "geospark-sql_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  //"org.datasyslab"                %  "geospark-viz_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  
   //Other data importers
   "com.databricks"                %% "spark-xml"                 % "0.9.0",
 
