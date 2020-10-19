@@ -25,6 +25,7 @@
   <!--++++++++++++++++++++++++  Lenses  ++++++++++++++++++++++++++-->
   <logger name="org.mimirdb.lenses.AnnotateImplicitHeuristics$" level="ERROR" />
   <logger name="org.mimirdb.lenses.CaveatedCast$"               level="ERROR" />
+  <logger name="org.mimirdb.lenses.implementation.PivotLens$"   level="ERROR" />
 
   <!--++++++++++++++++++++++++  Spark  +++++++++++++++++++++++++++-->
   <logger name="org.mimirdb.spark.PythonUDF"                    level="TRACE" />
