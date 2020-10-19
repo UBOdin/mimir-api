@@ -42,21 +42,18 @@ case class CreateViewRequest (
 
   def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
   {
-    for((userFacingName, blobIdentifier) <- functions.map { _.toSeq }.toSeq.flatten){
-
-      // Note: this function retrieves functions lazilly
-      spark.sessionState.functionRegistry.createOrReplaceTempFunction(
-        userFacingName, (args: Seq[Expression]) => {
-          val (_, code) = MimirAPI.blobs.get(blobIdentifier)
-                           .getOrElse { throw new RuntimeException(s"Calling undefined function $userFacingName (@$blobIdentifier)")}
-          MimirAPI.pythonUDF(new String(code), userFacingName)(args)
-        }
-      )
-    }
     var df = InjectedSparkSQL(spark)(
-                  query, 
-                  input.mapValues { context(_) },
-                  allowMappedTablesOnly = true
+                  sqlText = query, 
+                  tableMappings = input.mapValues { context(_) },
+                  allowMappedTablesOnly = true,
+                  functionMappings = 
+                    functions.getOrElse { Map.empty }
+                             .mapValues { blobID => 
+                                { args => MimirAPI.blobs
+                                                  .getPythonUDF(blobID)
+                                                  .get
+                                                  .apply(args) } 
+                              } 
               )
     df = AnnotateImplicitHeuristics(df)
     return df 

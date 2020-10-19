@@ -124,12 +124,12 @@ object MimirAPI extends LazyLogging {
     }
     val staging = new LocalFSStagingProvider(conf.staging())
     catalog = new Catalog(metadata, staging, sparkSession)
-    blobs = new BlobStore(metadata)
     pythonUDF = PythonUDFBuilder(
       pythonPath.orElse { 
         Option(System.getenv("MIMIR_PYTHON"))
       }
     )
+    blobs = new BlobStore(metadata, pythonUDF)
     logger.info(s"Using python ${pythonUDF.version} @ ${pythonUDF.pythonPath}")
   }
   
