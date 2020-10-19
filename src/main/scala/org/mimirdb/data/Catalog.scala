@@ -8,13 +8,10 @@ import java.sql.SQLException
 import java.net.URI
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
 import org.apache.spark.sql.catalyst.analysis.UnresolvedException
-<<<<<<< HEAD
 import org.mimirdb.spark.PythonUDFBuilder
-=======
 import org.mimirdb.profiler.DataProfiler
 import org.mimirdb.util.ExperimentalOptions
 import org.mimirdb.util.TaskDeduplicator
->>>>>>> master
 
 /**
  * Lazy data ingest and view management for Mimir
