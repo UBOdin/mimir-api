@@ -75,9 +75,9 @@ libraryDependencies ++= Seq(
 
   //GIS Support
   //Local
-  "org.datasyslab"                %  "geospark"                  % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet")),
-  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark"                  % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core")),
+  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
   //Snapshot Of MB's PR
   //"org.datasyslab"                %  "geospark"                  % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet")),
   //"org.datasyslab"                %  "geospark-sql_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
