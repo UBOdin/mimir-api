@@ -9,7 +9,7 @@ import org.apache.spark.sql.functions.{ rand, udf, col }
 import org.apache.spark.sql.types.DataType
 import org.mimirdb.spark.{ SparkPrimitive, Schema }
 import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, CreateResponse }
-import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
+import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, DefaultProvenance }
 
 
 object Sample
@@ -157,10 +157,13 @@ case class CreateSampleRequest (
                   resultName: Option[String],
             /* optional properties */
                   properties: Option[Map[String,JsValue]]
-) extends Request with DataFrameConstructor {
+) extends Request 
+  with DataFrameConstructor
+  with DefaultProvenance
+{
 
-  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
-    samplingMode.apply(context(source), seed.getOrElse { new Random().nextLong })
+  def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
+    samplingMode.apply(context(source)(), seed.getOrElse { new Random().nextLong })
 
   def handle = {
     if(!MimirAPI.catalog.exists(source)){

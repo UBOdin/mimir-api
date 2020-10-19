@@ -11,11 +11,12 @@ case class RangeConstructor(
   step: Long
 )
   extends DataFrameConstructor
+  with DefaultProvenance
   with LazyLogging
 {
   def construct(
     spark: SparkSession, 
-    context: Map[String, DataFrame] = Map()
+    context: Map[String, () => DataFrame] = Map()
   ): DataFrame =
   {
     spark.range(start, end, step).toDF

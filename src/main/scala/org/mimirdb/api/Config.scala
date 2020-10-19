@@ -34,4 +34,5 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     descr = "Path to python binary",
     default = None
   )
+  val experimental = opt[List[String]]("X", default = Some(List[String]()))
 }

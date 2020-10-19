@@ -30,7 +30,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.1",
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.3" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
@@ -65,7 +65,7 @@ libraryDependencies ++= Seq(
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
   //"com.amazonaws"                 %   "aws-java-sdk-core"        % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   //"com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws")),
+  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
 
@@ -74,10 +74,15 @@ libraryDependencies ++= Seq(
   "org.scala-lang"                %   "scala-compiler"           % scalaVersion.value,
 
   //GIS Support
-  "org.datasyslab"                %  "geospark"                  % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws")),
-  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.0" excludeAll(ExclusionRule(organization ="com.amazonaws"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-
+  //Local
+  "org.datasyslab"                %  "geospark"                  % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet")),
+  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  //Snapshot Of MB's PR
+  //"org.datasyslab"                %  "geospark"                  % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet")),
+  //"org.datasyslab"                %  "geospark-sql_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  //"org.datasyslab"                %  "geospark-viz_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  
   //Other data importers
   "com.databricks"                %% "spark-xml"                 % "0.9.0",
 
@@ -138,7 +143,7 @@ bootstrap := {
     "-f",
     "-o", "bin/mimir-api",
     "-r", "central",
-    "-M", "mimir.MimirVizier"
+    "-M", "org.mimirdb.api.MimirAPI"
   )++resolverArgs) ! logger match {
       case 0 =>
       case n => sys.error(s"Bootstrap failed")

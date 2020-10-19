@@ -118,7 +118,7 @@ case class LoadRequest (
       )
 
       // Infer types if necessary
-      if(inferTypes){
+      if(inferTypes && proposedSchema.getOrElse(Seq()).isEmpty){
         loadConstructor = loadConstructor.withLens(
           MimirAPI.sparkSession, 
           "type_inference", 
@@ -139,6 +139,8 @@ case class LoadRequest (
         throw FormattedError(e, s"Can't Load URL [Not Found]: $file")
       case e: IOException => 
         throw FormattedError(e, s"Error Loading $file (${e.getMessage()}")
+      case e: IllegalStateException if format.equals("com.crealytics.spark.excel") => 
+        throw FormattedError(e, e.getMessage() + "\nThis can happen due to an upstream bug.  Try unchecking 'File has headers'")
     }
 
   }

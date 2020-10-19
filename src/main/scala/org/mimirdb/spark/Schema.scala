@@ -18,6 +18,7 @@ object Schema {
     t match  {
       case "varchar" => StringType
       case "int" => IntegerType
+      case "real" => DoubleType
       case "geometry" => 
         SqlUDTRegistrationProxy.getUDT(t)
       case _ if t.startsWith("array:") => 
@@ -29,6 +30,8 @@ object Schema {
   def encodeType(t: DataType): String =
     t match {
       case ArrayType(element, _) => s"array:${encodeType(element)}"
+      case DoubleType => "real"
+      case IntegerType => "int"
       case _ => t.typeName
     }
 

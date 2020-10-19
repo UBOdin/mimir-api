@@ -37,7 +37,7 @@ object CommentLensConfig
 case class CommentParams(
   comment: String,
   target: Option[String],
-  rows: Option[Seq[String]],
+  rows: Option[Seq[Int]],
   condition: Option[String]
 )
 {

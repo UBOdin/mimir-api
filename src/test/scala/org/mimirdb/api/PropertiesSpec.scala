@@ -34,7 +34,7 @@ class PropertiesSpec
       proposedSchema    = None
     ).handle
     val result = 
-      Json.toJson(QueryTableRequest("R_WITH_PROPERTIES", None, None, None, true)
+      Json.toJson(QueryTableRequest("R_WITH_PROPERTIES", None, None, None, true, None)
         .handle)
         .as[DataContainer]
 

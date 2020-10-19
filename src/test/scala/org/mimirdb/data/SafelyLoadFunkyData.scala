@@ -1,11 +1,13 @@
 package org.mimirdb.data
 
+import play.api.libs.json._
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.mimirdb.caveats.implicits._
+import org.mimirdb.api.request.LoadRequest
 
 class SafelyLoadFunkyData
   extends Specification
@@ -14,6 +16,25 @@ class SafelyLoadFunkyData
 {
 
   def beforeAll = SharedSparkTestInstance.initAPI
+
+  "support 'real' as a type" >> {
+    Json.parse("""
+    {
+      "file" : "test_data/r.csv",
+      "format" : "csv",
+      "inferTypes" : false,
+      "detectHeaders" : false,
+      "humanReadableName" : "R",
+      "backendOption": [],
+      "proposedSchema" : [ { "name" : "A", "type" : "int" }, 
+                           { "name" : "B", "type" : "real" }, 
+                           { "name" : "C", "type" : "int" } 
+                         ]
+    }
+    """).as[LoadRequest]
+
+    ok
+  }
 
   // "Data with funky unicode - text edition" >> {
   //   val df = MimirAPI.catalog.put(

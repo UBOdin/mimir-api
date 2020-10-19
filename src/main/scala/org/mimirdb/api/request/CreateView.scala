@@ -6,11 +6,12 @@ import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.catalyst.expressions.Expression
 
 import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, ErrorResponse, FormattedError }
-import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec }
+import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, DefaultProvenance }
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
 import org.mimirdb.util.ErrorUtils
 import org.mimirdb.spark.{ GetViewDependencies, Schema }
 import org.mimirdb.spark.Schema.fieldFormat
+import org.mimirdb.spark.InjectedSparkSQL
 import com.typesafe.scalalogging.LazyLogging
 
 
@@ -30,6 +31,7 @@ case class CreateViewRequest (
   extends Request 
   with DataFrameConstructor 
   with LazyLogging
+  with DefaultProvenance
 {
 
   lazy val output = 
@@ -38,14 +40,8 @@ case class CreateViewRequest (
       "VIEW_" + (lensNameBase.toString().replace("-", ""))
     }
 
-  def construct(spark: SparkSession, context: Map[String,DataFrame]): DataFrame =
+  def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
   {
-    // Create temp views so that we can reference mimir tables by name
-    // TODO: ensure that this isn't a race condition!
-    for((userFacingName, internalName) <- input){
-      context(internalName).createOrReplaceTempView(userFacingName)
-    }
-
     for((userFacingName, blobIdentifier) <- functions.map { _.toSeq }.toSeq.flatten){
 
       // Note: this function retrieves functions lazilly
@@ -57,7 +53,11 @@ case class CreateViewRequest (
         }
       )
     }
-    var df = spark.sql(query)
+    var df = InjectedSparkSQL(spark)(
+                  query, 
+                  input.mapValues { context(_) },
+                  allowMappedTablesOnly = true
+              )
     df = AnnotateImplicitHeuristics(df)
     return df 
   }
@@ -72,7 +72,8 @@ case class CreateViewRequest (
       )
     } catch {
       case e:AnalysisException => {
-        val msg =  ErrorUtils.prettyAnalysisEror(e, query)
+        e.printStackTrace()
+        val msg =  ErrorUtils.prettyAnalysisError(e, query)
         println(s"##############\n$msg\n##############")
         throw FormattedError(ErrorResponse(e,msg))
       }

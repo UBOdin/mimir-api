@@ -27,10 +27,11 @@ case class LoadConstructor(
 ) 
   extends DataFrameConstructor
   with LazyLogging
+  with DefaultProvenance
 {
   def construct(
     spark: SparkSession, 
-    context: Map[String, DataFrame] = Map()
+    context: Map[String, () => DataFrame] = Map()
   ): DataFrame =
   {
     var df =
@@ -54,22 +55,53 @@ case class LoadConstructor(
    * their default names.
    * 
    * If the proposed schema is too long, it will be truncated.
+   *
+   * In either case, duplicate names will have _# appended
    */
   def actualizeProposedSchema(currSchema: Seq[StructField]): Seq[StructField] =
   {
-    proposedSchema match { 
-      case None => return currSchema
-      case Some(realProposedSchema) => 
-        val targetSchemaFields: Seq[StructField] = 
-          if(realProposedSchema.size > currSchema.size){
-            realProposedSchema.take(currSchema.size)
-          } else if(realProposedSchema.size < currSchema.size){
-            realProposedSchema ++ currSchema.toSeq.drop(realProposedSchema.size)
-          } else {
-            realProposedSchema
-          }
-        assert(currSchema.size == targetSchemaFields.size)
-        return targetSchemaFields
+    val schema: Seq[StructField] = 
+      proposedSchema match { 
+        case None => currSchema
+        case Some(realProposedSchema) => 
+          val targetSchemaFields: Seq[StructField] = 
+            if(realProposedSchema.size > currSchema.size){
+              realProposedSchema.take(currSchema.size)
+            } else if(realProposedSchema.size < currSchema.size){
+              realProposedSchema ++ currSchema.toSeq.drop(realProposedSchema.size)
+            } else {
+              realProposedSchema
+            }
+          assert(currSchema.size == targetSchemaFields.size)
+          targetSchemaFields
+      }
+
+    val duplicateNames:Seq[String] = 
+      schema.groupBy { column => column.name.toLowerCase }
+            .map { case (name, elems) => (name, elems.size) }
+            .filter { _._2 > 1 }
+            .map { _._1 }
+            .toSeq
+
+    logger.trace(s"PROPOSED SCHEMA: $schema")
+
+    if(duplicateNames.isEmpty){ return schema }
+    else {
+      logger.trace(s"Duplicate Names: $duplicateNames")
+      var duplicateNameMap = duplicateNames.map { _ -> 1 }.toMap
+      return schema.map { column => 
+                duplicateNameMap.get(column.name.toLowerCase) match {
+                  case None => column
+                  case Some(idx) => 
+                    duplicateNameMap = duplicateNameMap + (column.name.toLowerCase -> (idx+1))
+                    StructField(
+                      s"${column.name}_$idx", 
+                      column.dataType, 
+                      column.nullable, 
+                      column.metadata
+                    )
+                }
+              }
     }
   }
 
@@ -91,7 +123,13 @@ case class LoadConstructor(
                 df(curr.name).as(target.name)
               }
             } else {
-              df(curr.name).cast(target.dataType).as(target.name)
+              import org.mimirdb.lenses.implicits._
+              df(curr.name)
+                .castWithCaveat(
+                  target.dataType, 
+                  s"${curr.name} from ${contextText.getOrElse(url)}"
+                )
+                .as(target.name)
             }
       }):_*)
     }
@@ -124,6 +162,8 @@ case class LoadConstructor(
   {
     // based largely on Apache Spark's DataFrameReader's csv(Dataset[String]) method
 
+    logger.debug(s"LOADING CSV FILE: $url")
+
     import spark.implicits._
     val ERROR_COL = "__MIMIR_CSV_LOAD_ERROR"
     val extraOptions = Map(
@@ -141,32 +181,39 @@ case class LoadConstructor(
            .format("text")
            .load(url)
     
+    logger.trace(s"SCHEMA: ${data.schema}")
+
     val maybeFirstLine = 
       if(options.headerFlag){
         data.take(1).headOption.map { _.getAs[String](0) }
       } else { None }
 
+    logger.trace(s"Maybe First Line: $maybeFirstLine")
+
     val baseSchema = 
-      StructType(
-        actualizeProposedSchema(
-          TextInputCSVDataSource.inferFromDataset(
-            spark, 
-            data.map { _.getAs[String](0) },
-            data.take(1).headOption.map { _.getAs[String](0) },
-            options
-          ).map { column => 
-            StructField(cleanColumnName(column.name), column.dataType)
-          }
-        )
+      actualizeProposedSchema(
+        TextInputCSVDataSource.inferFromDataset(
+          spark, 
+          data.map { _.getAs[String](0) },
+          data.take(1).headOption.map { _.getAs[String](0) },
+          options
+        ).map { column => 
+          StructField(cleanColumnName(column.name), column.dataType)
+        }
       )
 
+    logger.trace(s"BASE SCHEMA: ${baseSchema}")
+
+    val stringSchema = 
+      baseSchema.map { field => StructField(field.name, StringType) }
+
     val annotatedSchema = 
-      baseSchema.add(ERROR_COL, StringType)
+      stringSchema :+ StructField(ERROR_COL, StringType)
 
     val dataWithoutHeader = 
       maybeFirstLine.map { firstLine => 
         val headerChecker = new CSVHeaderChecker(
-          baseSchema,
+          StructType(baseSchema),
           options,
           source = contextText.getOrElse { "CSV File" }
         )
@@ -184,7 +231,11 @@ case class LoadConstructor(
         col("value") as "raw",
         // when(col("value").isNull, null)
         // .otherwise(
-          from_csv( col("value"), annotatedSchema, extraOptions ++ sparkOptions )
+          from_csv( 
+            col("value"), 
+            StructType(annotatedSchema), 
+            extraOptions ++ sparkOptions 
+          )
         // ) 
       as "csv"
       ).caveatIf(
@@ -194,13 +245,24 @@ case class LoadConstructor(
           lit(s"'${contextText.map { " (in "+_+")" }.getOrElse {""}}")
         ),
         col("csv").isNull or not(col(s"csv.$ERROR_COL").isNull)
-      ).select(
-        baseSchema.fields.map { field => 
+      )
+        .select(
+        baseSchema.map { field => 
+              import org.mimirdb.lenses.implicits._
           // when(col("csv").isNull, null)
             // .otherwise(
               col("csv").getField(field.name)
+                        // Casting to string is a no-op, but is required here
+                        // because castWithCaveat needs to know the column
+                        // type, and dataWithCsvStruct isn't properly analyzed
+                        // yet.  
+                        .cast(StringType) 
+                        .castWithCaveat(
+                          field.dataType,
+                          s"${field.name} from ${contextText.getOrElse(url)}"
+                        )
             // )
-             .as(field.name)
+                        .as(field.name)
         }:_*
       )
   }

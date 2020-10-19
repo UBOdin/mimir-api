@@ -8,7 +8,13 @@ import java.sql.SQLException
 import java.net.URI
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
 import org.apache.spark.sql.catalyst.analysis.UnresolvedException
+<<<<<<< HEAD
 import org.mimirdb.spark.PythonUDFBuilder
+=======
+import org.mimirdb.profiler.DataProfiler
+import org.mimirdb.util.ExperimentalOptions
+import org.mimirdb.util.TaskDeduplicator
+>>>>>>> master
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -40,12 +46,13 @@ import org.mimirdb.spark.PythonUDFBuilder
  */
 class Catalog(
   metadata: MetadataBackend, 
-  staging: StagingProvider,
+  val staging: StagingProvider,
   spark: SparkSession,
   bulkStorageFormat: FileFormat.T = FileFormat.PARQUET,
 ) extends LazyLogging
 {
-  val cache = scala.collection.mutable.Map[String, DataFrame]()
+  val cache = scala.collection.concurrent.TrieMap[String, DataFrame]()
+  val profilingDeduplicator = new TaskDeduplicator[Map[String, JsValue]]()
  
   def this(sqlitedb: String, spark: SparkSession, downloads:String) = 
     this(
@@ -132,7 +139,8 @@ class Catalog(
     constructor: T, 
     dependencies: Set[String], 
     replaceIfExists: Boolean = true,
-    properties: Map[String, JsValue] = Map.empty
+    properties: Map[String, JsValue] = Map.empty,
+    runProfiler: Boolean = ExperimentalOptions.isEnabled("PROFILE-EVERYTHING")
   )(implicit format: Format[T]): DataFrame = {
     if(!replaceIfExists && views.exists(name)){
       throw new SQLException(s"View $name already exists")
@@ -141,7 +149,7 @@ class Catalog(
     val context = 
       dependencies
         .toSeq
-        .map { dep => dep -> get(dep) }
+        .map { dep => dep -> { () => get(dep) } }
         .toMap 
 
     logger.debug(s"PUT $name:\n$constructor")
@@ -152,6 +160,13 @@ class Catalog(
 
     logger.debug(s"... with dataframe:\n${df.queryExecution.analyzed.treeString}")
 
+    val profile = if(runProfiler){ 
+      logger.debug("... running profiler")
+      DataProfiler(df) 
+    } else { Map() }
+
+    logger.debug(s"... with properties:\n${profile ++ properties}")
+
     // Save the view
     views.put(
       name,
@@ -159,7 +174,7 @@ class Catalog(
         constructor.deserializer.toString,
         Json.toJson(constructor).toString,
         Json.toJson(dependencies.toSeq).toString,
-        Json.toJson(properties).toString
+        Json.toJson(profile ++ properties).toString
       )
     )
 
@@ -168,22 +183,70 @@ class Catalog(
 
   def getProperties(name: String): Map[String, JsValue] =
   {
-    val (_, components) = views.get(name).getOrElse {
-      throw new UnresolvedException(
-        UnresolvedRelation(Seq(name)),
-        "lookup"
-      )
+    synchronized {
+      val (_, components) = views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+      Json.parse(components(3).asInstanceOf[String])
+        .as[Map[String,JsValue]]
     }
-    Json.parse(components(3).asInstanceOf[String])
-      .as[Map[String,JsValue]]
   }
 
-  def get(name: String): DataFrame = 
+  def setProperties(name: String, properties: Map[String, JsValue])
   {
-    if(cache contains name){
-      return cache(name)
+    synchronized {
+      val (field, components) = views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+      views.put(field, 
+        components.patch(3, Seq(Json.toJson(properties).toString), 1)
+      )
     }
+  }
 
+  def updateProperties(name: String, properties: Map[String, JsValue])
+  {
+    synchronized {
+      val (field, components) = views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+      val oldProperties = 
+        Json.parse(components(3).asInstanceOf[String])
+          .as[Map[String,JsValue]]
+      views.put(field, 
+        components.patch(3, Seq(Json.toJson(oldProperties ++ properties).toString), 1)
+      )
+    }
+  }
+
+  def profile(name: String): Map[String,JsValue] =
+  {
+    val properties = getProperties(name)
+    if(properties contains DataProfiler.IS_PROFILED){
+      return properties
+    } else {
+      return profilingDeduplicator.deduplicate(name) {
+        val df = get(name)
+        val properties = DataProfiler(df)
+        updateProperties(name, properties)
+        properties
+      }
+    }
+  }
+
+  def getConstructor(
+    name: String
+  ): (DataFrameConstructor, Seq[String]) =
+  {
     val (_, components) = views.get(name).getOrElse {
       throw new UnresolvedException(
         UnresolvedRelation(Seq(name)),
@@ -195,11 +258,11 @@ class Catalog(
       components(0).asInstanceOf[String]
     val constructorJson = 
       Json.parse(components(1).asInstanceOf[String])
+
+
     val dependencies = 
       Json.parse(components(2).asInstanceOf[String])
         .as[Seq[String]]
-        .map { dep => dep -> get(dep) }
-        .toMap
 
     val deserializerClass = 
       Class.forName(deserializerClassName)
@@ -210,10 +273,36 @@ class Catalog(
            .asInstanceOf[DataFrameConstructorCodec]
     val constructor = deserializer(constructorJson)
 
-    val df = constructor.construct(spark, dependencies)
+    return (constructor, dependencies)
+  }
+
+  def get(name: String): DataFrame = 
+  {
+    if(cache contains name){
+      return cache(name)
+    }
+    val (constructor, dependencies) = getConstructor(name)
+    val df = constructor.construct(
+      spark,
+      dependencies
+        .map { dep => dep -> { () => get(dep) } }
+        .toMap
+    )
 
     cache.put(name, df)
 
+    return df
+  }
+
+  def getProvenance(name: String): DataFrame =
+  {
+    val (constructor, dependencies) = getConstructor(name)
+    val df = constructor.provenance(
+      spark, 
+      dependencies
+        .map { dep => dep -> { () => getProvenance(dep) } }
+        .toMap
+    )
     return df
   }
 
@@ -233,12 +322,32 @@ class Catalog(
     cache.remove(name)
   }
 
+  /**
+   * Return a map of constructors (suitable for use with InjectedSparkSQL) for all tables
+   * known to the catalog
+   */
+  def allTableConstructors: Map[String, () => DataFrame] =
+    views.keys.map { k => k -> { () => get(k) }}.toMap
+
   def populateSpark(targets: Iterable[String] = views.keys, forgetInvalidTables: Boolean = false)
   {
+    logger.error("populateSpark is deprecated.  Use org.mimirdb.spark.InjectedSparkSQL with Catalog.allTableConstructors instead")
     for(view <- views.keys){
       try {
         get(view).createOrReplaceTempView(view)
       } catch {
+        //TODO: This is a hack to cleanup the logs for missing data files
+        //  without forgetting invalid tables.  This does not prevent performance hit 
+        //  trying to load the missing tables.  
+        case pathNf:org.apache.spark.sql.AnalysisException 
+          if pathNf.message.startsWith("Path does not exist") => {
+            logger.warn(s"Couldn't safely preload $view: ${pathNf.message}")
+            if(forgetInvalidTables){
+              logger.warn(s"Forgetting $view")
+              logger.warn(views.get(view).get._2.asInstanceOf[String])
+              views.rm(view)
+            }
+          }
         case e:Exception => {
           logger.error(s"Couldn't safely preload $view.\n$e")
           if(forgetInvalidTables){
@@ -282,7 +391,7 @@ object Catalog
   ): Map[String,String] = 
   {
     format match {
-      case FileFormat.CSV | FileFormat.CSV_WITH_ERRORCHECKING =>
+      case FileFormat.CSV | FileFormat.CSV_WITH_ERRORCHECKING | FileFormat.EXCEL =>
         defaultLoadCSVOptions ++ Map("header" -> header.toString)
       case FileFormat.GOOGLE_SHEETS => defaultLoadGoogleSheetOptions
       case _ => Map()

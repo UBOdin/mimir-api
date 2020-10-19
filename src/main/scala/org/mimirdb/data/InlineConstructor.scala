@@ -13,10 +13,11 @@ case class InlineConstructor(
   schema: Seq[StructField],
   data: Seq[Seq[JsValue]]
 ) extends DataFrameConstructor
+  with DefaultProvenance
 {
   def construct(
     spark: SparkSession, 
-    context: Map[String, DataFrame] = Map()
+    context: Map[String, () => DataFrame] = Map()
   ): DataFrame =
   {
     val types = schema.map { _.dataType }

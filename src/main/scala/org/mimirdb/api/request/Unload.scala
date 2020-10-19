@@ -27,11 +27,20 @@ case class UnloadRequest (
   def handle = {
     val sparkOptions = backendOption.map { tup => tup.name -> tup.value } 
 
-    val df = MimirAPI.catalog.get(input)
+    val df = format match {
+      case FileFormat.CSV | 
+           FileFormat.JSON |
+           FileFormat.TEXT | 
+           FileFormat.XML |
+           FileFormat.EXCEL => MimirAPI.catalog.get(input).coalesce(1)
+      case _ => MimirAPI.catalog.get(input)
+    }
 
     val writer = 
       backendOption.foldLeft(
-        df.write.format(format) 
+        if(format == FileFormat.EXCEL && backendOption.find(_.name.equals("header")).isEmpty)
+          df.write.format(format).option("header", true) 
+        else df.write.format(format)
       ) { 
         case (writer, Tuple("mode", mode))  => writer.mode(mode)
         case (writer, Tuple(option, value)) => writer.option(option, value) 
@@ -60,8 +69,12 @@ case class UnloadRequest (
       if(fileIsEmpty){ Seq[String]() }
       else {
         val filedir = new File(file)
-        filedir.listFiles.filter(_.isFile)
-          .map(_.getName).toSeq
+        if(filedir.isDirectory()){
+          filedir.listFiles.filter(_.isFile)
+            .map(_.getName).toSeq
+        }
+        else if(filedir.isFile() && filedir.exists()) Seq[String](filedir.getName)
+        else Seq[String]()
       }
 
     UnloadResponse(outputFiles)

@@ -10,6 +10,7 @@ import org.mimirdb.api.{ SharedSparkTestInstance, MimirAPI }
 import org.mimirdb.caveats.implicits._ 
 import org.mimirdb.lenses.{ Lenses, LensConstructor }
 import org.mimirdb.data.RangeConstructor
+import org.mimirdb.profiler.DataProfiler
 import play.api.libs.json.{ JsString, JsNull }
 import org.mimirdb.spark.{ SparkPrimitive, Schema }
 
@@ -56,14 +57,16 @@ class QuerySpec
     columns: Seq[String] = null,
     limit: Integer = null,
     offset: Integer = null,
-    includeUncertainty: Boolean = false
+    includeUncertainty: Boolean = false,
+    profile: Boolean = false
   )(op: DataContainer => T): T = 
     op( Json.toJson(QueryTableRequest(
           table,
           Option(columns),
           Option(limit).map { _.toInt },
           Option(offset).map { _.toLong },
-          includeUncertainty
+          includeUncertainty,
+          Some(profile)
         ).handle).as[DataContainer] )
 
   "Basic Query Functions" >> {
@@ -230,6 +233,24 @@ class QuerySpec
       queryTable("TEST_R", offset = 2, limit = 2) { result =>
         result.schema.map { _.name } must contain(exactly("A", "B", "C"))
         result.data must beEqualTo(data.drop(2).take(2))
+      }
+    }
+
+    "Get Table Sizes" >> { 
+      SizeOfTableRequest("TEST_R").handle.size must beEqualTo(7)
+    }
+
+    "Profile if needed (and preserve properties)" >> {
+      // If we ask for the data to be profiled, we'd better get a
+      // profile back
+      queryTable("TEST_R", profile = true) { result => 
+        result.properties.keys must contain(DataProfiler.IS_PROFILED)
+      }
+
+      // Once the data is profiled, we'd better keep getting the
+      // same profile back
+      queryTable("TEST_R", profile = false) { result => 
+        result.properties.keys must contain(DataProfiler.IS_PROFILED)
       }
     }
   }

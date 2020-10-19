@@ -10,6 +10,7 @@ import org.mimirdb.api.MimirAPI
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.CreateResponse
 import org.mimirdb.caveats.implicits._
+import org.mimirdb.api.Tuple
 
 class LoadSpec 
   extends Specification
@@ -195,4 +196,59 @@ class LoadSpec
     df.schema.fields(1) must beEqualTo(StructField("BOB", StringType))
     df.schema.fields(2) must beEqualTo(StructField("C", StringType))
   }
+  
+  /*"load files from s3" >> {
+    val request = LoadRequest(
+                    file              = "s3a://mimir-test-data/test/data/mv.csv",
+                    format            = "csv",
+                    inferTypes        = false,
+                    detectHeaders     = true,
+                    humanReadableName = Some("S3 TEST OF THE THING"),
+                    backendOption     = Seq(),
+                    dependencies      = Some(Seq()),
+                    resultName        = None,
+                    properties        = None,
+                    proposedSchema    = None
+                  )
+    val response = Json.toJson(request.handle).as[CreateResponse]
+
+    MimirAPI.catalog.get(response.name)
+                    .count() must be equalTo(8)
+
+    MimirAPI.catalog.flush(response.name)
+
+    MimirAPI.catalog.get(response.name)
+                    .count() must be equalTo(8)
+  }
+  
+  "load excel files" >> {
+    val request = LoadRequest(
+                    file              = "test_data/excel.xlsx",
+                    format            = "com.crealytics.spark.excel",
+                    inferTypes        = false,
+                    detectHeaders     = true,
+                    humanReadableName = Some("EXCEL OF THE THING"),
+                    backendOption     = Seq(Tuple("sheetName", "SalesOrders"), // Required
+                            Tuple("dataAddress", "'SalesOrders'!A1"),
+                            Tuple("header", "false"), // Required
+                            Tuple("treatEmptyValuesAsNulls", "true"), // Optional, default: true
+                            Tuple("startColumn", "0"), // Optional, default: 0
+                            Tuple("endColumn", "6") // Optional, default: Int.MaxValue
+                            ),
+                    dependencies      = Some(Seq()),
+                    resultName        = None,
+                    properties        = None,
+                    proposedSchema    = None
+                  )
+    val response = Json.toJson(request.handle).as[CreateResponse]
+
+    MimirAPI.catalog.get(response.name)
+                    .count() must be equalTo(44)
+
+    MimirAPI.catalog.flush(response.name)
+
+    MimirAPI.catalog.get(response.name)
+                    .count() must be equalTo(44)
+
+  }*/
 }

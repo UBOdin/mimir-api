@@ -45,6 +45,7 @@ import org.apache.spark.sql.AnalysisException
 import org.mimirdb.data.MetadataBackend
 import org.mimirdb.blobs.BlobStore
 import org.mimirdb.spark.PythonUDFBuilder
+import org.mimirdb.util.ExperimentalOptions
 
 //import org.apache.spark.ui.FixWebUi
 
@@ -68,6 +69,12 @@ object MimirAPI extends LazyLogging {
     logger.debug("debug is enabled")
     conf = new MimirConfig(args);
     conf.verify
+
+    // Prepare Experiments
+    ExperimentalOptions.enable(conf.experimental())
+    for(option <- ExperimentalOptions.enabled){
+      println(s"... Initializing with experiment $option")
+    }
 
     // Initialize Spark
     sparkSession = InitSpark.local
@@ -173,6 +180,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       if(text.size > len){ text.substring(0, len-3)+"..." } else { text }
 
 
+
     def process(
       handler: Request, 
       output: HttpServletResponse, 
@@ -182,6 +190,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
           handler.handle
         } catch {
           case e: EOFException => 
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -189,6 +198,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             )
 
           case e: FileNotFoundException =>
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -196,7 +206,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             )
 
           case e: SQLException => {
-            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -205,7 +215,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
           }
 
           case e: AnnotationException => {
-            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               e.getMessage(), 
@@ -213,7 +223,7 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             )
           }
           case e: AnalysisException => {
-            logger.debug(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+            logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
             ErrorResponse(
               e.getClass.getCanonicalName(),
               s"SQL Exception: ${e.getMessage}",
@@ -222,6 +232,9 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
           }
           case FormattedError(errorResponse) => {
             logger.debug(s"Internally Formatted Error: ${errorResponse.errorType}")
+            logger.error(s"Internally Formatted Error: ${errorResponse.errorType}" + 
+                "\n" + errorResponse.errorMessage + 
+                "\n" + errorResponse.stackTrace) 
             errorResponse
           }
 
@@ -252,12 +265,22 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
         logger.debug(s"$text")
         process(Json.parse(text).as[Q], output)
       } catch {
-        case e@JsResultException(errors) =>
+        case e@JsResultException(errors) => {
+          logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
           ErrorResponse(
             e.getClass().getCanonicalName(),
             s"Error(s) parsing API request\n${ellipsize(text, 100)}\n"+stringifyJsonParseErrors(errors).mkString("\n"),
             e.getStackTrace.map(_.toString).mkString("\n")
           ).write(output)
+        }
+        case e:Throwable => {
+          logger.error(e.getMessage + "\n" + e.getStackTrace.map(_.toString).mkString("\n"))
+          ErrorResponse(
+            e.getClass().getCanonicalName(),
+            s"Error(s) parsing API request\n${ellipsize(text, 100)}\n",
+            e.getStackTrace.map(_.toString).mkString("\n")
+          ).write(output)
+        }
       }
 
     }
@@ -290,21 +313,24 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
             case "/lens/create"          => processJson[CreateLensRequest](req, output)
             case "/view/create"          => processJson[CreateViewRequest](req, output)
             case "/view/sample"          => processJson[CreateSampleRequest](req, output)
+            case "/view/materialize"     => processJson[MaterializeRequest](req, output)
             case "/vizual/create"        => processJson[VizualRequest](req, output)
             case "/annotations/cell"     => processJson[ExplainCellRequest](req, output)
             case "/annotations/all"      => processJson[ExplainEverythingRequest](req, output)
             case "/query/data"           => processJson[QueryMimirRequest](req, output)
+            case "/query/dataframe"      => processJson[QueryDataFrameRequest](req, output)
             case "/query/table"          => processJson[QueryTableRequest](req, output)
             case "/schema"               => processJson[SchemaForQueryRequest](req, output)
             case "/tableInfo"            => processJson[SchemaForTableRequest](req, output)
+            case "/garbageCollect"       => process(GarbageCollectRequest(), output)
             case _                       => fourOhFour(req, output)
           }
         case _                           => fourOhFour(req, output)
       }
     }
     
-    val HEAD = "\\/([^\\/]+)/(.*)".r
-    val TAIL = "([^\\/]+)".r
+    val HEAD = "\\/([^\\/]+)(/.*)".r
+    val TAIL = "/([^\\/]+)".r
 
     override def doPut(req: HttpServletRequest, output: HttpServletResponse)
     {
@@ -324,12 +350,14 @@ class MimirVizierServlet() extends HttpServlet with LazyLogging {
       req.getPathInfo match {
         case PREFIX(route) => 
           route match {
-            case "/lens"                    => LensList(Lenses.supportedLenses).write(output)
-            case HEAD("blob", TAIL(id))     => process(GetBlobRequest(id), output)
-            case HEAD("tableInfo", TAIL(id))=> process(SchemaForTableRequest(id), output)
-            case _                          => fourOhFour(req, output)
+            case "/lens"                                    => LensList(Lenses.supportedLenses).write(output)
+            case HEAD("blob", TAIL(id))                     => process(GetBlobRequest(id), output)
+            case HEAD("tableInfo", TAIL(id))                => process(SchemaForTableRequest(id, None), output)
+            case HEAD("tableInfo", HEAD(id, TAIL("schema")))=> process(SchemaForTableRequest(id, None), output)
+            case HEAD("tableInfo", HEAD(id, TAIL("size")))  => process(SizeOfTableRequest(id), output)
+            case _                                          => fourOhFour(req, output)
           }
-        case _                              => fourOhFour(req, output)
+        case _                                              => fourOhFour(req, output)
       }
     }
 
