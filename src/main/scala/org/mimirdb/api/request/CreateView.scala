@@ -13,6 +13,7 @@ import org.mimirdb.spark.{ GetViewDependencies, Schema }
 import org.mimirdb.spark.Schema.fieldFormat
 import org.mimirdb.spark.InjectedSparkSQL
 import com.typesafe.scalalogging.LazyLogging
+import org.mimirdb.spark.GetPythonUDFDependencies
 
 
 
@@ -48,12 +49,23 @@ case class CreateViewRequest (
                   allowMappedTablesOnly = true,
                   functionMappings = 
                     functions.getOrElse { Map.empty }
-                             .mapValues { blobID => 
-                                { args => MimirAPI.blobs
-                                                  .getPythonUDF(blobID)
-                                                  .get
-                                                  .apply(args) } 
-                              } 
+                             .map { case (name, blobID) => 
+                                name -> 
+                                { args:Seq[Expression] => 
+                                  val pickled = 
+                                    MimirAPI.blobs
+                                            .getPickle(blobID)
+                                            .getOrElse {
+                                              throw new IllegalArgumentException(s"Internal Error, can't resolve $name -> $blobID")
+                                            }
+                                  MimirAPI.pythonUDF(
+                                    pickled,
+                                    Some(name),
+                                    None
+                                  )(args)
+                                }
+                              }
+                              .toMap
               )
     df = AnnotateImplicitHeuristics(df)
     return df 
@@ -79,7 +91,7 @@ case class CreateViewRequest (
     CreateViewResponse(
       name = output,
       dependencies = GetViewDependencies(df).toSeq,
-      functions = Seq(),
+      functions = GetPythonUDFDependencies(df).toSeq,
       schema = Schema(df),
       properties = Map.empty
     )

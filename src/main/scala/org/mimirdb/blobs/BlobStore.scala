@@ -19,7 +19,7 @@ class BlobStore(
     ))
   ))
 
-  val udfCache = TrieMap[String, (Seq[Expression] => Expression)]()
+  val udfCache = TrieMap[String, Array[Byte]]()
 
   def put(name: String, blobType: String, data: Array[Byte])
   {
@@ -36,7 +36,7 @@ class BlobStore(
     }
   }
 
-  def getPythonUDF(name: String): Option[Seq[Expression] => Expression] =
+  def getPickle(name: String): Option[Array[Byte]] =
   {
     if(!blobs.exists(name)) { return None }
     else { 
@@ -45,7 +45,7 @@ class BlobStore(
           name,
           { 
             val (_, code) = get(name).get
-            python(new String(code))
+            python.pickle(new String(code))
           }
         )
       )

@@ -86,6 +86,7 @@ from pyspark import cloudpickle
 import sys
 import base64
 from pyspark.sql.types import StringType
+import pyspark.sql.types as pyspark_types
 
 class VizierUDFExtractor:
   def __init__(self):
@@ -101,6 +102,9 @@ def return_type(data_type):
   return wrap
 
 ${vizier_fn}
+
+if not hasattr(vizierdb.fn, "__return_type__"):
+  vizierdb.fn.__return_type__ = StringType()
 
 assert(vizierdb.fn is not None)
 pickled_fn = cloudpickle.dumps((vizierdb.fn, vizierdb.fn.__return_type__))
