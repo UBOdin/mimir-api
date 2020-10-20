@@ -15,7 +15,8 @@ import org.apache.spark.sql.AnalysisException
 import org.mimirdb.api.{ FormattedError, ErrorResponse }
 import org.apache.spark.sql.catalyst.catalog.{ CatalogTable, CatalogStorageFormat, CatalogTableType }
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.expressions.PlanExpression
+import org.apache.spark.sql.catalyst.expressions.{ Expression, PlanExpression }
+import org.apache.spark.sql.catalyst.analysis.UnresolvedFunction
 
 /**
  * Utilities for running Spark SQL queries with a post-processing step injected between
@@ -35,7 +36,8 @@ case class InjectedSparkSQL(spark: SparkSession)
   def apply(
     sqlText: String, 
     tableMappings: Map[String,() => DataFrame] = Map(), 
-    allowMappedTablesOnly: Boolean = false
+    allowMappedTablesOnly: Boolean = false,
+    functionMappings: Map[String, Seq[Expression] => Expression] = Map.empty
   ): DataFrame =
   {
     // ~= Spark's SparkSession.sql()
@@ -48,6 +50,7 @@ case class InjectedSparkSQL(spark: SparkSession)
     logicalPlan = rewrite(
       logicalPlan, 
       tableMappings.map { case (k, v) => k.toLowerCase() -> v }.toMap,// make source names case insensitive
+      functionMappings.map { case (k, v) => k.toLowerCase() -> v }.toMap,// make source names case insensitive
       allowMappedTablesOnly
     )
 
@@ -72,6 +75,7 @@ case class InjectedSparkSQL(spark: SparkSession)
   def rewrite(
     plan: LogicalPlan, 
     tableMappings: Map[String, () => DataFrame] = Map(), 
+    functionMappings: Map[String, Seq[Expression] => Expression] = Map(), 
     allowMappedTablesOnly: Boolean = false
   ): LogicalPlan =
   {
@@ -79,6 +83,7 @@ case class InjectedSparkSQL(spark: SparkSession)
       rewrite(
         plan = target, 
         tableMappings = tableMappings, 
+        functionMappings = functionMappings,
         allowMappedTablesOnly = allowMappedTablesOnly
       )
 
@@ -121,6 +126,9 @@ case class InjectedSparkSQL(spark: SparkSession)
                   .withNewPlan(recur(nestedPlan))
           case _ => nested
         }
+      case UnresolvedFunction(name, args, isDistinct, filter) 
+        if functionMappings contains name.funcName.toLowerCase =>
+          functionMappings(name.funcName.toLowerCase)(args)
     }
   }
 }

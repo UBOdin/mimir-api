@@ -7,6 +7,7 @@ import org.apache.spark.sql.functions._
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.lenses.Lens
 import org.mimirdb.spark.SparkPrimitive.dataTypeFormat
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * The pivot lens "pivots" a table, modifying rows into columns.
@@ -54,6 +55,7 @@ object PivotLensConfig
 
 object PivotLens
   extends Lens
+  with LazyLogging
 {
   val DISTINCT_LIMIT = 50
 
@@ -141,6 +143,8 @@ object PivotLens
         .unzip3 
 
     val intermediateColumns = (pivotColumnValues ++ pivotColumnCounts)
+    
+    logger.debug(s"INTERMEDIATE: ${intermediateColumns.map { "\n    "+_.toString }.mkString}")
 
     val pivotedInputWithCounts =
       if(config.keys.isEmpty){
@@ -150,9 +154,12 @@ object PivotLens
              .agg( intermediateColumns.head, intermediateColumns.tail:_* )
       }
 
+
     val outputColumns =
       config.keys.map { pivotedInputWithCounts(_) } ++ 
       caveatedPivotColumns
+
+    logger.debug(s"OUTPUT: ${outputColumns.map { "\n    "+_.toString }.mkString}")
 
     return pivotedInputWithCounts.select(outputColumns:_*)
   }

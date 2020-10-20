@@ -44,6 +44,7 @@ import org.mimirdb.util.JsonUtils.stringifyJsonParseErrors
 import org.apache.spark.sql.AnalysisException
 import org.mimirdb.data.MetadataBackend
 import org.mimirdb.blobs.BlobStore
+import org.mimirdb.spark.PythonUDFBuilder
 import org.mimirdb.util.ExperimentalOptions
 
 //import org.apache.spark.ui.FixWebUi
@@ -60,6 +61,7 @@ object MimirAPI extends LazyLogging {
   var server: Server = null
   var conf: MimirConfig = null
   var blobs: BlobStore = null
+  var pythonUDF: PythonUDFBuilder = null
 
   def main(args: Array[String])
   {
@@ -81,7 +83,7 @@ object MimirAPI extends LazyLogging {
     InitSpark.initPlugins(sparkSession)
     
     // Initialize the catalog
-    initCatalog(conf.metadata())
+    initCatalog(conf.metadata(), pythonPath = conf.pythonPath.toOption)
 
     // Initialize Geocoders (if configuration options available)
     val geocoders = 
@@ -111,7 +113,7 @@ object MimirAPI extends LazyLogging {
      server.stop();
   }
   
-  def initCatalog(metadataDB: String)
+  def initCatalog(metadataDB: String, pythonPath: Option[String] = None)
   {
     metadata = metadataDB.split(":").toList match {
       case "sqlite" :: Nil => 
@@ -122,7 +124,13 @@ object MimirAPI extends LazyLogging {
     }
     val staging = new LocalFSStagingProvider(conf.staging())
     catalog = new Catalog(metadata, staging, sparkSession)
-    blobs = new BlobStore(metadata)
+    pythonUDF = PythonUDFBuilder(
+      pythonPath.orElse { 
+        Option(System.getenv("MIMIR_PYTHON"))
+      }
+    )
+    blobs = new BlobStore(metadata, pythonUDF)
+    logger.info(s"Using python ${pythonUDF.version} @ ${pythonUDF.pythonPath}")
   }
   
   def runServer(port: Int = DEFAULT_API_PORT) : Unit = {

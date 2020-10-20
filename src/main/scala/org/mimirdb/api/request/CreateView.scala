@@ -3,6 +3,7 @@ package org.mimirdb.api.request
 import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, SparkSession, AnalysisException }
 import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.catalyst.expressions.Expression
 
 import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, ErrorResponse, FormattedError }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, DefaultProvenance }
@@ -12,12 +13,15 @@ import org.mimirdb.spark.{ GetViewDependencies, Schema }
 import org.mimirdb.spark.Schema.fieldFormat
 import org.mimirdb.spark.InjectedSparkSQL
 import com.typesafe.scalalogging.LazyLogging
+import org.mimirdb.spark.GetPythonUDFDependencies
 
 
 
 case class CreateViewRequest (
             /* temporary view definitions for use in creating the view */
                   input: Map[String,String],
+            /* names for functions stored in blob storage */
+                  functions: Option[Map[String, String]],
             /* query for view */
                   query: String,
             /* optional name for the result table */
@@ -40,9 +44,28 @@ case class CreateViewRequest (
   def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
   {
     var df = InjectedSparkSQL(spark)(
-                  query, 
-                  input.mapValues { context(_) },
-                  allowMappedTablesOnly = true
+                  sqlText = query, 
+                  tableMappings = input.mapValues { context(_) },
+                  allowMappedTablesOnly = true,
+                  functionMappings = 
+                    functions.getOrElse { Map.empty }
+                             .map { case (name, blobID) => 
+                                name -> 
+                                { args:Seq[Expression] => 
+                                  val pickled = 
+                                    MimirAPI.blobs
+                                            .getPickle(blobID)
+                                            .getOrElse {
+                                              throw new IllegalArgumentException(s"Internal Error, can't resolve $name -> $blobID")
+                                            }
+                                  MimirAPI.pythonUDF(
+                                    pickled,
+                                    Some(name),
+                                    None
+                                  )(args)
+                                }
+                              }
+                              .toMap
               )
     df = AnnotateImplicitHeuristics(df)
     return df 
@@ -66,10 +89,11 @@ case class CreateViewRequest (
     }
     val df = MimirAPI.catalog.get(output)
     CreateViewResponse(
-      output,
-      GetViewDependencies(df).toSeq,
-      Schema(df),
-      Map.empty
+      name = output,
+      dependencies = GetViewDependencies(df).toSeq,
+      functions = GetPythonUDFDependencies(df).toSeq,
+      schema = Schema(df),
+      properties = Map.empty
     )
   }
 }
@@ -84,6 +108,8 @@ case class CreateViewResponse (
             name: String,
             /* view dependencies (tables that this view reads from) */
             dependencies: Seq[String],
+            /* function dependencies (functions that this view invoked) */
+            functions: Seq[String],
             /* the schema of the resulting view */
             schema: Seq[StructField],
             /* Properties associated with the newly created view */
