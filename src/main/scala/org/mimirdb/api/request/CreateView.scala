@@ -5,6 +5,7 @@ import org.apache.spark.sql.{ DataFrame, SparkSession, AnalysisException }
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.catalyst.expressions.Expression
 
+import org.mimirdb.caveats.lifting.ResolveLifts
 import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, ErrorResponse, FormattedError }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, DefaultProvenance }
 import org.mimirdb.lenses.AnnotateImplicitHeuristics
@@ -68,6 +69,7 @@ case class CreateViewRequest (
                               .toMap
               )
     df = AnnotateImplicitHeuristics(df)
+    df = ResolveLifts(df)
     return df 
   }
 
