@@ -336,6 +336,9 @@ object Query
     /////// Decorate any potentially erroneous heuristics
     df = AnnotateImplicitHeuristics(df)
 
+    /////// ResolvePossible
+    df = ResolveLifts(df)
+
 
     logger.trace(s"----------- RAW-QUERY-----------\nSCHEMA:{ ${Schema(df).mkString(", ")} }\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
@@ -343,9 +346,6 @@ object Query
     df = AnnotateWithRowIds(df)
 
     logger.trace(s"----------- AFTER-ROWID -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
-
-    /////// ResolvePossible
-    df = ResolveLifts(df)
 
 
     /////// If requested, add a __CAVEATS attribute
