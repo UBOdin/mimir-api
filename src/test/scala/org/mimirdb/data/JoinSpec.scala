@@ -20,6 +20,7 @@ import org.mimirdb.api.request.{
   Query
 }
 import org.mimirdb.api.CreateResponse
+import org.mimirdb.api.request.ExplainCellRequest
 
 class JoinSpec 
   extends Specification
@@ -93,11 +94,47 @@ class JoinSpec
          Some("covid_us_county_03_only"),
          None
       ).handle 
+      
 
+      
+      
       query("SELECT * FROM covid_us_county_03_only"){ result => 
         result.data.map { _(0) } 
         ok
       }
+    }
+    
+    "list caveats for simple left join" >> { 
+      CreateViewRequest(Map(("TEST_R", "TEST_R")),None,
+          """SELECT TEST_R.A AS A, TEST_R.B AS B, caveat(TEST_R.C, 'test') AS C FROM TEST_R""",
+         Some("TEST_R"),
+         None
+      ).handle 
+      
+      CreateViewRequest(Map(("SEQ", "SEQ")),None,
+          """SELECT * FROM SEQ""",
+         Some("SEQ"),
+         None
+      ).handle 
+      
+      CreateViewRequest(Map(("TEST_R", "TEST_R"),("SEQ", "SEQ")),None,
+          s"""SELECT TEST_R.A,
+              |      TEST_R.C,
+              |      SEQ.NAME
+              |  FROM TEST_R
+              |  LEFT JOIN SEQ
+              |    ON TEST_R.A = SEQ.KEY""".stripMargin,
+         Some("TEST_R_SEQ"),
+         None
+      ).handle 
+      
+      val result = Query("SELECT * FROM TEST_R_SEQ",true).prov
+      ExplainCellRequest(
+        query = "SELECT * FROM TEST_R_SEQ",
+        row = result.head,
+        col = "C"   
+      ).handle 
+      ok
     }
   }
 
