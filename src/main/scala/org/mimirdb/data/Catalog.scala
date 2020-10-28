@@ -294,6 +294,7 @@ class Catalog(
   def getProvenance(name: String): DataFrame =
   {
     val (constructor, dependencies) = getConstructor(name)
+    logger.trace(s"Get Provenance for $name / $constructor <- $dependencies")
     val df = constructor.provenance(
       spark, 
       dependencies

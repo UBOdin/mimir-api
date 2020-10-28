@@ -8,28 +8,29 @@
   </appender>
   
   <!--+++++++++++++++++++++++  Caveats  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.caveats"                            level="ERROR" />
+  <logger name="org.mimirdb.caveats"                                 level="ERROR" />
+  <logger name="org.mimirdb.caveats.enumerate.EnumeratePlanCaveats$" level="ERROR" />
 
   <!--+++++++++++++++++++++++  Request  +++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.api.request.Query$"                 level="ERROR" />
+  <logger name="org.mimirdb.api.request.Query$"                      level="ERROR" />
 
   <!--++++++++++++++++++++++++  Data  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.data.JDBCMetadataBackend"           level="ERROR" />
-  <logger name="org.mimirdb.data.Catalog"                       level="ERROR" />
-  <logger name="org.mimirdb.data.DataFrameCache$"               level="INFO" />
-  <logger name="org.mimirdb.data.CachedDataFrame"               level="INFO" />
+  <logger name="org.mimirdb.data.JDBCMetadataBackend"                level="ERROR" />
+  <logger name="org.mimirdb.data.Catalog"                            level="ERROR" />
+  <logger name="org.mimirdb.data.DataFrameCache$"                    level="INFO" />
+  <logger name="org.mimirdb.data.CachedDataFrame"                    level="INFO" />
 
   <!--++++++++++++++++++++++++  Vizual  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.vizual.ExecOnSpark"                 level="ERROR" />
+  <logger name="org.mimirdb.vizual.ExecOnSpark"                      level="ERROR" />
 
   <!--++++++++++++++++++++++++  Lenses  ++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.lenses.AnnotateImplicitHeuristics$" level="ERROR" />
-  <logger name="org.mimirdb.lenses.CaveatedCast$"               level="ERROR" />
-  <logger name="org.mimirdb.lenses.implementation.PivotLens$"   level="ERROR" />
+  <logger name="org.mimirdb.lenses.AnnotateImplicitHeuristics$"      level="ERROR" />
+  <logger name="org.mimirdb.lenses.CaveatedCast$"                    level="ERROR" />
+  <logger name="org.mimirdb.lenses.implementation.PivotLens$"        level="ERROR" />
 
   <!--++++++++++++++++++++++++  Spark  +++++++++++++++++++++++++++-->
-  <logger name="org.mimirdb.spark.PythonUDF"                    level="TRACE" />
-  <logger name="org.mimirdb.spark.InjectedSparkSQL"             level="ERROR" />
+  <logger name="org.mimirdb.spark.PythonUDF"                         level="TRACE" />
+  <logger name="org.mimirdb.spark.InjectedSparkSQL"                  level="ERROR" />
   
   <root level="ERROR">
     <appender-ref ref="STDOUT" />
