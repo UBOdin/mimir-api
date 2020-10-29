@@ -255,4 +255,17 @@ class QuerySpec
     }
   }
 
+  "Query possible answers" >> {
+    query("""
+      SELECT * FROM (
+        SELECT CAVEATIF(A, A IS NULL, "FOO") AS A,
+               CAVEATIF(B, B IS NULL, "FOO") AS B,
+               CAVEATIF(C, C IS NULL, "FOO") AS C
+        FROM TEST_R
+      ) TEST_R 
+      WHERE POSSIBLE(B = 2) AND C = 1
+    """) { result => 
+      result.data.size must beEqualTo(2)
+    }
+  }
 }

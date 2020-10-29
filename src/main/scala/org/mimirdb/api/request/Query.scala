@@ -23,6 +23,7 @@ import org.mimirdb.rowids.AnnotateWithSequenceNumber
 import org.mimirdb.spark.InjectedSparkSQL
 import org.mimirdb.util.ExperimentalOptions
 import org.apache.spark.sql.ArrowProxy
+import org.mimirdb.caveats.lifting.ResolveLifts
 
 case class QueryMimirRequest (
             /* input for query */
@@ -335,12 +336,17 @@ object Query
     /////// Decorate any potentially erroneous heuristics
     df = AnnotateImplicitHeuristics(df)
 
+    /////// ResolvePossible
+    df = ResolveLifts(df)
+
+
     logger.trace(s"----------- RAW-QUERY-----------\nSCHEMA:{ ${Schema(df).mkString(", ")} }\n${df.queryExecution.explainString(SelectedExplainMode)}")
 
     /////// Add a __MIMIR_ROWID attribute
     df = AnnotateWithRowIds(df)
 
     logger.trace(s"----------- AFTER-ROWID -----------\n${df.queryExecution.explainString(SelectedExplainMode)}")
+
 
     /////// If requested, add a __CAVEATS attribute
     /////// Either way, after we track the caveats, we no longer need the
