@@ -16,6 +16,7 @@ import org.apache.spark.sql.functions.{
 import org.mimirdb.lenses.Lens
 import org.mimirdb.data.Catalog
 import org.mimirdb.util.HttpUtils
+import org.mimirdb.caveats.implicits._
 
 case class GeocoderConfig(
   houseColumn: String,
@@ -112,8 +113,9 @@ class GeocodingLens(
   {
     val config = jsConfig.as[GeocoderConfig]
     val cache = catalog.get(config.cacheCode.get)
-
-    val coordinates = col("_2").getField(COORDS)
+    val geocoder = config.geocoder
+                          .getOrElse { geocoders.head._1 }
+    val coordinates = col("_2").getField(COORDS).caveat(s"A geocoder (${geocoder}) to determine this value")
 
     input.joinWith(
       cache,

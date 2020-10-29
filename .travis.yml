@@ -9,6 +9,11 @@ jobs:
       jdk: openjdk8
       scala:
         - 2.12.10
+      addons:
+        apt:
+          packages:
+            - python3-pip
+            - python3-setuptools
       before_cache:
         - rm -fv $HOME/.ivy2/.sbt.ivy.lock
         - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
@@ -19,7 +24,8 @@ jobs:
           - $HOME/.cache/coursier
           - $HOME/.ivy2/cache
           - $HOME/.sbt
-      
+      before_script:
+        - pip3 install pyspark
       script:
       - sbt ++$TRAVIS_SCALA_VERSION test
     - stage: build docker image
