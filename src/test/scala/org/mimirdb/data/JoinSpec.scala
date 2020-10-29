@@ -107,7 +107,7 @@ class JoinSpec
     "list caveats for simple left join" >> { 
       CreateViewRequest(Map(("TEST_R", "TEST_R")),None,
           """SELECT TEST_R.A AS A, TEST_R.B AS B, caveat(TEST_R.C, 'test') AS C FROM TEST_R""",
-         Some("TEST_R"),
+         Some("TEST_R_VIEW"),
          None
       ).handle 
       
@@ -117,7 +117,7 @@ class JoinSpec
          None
       ).handle 
       
-      CreateViewRequest(Map(("TEST_R", "TEST_R"),("SEQ", "SEQ")),None,
+      CreateViewRequest(Map(("TEST_R", "TEST_R_VIEW"),("SEQ", "SEQ")),None,
           s"""SELECT TEST_R.A,
               |      TEST_R.C,
               |      SEQ.NAME
