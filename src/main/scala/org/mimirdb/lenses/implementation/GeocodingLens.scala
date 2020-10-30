@@ -158,6 +158,33 @@ abstract class Geocoder(val name: String) extends Serializable {
 
 }
 
+  
+abstract class GeoValue(val value:Double) 
+
+object GeoValue{
+  implicit val format: Format[GeoValue] = Format(
+  new Reads[GeoValue] {
+    def reads(json: JsValue): JsResult[GeoValue] = {
+      json match {
+        case JsString(s) => JsSuccess(GeoString(s))
+        case JsNumber(d) => JsSuccess(GeoDouble(d.toDouble))
+        case x => throw new Exception(s"GeoValue: $x not supported")
+      }
+    }
+  }, new Writes[GeoValue] { 
+      def writes(data: GeoValue): JsValue = {
+        data match {
+          case GeoString(s) => JsString(s)
+          case GeoDouble(d) => JsNumber(d)
+          case x => throw new Exception(s"GeoValue: $x not supported")
+        }
+      }
+  })
+}
+case class GeoString(s: String) extends GeoValue(s.toDouble)
+case class GeoDouble(d: Double) extends GeoValue(d)
+
+
 abstract class WebJsonGeocoder(
   getLat: JsPath, 
   getLon: JsPath,
@@ -172,8 +199,8 @@ abstract class WebJsonGeocoder(
     val actualUrl = url(house, street, city, state)
     try {
       val json = Json.parse(HttpUtils.get(actualUrl))
-      val latitude = getLat.read[Double].reads(json).get
-      val longitude = getLon.read[Double].reads(json).get
+      val latitude = getLat.read[GeoValue].reads(json).get.value
+      val longitude = getLon.read[GeoValue].reads(json).get.value
       return Seq( latitude, longitude )
     } catch {
       case ioe: Throwable =>  {
