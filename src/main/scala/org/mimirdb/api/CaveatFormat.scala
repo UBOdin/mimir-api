@@ -17,7 +17,7 @@ object CaveatFormat
         // line, since spark annoyingly hides the non-json version from us.
         val t = DataType.fromJson(fields("dataType").toString) 
         JsSuccess(
-          Literal(SparkPrimitive.decode(fields("value"), t), t)
+          Literal(SparkPrimitive.decode(fields("value"), t))
         )
       }
     },

@@ -10,13 +10,16 @@ import org.apache.spark.sql.functions.{
   size => array_size, 
   element_at, 
   when,
-  col
+  col, 
+  concat, 
+  lit
 }
 
 import org.mimirdb.lenses.Lens
 import org.mimirdb.data.Catalog
 import org.mimirdb.util.HttpUtils
 import org.mimirdb.caveats.implicits._
+import org.mimirdb.util.StringUtils
 
 case class GeocoderConfig(
   houseColumn: String,
@@ -104,7 +107,7 @@ class GeocodingLens(
                             addresses(STATE)
                           ) as COORDS
                       )
-      catalog.stageAndPut(cacheCode, newCache, cacheFormat)
+      catalog.stageAndPut(cacheCode, newCache, cacheFormat, includeRowId = true)
     } 
     return Json.toJson(config.withGeocoderAndCacheCode(geocoder, cacheCode))
   }
@@ -115,7 +118,49 @@ class GeocodingLens(
     val cache = catalog.get(config.cacheCode.get)
     val geocoder = config.geocoder
                           .getOrElse { geocoders.head._1 }
-    val coordinates = col("_2").getField(COORDS).caveat(s"A geocoder (${geocoder}) to determine this value")
+    val coordinates = col("_2").getField(COORDS)
+
+    def caveatMessage(multiplicity: String) = 
+    {
+      concat(
+        lit(s"Geocoder $geocoder provided ${multiplicity} coordinates for '"),
+        col("_2").getField(HOUSE) , lit(" "),
+        col("_2").getField(STREET), lit("; "),
+        col("_2").getField(CITY)  , lit(", "),
+        col("_2").getField(STATE) , lit("'"),
+      )      
+    }
+    val caveatKey = Seq(
+      col("_2").getField(HOUSE), 
+      col("_2").getField(STREET), 
+      col("_2").getField(CITY), 
+      col("_2").getField(STATE)
+    )
+
+    val fieldNames = input.schema.fieldNames.toSet
+
+    def buildLatOrLon(lat: Boolean) =
+    {
+      val (coord_idx, stringLatOrLon, colName) = (
+        if(lat) { (1, "latitude",  config.lat) }
+        else    { (2, "longitude", config.lon) }
+      )
+
+      when(array_size(coordinates) >= 2,
+           element_at(coordinates, coord_idx)
+              .caveatIf(
+                message = caveatMessage("multiple"),
+                family = config.cacheCode.get,
+                condition = array_size(coordinates) > 2
+              )(caveatKey:_*)
+      ).otherwise(
+        lit(null).caveat(
+                message = caveatMessage("no"), 
+                family = config.cacheCode.get
+              )(caveatKey:_*)
+      ).as(StringUtils.uniqueName(colName, fieldNames))
+    }
+    // cache.show()
 
     input.joinWith(
       cache,
@@ -131,18 +176,8 @@ class GeocodingLens(
       input.schema
            .fieldNames
            .map { field => col("_1").getField(field).as(field) } 
-        :+ when(array_size(coordinates) >= 2, element_at(coordinates, 1))
-             .otherwise(null).as(
-                 input.schema.fieldNames.foldLeft( 0 ){ (init, curr) => if( curr.asInstanceOf[String].startsWith(config.lat)) init+1 else init } match {
-                   case 0 => config.lat
-                   case colCnt => s"${config.lat}_${colCnt}"
-                 }) 
-        :+ when(array_size(coordinates) >= 2, element_at(coordinates, 2))
-             .otherwise(null).as(
-                 input.schema.fieldNames.foldLeft( 0 ){ (init, curr) => if( curr.asInstanceOf[String].startsWith(config.lon)) init+1 else init } match {
-                   case 0 => config.lon
-                   case colCnt => s"${config.lon}_${colCnt}"
-                 }) 
+        :+ buildLatOrLon(true) 
+        :+ buildLatOrLon(false)
       ):_*
 
     )
@@ -239,8 +274,17 @@ object TestCaseGeocoder extends Geocoder("TEST")
   {
     val rnd = new Random(Seq(house, street, city, state).mkString("; ").hashCode)
 
-    if(rnd.nextDouble < 0.9){
+    val target = rnd.nextDouble
+
+    if(target < 0.7){
       Seq(
+        rnd.nextDouble * 180 - 90, 
+        rnd.nextDouble * 360 - 180
+      )
+    } else if(target < 0.9){
+      Seq(
+        rnd.nextDouble * 180 - 90, 
+        rnd.nextDouble * 360 - 180,
         rnd.nextDouble * 180 - 90, 
         rnd.nextDouble * 360 - 180
       )

@@ -7,6 +7,8 @@ import org.mimirdb.lenses.implementation.TestCaseGeocoder
 import org.apache.spark.serializer.KryoSerializer
 import org.datasyslab.geosparkviz.core.Serde.GeoSparkVizKryoRegistrator
 import org.mimirdb.data.JDBCMetadataBackend
+import org.mimirdb.caveats.PrettyPrint
+
 
 object SharedSparkTestInstance
 {
@@ -50,6 +52,7 @@ object SharedSparkTestInstance
   def initAPI {
     this.synchronized {
       if(MimirAPI.sparkSession == null){
+        PrettyPrint.simpleOutput = true
         MimirAPI.sparkSession = spark
       }
       if(MimirAPI.conf == null){

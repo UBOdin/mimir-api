@@ -1,4 +1,4 @@
-package org.mimir.util
+package org.mimirdb.util
 
 import org.slf4j.{LoggerFactory};
 import ch.qos.logback.classic.{Level, Logger};

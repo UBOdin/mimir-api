@@ -4,11 +4,19 @@ import play.api.libs.json._
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAll
 
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
+
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.MimirAPI
 import org.mimirdb.rowids.AnnotateWithRowIds
-import org.mimir.util.LoggerUtils
+import org.mimirdb.util.LoggerUtils
 import org.mimirdb.lenses.Lenses
+import org.mimirdb.caveats.implicits._
+import org.mimirdb.caveats.EnumerableCaveatSet
 
 class ExplainSpec 
   extends Specification
@@ -73,18 +81,36 @@ class ExplainSpec
       val firstRowid = rows
           .head
           .getInt(0)
+      val secondRowid = rows
+          .tail
+          .head
+          .getInt(0)
       val lastRowid = rows
           .last
           .getInt(0)
-      //the first row LATITUDE should have a caveat message
+
+      df.showCaveats()
+
       val explainFirstRequest = ExplainCellRequest(
                 s"SELECT * FROM ${response.name}",
                 firstRowid.toString,
                 "LATITUDE"
               )
       val firstResult = Json.toJson(explainFirstRequest.handle).as[ExplainResponse]
-      firstResult.reasons must haveSize(1)
-      firstResult.reasons(0).message must not be null
+      firstResult.reasons must haveSize(0)
+
+      val explainSecondRequest = ExplainCellRequest(
+                s"SELECT * FROM ${response.name}",
+                secondRowid.toString,
+                "LATITUDE"
+              )
+      val secondResult = Json.toJson(explainSecondRequest.handle).as[ExplainResponse]
+      secondResult.reasons must haveSize(1)
+      secondResult.reasons(0).message must not be null
+
+
+
+
       //the last row LATITUDE (after a null in the middle) should have the same caveat message
       val explainLastRequest = ExplainCellRequest(
                 s"SELECT * FROM ${response.name}",

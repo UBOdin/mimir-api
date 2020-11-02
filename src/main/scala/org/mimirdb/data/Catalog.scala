@@ -12,6 +12,7 @@ import org.mimirdb.spark.PythonUDFBuilder
 import org.mimirdb.profiler.DataProfiler
 import org.mimirdb.util.ExperimentalOptions
 import org.mimirdb.util.TaskDeduplicator
+import org.mimirdb.rowids.AnnotateWithRowIds
 
 /**
  * Lazy data ingest and view management for Mimir
@@ -118,13 +119,32 @@ class Catalog(
     format: String = bulkStorageFormat,
     replaceIfExists: Boolean = true,
     properties: Map[String, JsValue] = Map.empty,
-    proposedSchema: Option[Seq[StructField]] = None
+    proposedSchema: Option[Seq[StructField]] = None,
+    includeRowId: Boolean = true
   )
   {
-    val url = staging.stage(df, format, Some(name))
+    val url = staging.stage(
+      input = (
+        if(includeRowId) { AnnotateWithRowIds(df) }
+        else { df }
+      ), 
+      format = format, 
+      nameHint = Some(name)
+    )
     put(
       name, 
-      LoadConstructor(url, format, Map(), Seq(), None, proposedSchema),
+      LoadConstructor(
+        url, 
+        format, 
+        Map(), 
+        Seq(), 
+        None, 
+        proposedSchema.map { _ ++ (
+          if(includeRowId) { 
+            Some(StructField(AnnotateWithRowIds.ATTRIBUTE, StringType))
+          } else { None }
+        )} 
+      ),
       Set(),
       replaceIfExists,
       properties = properties
