@@ -6,6 +6,11 @@ import org.specs2.mutable.Specification
 
 import org.mimirdb.api.{ MimirAPI, SharedSparkTestInstance }
 import org.mimirdb.lenses.implementation.TestCaseGeocoder
+import org.mimirdb.api.request.LoadRequest
+import org.mimirdb.api.request.CreateLensRequest
+import org.mimirdb.api.CreateResponse
+import org.mimirdb.api.request.CreateLensResponse
+import org.mimirdb.api.request.QueryTableRequest
 
 
 class GeocodingLensSpec 
@@ -63,6 +68,45 @@ class GeocodingLensSpec
 
     }
 
+    val loadRequest:LoadRequest = LoadRequest(
+                    file              = "test_data/geo.csv",
+                    format            = "csv",
+                    inferTypes        = true, 
+                    detectHeaders     = true,
+                    humanReadableName = Some("STILL MORE THING TESTS"),
+                    backendOption     = Seq(),
+                    dependencies      = Some(Seq()),
+                    resultName        = None,
+                    properties        = None,
+                    proposedSchema    = None
+                  )            
+    val loadResponse = Json.toJson(loadRequest.handle).as[CreateResponse]
+      
+    val lensRequest = CreateLensRequest(
+                      loadResponse.name,
+                      Json.obj(
+                        "houseColumn"  -> STRNUMBER,
+                        "streetColumn" -> STRNAME,
+                        "cityColumn"   -> CITY,
+                        "stateColumn"  -> STATE      
+                      ), 
+                      Lenses.geocode,
+                      false,
+                      Some("NULL TEST"),
+                      None,
+                      None
+                    )
+    val LensResponse = Json.toJson(lensRequest.handle).as[CreateLensResponse]
+     
+    val queryRequest =  QueryTableRequest(
+                            LensResponse.name,
+                            None,
+                            Some(25),
+                            Some(0),
+                            true,
+                            Some(true))
+    val queryResponse = Json.toJson(queryRequest.handle).as[CreateLensResponse]
+    
     ok
 
   }
