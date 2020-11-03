@@ -55,6 +55,10 @@ class GeocodingLensSpec
           row.getAs[Double](LATITUDE) must beEqualTo(a)
           row.getAs[Double](LONGITUDE) must beEqualTo(b)
         }
+        case Seq(a, b, c, d) => {
+          row.getAs[Double](LATITUDE) must beEqualTo(a)
+          row.getAs[Double](LONGITUDE) must beEqualTo(b)
+        }
       }
 
     }
