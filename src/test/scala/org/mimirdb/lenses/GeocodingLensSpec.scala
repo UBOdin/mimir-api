@@ -11,6 +11,7 @@ import org.mimirdb.api.request.CreateLensRequest
 import org.mimirdb.api.CreateResponse
 import org.mimirdb.api.request.CreateLensResponse
 import org.mimirdb.api.request.QueryTableRequest
+import org.mimirdb.api.request.DataContainer
 
 
 class GeocodingLensSpec 
@@ -105,7 +106,7 @@ class GeocodingLensSpec
                             Some(0),
                             true,
                             Some(true))
-    val queryResponse = Json.toJson(queryRequest.handle).as[CreateLensResponse]
+    val queryResponse = Json.toJson(queryRequest.handle).as[DataContainer]
     
     ok
 

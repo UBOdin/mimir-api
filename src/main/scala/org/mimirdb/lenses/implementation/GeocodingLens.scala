@@ -80,10 +80,10 @@ class GeocodingLens(
     val geocode = udf(geocodeFn)
     
     val addresses = input.select(
-      input(config.houseColumn)  as HOUSE,
+      input(config.houseColumn ) as HOUSE,
       input(config.streetColumn) as STREET,
-      input(config.cityColumn)   as CITY,
-      input(config.stateColumn)  as STATE
+      input(config.cityColumn  ) as CITY,
+      input(config.stateColumn ) as STATE
     )
 
     val cachedAddresses = catalog.getOption(cacheCode)
@@ -101,10 +101,10 @@ class GeocodingLens(
                           addresses(CITY),
                           addresses(STATE),
                           geocode(
-                            addresses(HOUSE),
-                            addresses(STREET),
-                            addresses(CITY),
-                            addresses(STATE)
+                            addresses(HOUSE).cast(StringType),
+                            addresses(STREET).cast(StringType),
+                            addresses(CITY).cast(StringType),
+                            addresses(STATE).cast(StringType)
                           ) as COORDS
                       )
       catalog.stageAndPut(cacheCode, newCache, cacheFormat, includeRowId = true)
@@ -124,10 +124,10 @@ class GeocodingLens(
     {
       concat(
         lit(s"Geocoder $geocoder provided ${multiplicity} coordinates for '"),
-        col("_2").getField(HOUSE) , lit(" "),
-        col("_2").getField(STREET), lit("; "),
-        col("_2").getField(CITY)  , lit(", "),
-        col("_2").getField(STATE) , lit("'"),
+        col("_2").getField(HOUSE).cast(StringType) , lit(" "),
+        col("_2").getField(STREET).cast(StringType), lit("; "),
+        col("_2").getField(CITY).cast(StringType)  , lit(", "),
+        col("_2").getField(STATE).cast(StringType) , lit("'"),
       )      
     }
     val caveatKey = Seq(
