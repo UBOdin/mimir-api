@@ -8,9 +8,13 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     descr = "Which metadata backend to use? ([sqlite])",
     default = Some("sqlite")
   )
+  val dataDir = opt[String]("data-dir",
+    descr = "A directory to store metadata files in.",
+    default = Some("vizier-data")
+  )
   val staging = opt[String]("staging-dir", 
     descr = "A directory to stage temporary files in.",
-    default = Some("vizier_downloads")
+    default = Some(s"${dataDir()}${java.io.File.separator}vizier_downloads")
   )
   val port = opt[Int]("port", 
     descr = "The port to host the API on",
@@ -21,10 +25,6 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
   )
   val osmServer = opt[String]("osm-server",
     descr = "Your Open Street Maps server (for Geocoding)"
-  )
-  val dataDir = opt[String]("data-dir",
-    descr = "A directory to store metadata files in.",
-    default = Some("vizier-data")
   )
   val sparkHost = opt[String]("spark-host",
     descr = "spark master.",
