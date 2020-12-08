@@ -41,35 +41,13 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.mimirdb.api.MimirAPI
 
 case class MissingValueLensConfig(
-  colsStrategy: Seq[MissingValueImputerConfig]
+  columns: Seq[MissingValueImputerConfig],
+  uuid: Option[UUID]
 )
 
 object MissingValueLensConfig
 {
-  implicit val format:Format[MissingValueLensConfig] = Json.format
-
-  def apply(cols: Seq[String], df: DataFrame): MissingValueLensConfig =
-  {
-    val modelUuid = UUID.randomUUID().toString()
-    val colsStrategy = cols.map(mvcol => {
-      val field = df.schema.fields
-                    .find { _.name.equalsIgnoreCase(mvcol) }
-                    .getOrElse { throw new IllegalArgumentException(
-                                    s"No column named '$mvcol'.  Available: ${df.schema.fieldNames.mkString(", ")}")}
-      val modelPath = s"${MimirAPI.conf.dataDir()}${File.separator}${modelUuid}-${mvcol}.model"
-      field.dataType match {
-        //case nt:NumericType => MissingValueImputerConfig(classOf[MeanMedianImputer].getSimpleName , mvcol, "mean", modelPath)
-        //case BooleanType => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, mvcol, "GradientBoostedTreeBinary", modelPath)
-        case x => MissingValueImputerConfig(classOf[MulticlassImputer].getSimpleName, field.name, "NaiveBayes", modelPath)
-      }
-      
-    })
-
-    MissingValueLensConfig(
-      colsStrategy:Seq[MissingValueImputerConfig]
-    )
-  }
-  
+  implicit val format: Format[MissingValueLensConfig] = Json.format
 }
 
 
@@ -78,23 +56,37 @@ object MissingValueLens
   extends Lens
   with LazyLogging
 {
+  def modelFile(uuid: UUID, col: String): File = 
+    new File(MimirAPI.conf.dataDir(), s"${uuid.toString}-${col}.model")
+
   def train(input: DataFrame, rawConfig: JsValue): JsValue = 
   {
-    val config = 
-      rawConfig match {
-        case JsArray(cols) => {
-          MissingValueLensConfig(cols.map(_.as[String]), input)
-        }
-        case _:JsObject => rawConfig.as[MissingValueLensConfig]
-        case _ => throw new IllegalArgumentException(s"Invalid MissingValueLens configuration: $rawConfig")
+    val baseConfig = rawConfig.as[MissingValueLensConfig]
+
+    val uuid = baseConfig.uuid.getOrElse { UUID.randomUUID }
+
+    val columns = baseConfig.columns.map { colConfig =>
+      if(colConfig.modelType.isDefined) { colConfig } 
+      else {
+        // TODO: do some inference around what type of model to plug in
+        // For now, just hardcode a general classifier
+        MissingValueImputerConfig(
+          modelType = Some(classOf[MulticlassImputer].getSimpleName),
+          imputeCol = colConfig.imputeCol,
+          strategy = "NaiveBayes",
+        )
       }
-    val fieldNames = input.schema.fieldNames
-    config.colsStrategy.foreach( imputerConfig => {
-      //logger.debug(s"creating imputer model for: ${imputerConfig.productIterator.mkString(",")}")
-      imputerConfig.imputer.model(input)
-    })
-    Json.toJson(
-      config
+    }
+
+    for( colConfig <- columns ){
+      colConfig.imputer.model(input, modelFile(uuid, colConfig.imputeCol))
+    }
+
+    return Json.toJson(
+      MissingValueLensConfig(
+        columns = columns,
+        uuid = Some(uuid)
+      )
     )
   }
   def create(input: DataFrame, rawConfig: JsValue, context: String): DataFrame = 
@@ -103,7 +95,7 @@ object MissingValueLens
     logger.trace(s"Creating missing value lens with config: $config")
     val fieldNames = input.schema.fieldNames
     val completedf = 
-      config.colsStrategy.foldLeft(input)((inputdf, imputerConfig) => {
+      config.columns.foldLeft(input)((inputdf, imputerConfig) => {
         logger.trace(s"Imputing with $imputerConfig")
         val imputeCol = imputerConfig.imputeCol
         val schemaRev = input.schema(imputeCol)
@@ -121,10 +113,11 @@ object MissingValueLens
             col(ccol)
           }):_*)
         logger.trace("Imputing")
-        val outdf = imputerConfig.imputer.impute(caveatedDf);
+        val model = modelFile(config.uuid.get, imputerConfig.imputeCol)
+        val outdf = imputerConfig.imputer.impute(caveatedDf, model);
         outdf
       }).select(fieldNames.map(ocol =>
-        config.colsStrategy.find(_.imputeCol.equals(ocol)) match {
+        config.columns.find(_.imputeCol.equals(ocol)) match {
           case Some(cs) => col(ocol).cast(input.schema(ocol).dataType)
           case None => col(ocol)
       }):_*)
@@ -133,11 +126,11 @@ object MissingValueLens
 
 }
 
-case class MissingValueImputerConfig(modelType:String, imputeCol:String, strategy:String, modelPath:String){
+case class MissingValueImputerConfig(modelType: Option[String], imputeCol:String, strategy:String){
   def imputer:MissingValueImputer = {
     modelType match {
-      case "MeanMedianImputer" => MeanMedianImputer(imputeCol, strategy, modelPath)
-      case "MulticlassImputer" => MulticlassImputer(imputeCol, strategy, modelPath)
+      case Some("MeanMedianImputer") => MeanMedianImputer(imputeCol, strategy)
+      case Some("MulticlassImputer") => MulticlassImputer(imputeCol, strategy)
       case x => throw new Exception(s"unknown model type: $x")
     }
   }
@@ -148,45 +141,44 @@ object MissingValueImputerConfig
 }
 
 sealed trait MissingValueImputer {
-  def impute(input:DataFrame) : DataFrame
-  def model(input:DataFrame) : Transformer
+  def impute(input:DataFrame, modelFile: File) : DataFrame
+  def model(input:DataFrame, modelFile: File) : Transformer
 }
 
-case class MeanMedianImputer(imputeCol:String, strategy:String, modelPath:String) extends MissingValueImputer{
-  def impute(input:DataFrame) : DataFrame = {
-      model(input).transform(input)
+case class MeanMedianImputer(imputeCol:String, strategy:String) extends MissingValueImputer{
+
+  def impute(input:DataFrame, modelFile: File) : DataFrame = {
+      model(input, modelFile).transform(input)
   }
-  def model(input:DataFrame):Transformer = {
-    val modelFile = new File(modelPath)
+  def model(input:DataFrame, modelFile: File):Transformer = {
     if(modelFile.exists()) 
-      ImputerModel.load(modelPath)
+      ImputerModel.load(modelFile.getPath)
     else {
-      val imputer = new Imputer().
-      setStrategy(strategy).
-      setMissingValue(0).
-      setInputCols(Array(imputeCol)).setOutputCols(Array(imputeCol));
+      val imputer = new Imputer()
+        .setStrategy(strategy)
+        .setMissingValue(0)
+        .setInputCols(Array(imputeCol)).setOutputCols(Array(imputeCol));
       val fieldRef = input(imputeCol)
       val imputerModel = imputer.fit(input.filter(fieldRef.isNotNull))
-      imputerModel.save(modelPath)
+      imputerModel.save(modelFile.getPath)
       imputerModel
     }
   }
 }
 
-case class MulticlassImputer(imputeCol:String, strategy:String, modelPath:String) extends MissingValueImputer{
-  def impute(input:DataFrame) : DataFrame = {
+case class MulticlassImputer(imputeCol:String, strategy:String) extends MissingValueImputer{
+  def impute(input:DataFrame, modelFile: File) : DataFrame = {
     //println(s"impute: input: ----------------\n${input.schema.fields.map(fld => (fld.name, fld.dataType)).mkString("\n")}")
-    val imputeddf = model(input).transform(input)
+    val imputeddf = model(input, modelFile).transform(input)
     imputeddf
   }
-  def model(input:DataFrame):Transformer = {
-    val modelFile = new File(modelPath)
+  def model(input:DataFrame, modelFile: File):Transformer = {
     if(modelFile.exists()){ 
-      PipelineModel.load(modelPath)
+      PipelineModel.load(modelFile.getPath)
     }
     else {
       val imputerModel = MulticlassImputer.classifierPipelines(strategy)(input, MulticlassImputerParams(imputeCol))
-      imputerModel.save(modelPath)
+      imputerModel.save(modelFile.getPath)
       imputerModel
     }
   }

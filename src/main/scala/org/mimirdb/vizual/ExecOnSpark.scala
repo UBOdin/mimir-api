@@ -133,6 +133,19 @@ object ExecOnSpark
                                        else { input(c) } }
           input.select(newSchema:_*)
         }
+      case Sort(columns) => 
+        {
+          input.orderBy(
+            columns.map { col =>
+              val base = input(input.columns(col.column))
+              if(col.order.toUpperCase().equals("ASC")) { 
+                base.asc
+              } else { 
+                base.desc
+              }
+            }:_*
+          )
+        }
       case UpdateCell(column, rows, valueMaybe) => 
         {
           val targetColumn: StructField = input.schema.fields(column)

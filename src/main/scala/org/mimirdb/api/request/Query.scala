@@ -225,7 +225,9 @@ object DataContainer {
             parsed("prov").as[Seq[String]],
             parsed("colTaint").as[Seq[Seq[Boolean]]],
             parsed("rowTaint").as[Seq[Boolean]],
-            parsed("reasons").as[Seq[Seq[Caveat]]],
+            if(parsed contains "reasons"){
+              parsed("reasons").as[Seq[Seq[Caveat]]]
+            } else { Seq.empty },
             parsed("properties").as[Map[String,JsValue]]
           )
         )

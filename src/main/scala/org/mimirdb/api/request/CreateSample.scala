@@ -6,8 +6,9 @@ import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.apache.spark.sql.catalyst.plans.logical.{ LogicalPlan, Filter } 
 import org.apache.spark.sql.functions.{ rand, udf, col }
-import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.types.{ DataType, StructField }
 import org.mimirdb.spark.{ SparkPrimitive, Schema }
+import org.mimirdb.spark.Schema.fieldFormat
 import org.mimirdb.api.{ Request, JsonResponse, MimirAPI, CreateResponse }
 import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, DefaultProvenance }
 
@@ -173,8 +174,17 @@ case class CreateSampleRequest (
       resultName.getOrElse {
         s"SAMPLE_${(source+samplingMode.toString+seed.toString).hashCode().toString().replace("-", "")}"
       }
-    val df = MimirAPI.catalog.put(output, this, Set(source), properties = properties.getOrElse { Map.empty })
-    CreateResponse(output, Schema(df), properties.getOrElse { Map.empty })
+    var constructor = this
+    if(seed.isEmpty){
+      constructor = copy(seed = Some(new Random().nextLong))
+    }
+    val df = MimirAPI.catalog.put(output, constructor, Set(source), properties = properties.getOrElse { Map.empty })
+    CreateSampleResponse(
+      output, 
+      Schema(df), 
+      properties.getOrElse { Map.empty },
+      constructor.seed.get
+    )
   }
 }
 
@@ -186,6 +196,9 @@ object CreateSampleRequest extends DataFrameConstructorCodec {
 case class CreateSampleResponse (
             /* name of resulting view */
                   viewName: String,
+                  schema: Seq[StructField],
+                  properties: Map[String, JsValue],
+                  seed: Long
 ) extends JsonResponse[CreateSampleResponse]
 
 object CreateSampleResponse {

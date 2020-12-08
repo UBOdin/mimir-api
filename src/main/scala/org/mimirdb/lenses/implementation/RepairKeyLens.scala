@@ -78,7 +78,7 @@ object RepairKeyLens
                 output(field).caveatIf(
                   concat(
                     output(COUNT_COLUMN(field)).cast(StringType),
-                    lit(s" different values for $context.$field for $context.${config.key} = "),
+                    lit(s" different values for $context.$field when $context.${config.key} = "),
                     outputKeyAttribute.cast(StringType)
                   ),
                   output(COUNT_COLUMN(field)) > 1
