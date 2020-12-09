@@ -9,6 +9,7 @@
 vizier.db
 
 vizier_downloads/*
+vizier-data/*
 
 *.crc
 
