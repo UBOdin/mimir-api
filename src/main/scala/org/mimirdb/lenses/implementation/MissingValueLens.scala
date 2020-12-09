@@ -61,7 +61,15 @@ object MissingValueLens
 
   def train(input: DataFrame, rawConfig: JsValue): JsValue = 
   {
-    val baseConfig = rawConfig.as[MissingValueLensConfig]
+    val baseConfig = rawConfig match {
+      case JsArray(value) => MissingValueLensConfig(
+          value.map(col => MissingValueImputerConfig(
+            modelType = None,
+            imputeCol = col.asInstanceOf[JsString].value,
+            strategy = "NaiveBayes")
+          ), None)
+      case _ => rawConfig.as[MissingValueLensConfig]
+    }
 
     val uuid = baseConfig.uuid.getOrElse { UUID.randomUUID }
 

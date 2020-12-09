@@ -25,8 +25,8 @@ class CreateSampleSpec
                       None,
                       None
                     )
-      val response = Json.toJson(request.handle).as[CreateResponse]
-      val df = MimirAPI.catalog.get(response.name)
+      val response = Json.toJson(request.handle).as[CreateSampleResponse]
+      val df = MimirAPI.catalog.get(response.viewName)
       df.count() must be beCloseTo(3, /*+/-*/ 2)
     }
     "Stratified" >> {
@@ -41,8 +41,8 @@ class CreateSampleSpec
                       None,
                       None
                     )
-      val response = Json.toJson(request.handle).as[CreateResponse]
-      val df = MimirAPI.catalog.get(response.name)
+      val response = Json.toJson(request.handle).as[CreateSampleResponse]
+      val df = MimirAPI.catalog.get(response.viewName)
       df.filter { df("A") === "1" }.count() must be beCloseTo(2, /*+/-*/ 1)
       df.filter { df("A") === "2" }.count() must be equalTo(2)
       df.filter { df("A") === "3" }.count() must be equalTo(0)
