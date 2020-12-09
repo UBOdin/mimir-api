@@ -48,7 +48,7 @@ case class CreateLensRequest (
         `type`, 
         input, 
         config, 
-        "in " +humanReadableName.getOrElse { input }
+        humanReadableName.getOrElse { input }
       ),
       Set(input),
       properties = properties.getOrElse { Map.empty }

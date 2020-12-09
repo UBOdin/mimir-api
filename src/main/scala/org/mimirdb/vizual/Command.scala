@@ -24,6 +24,7 @@ object Command
             case "projection"    => JsSuccess(j.as[FilterColumns])
             case "renamecolumn"  => JsSuccess(j.as[RenameColumn])
             case "updatecell"    => JsSuccess(j.as[UpdateCell])
+            case "sort"          => JsSuccess(j.as[Sort])
             case _ => JsError("Not a valid Vizier command")
           }
           case Some(_) => JsError("Expecting the 'id' field to be a string")
@@ -44,6 +45,7 @@ object Command
             case x:FilterColumns =>  ("projection",     Json.toJson(x))
             case x:RenameColumn  =>  ("renamecolumn",   Json.toJson(x))
             case x:UpdateCell    =>  ("updatecell",     Json.toJson(x))
+            case x:Sort          =>  ("sort",           Json.toJson(x))
           }
         Json.toJson(
           js.as[Map[String, JsValue]] 
@@ -137,11 +139,17 @@ object RenameColumn
 //////////////////////////
 
 case class SortColumn(
-  columns_column: String,
-  columns_order: String // "ASC", "DESC"
+  column: Int,
+  order: String // "ASC", "DESC"
 )
 object SortColumn
 { implicit val format: Format[SortColumn] = Json.format }
+
+case class Sort(
+  columns: Seq[SortColumn]
+) extends Command
+object Sort
+{ implicit val format: Format[Sort] = Json.format }
 
 //////////////////////////
 
