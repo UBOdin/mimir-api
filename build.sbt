@@ -128,7 +128,7 @@ bootstrap := {
   }.flatten
 
   val (art, file) = packagedArtifact.in(Compile, packageBin).value
-  val qualified_artifact_name = file.name.replace(".jar", "").replaceFirst("-([0-9.]+)$", "")
+  val qualified_artifact_name = file.name.replace(".jar", "").replaceFirst("-SNAPSHOT","").replaceFirst("-([0-9.]+)$", "")
   val full_artifact_name = s"${organization.value}:${qualified_artifact_name}:${version.value}"
   println("Rendering bootstraps for "+full_artifact_name)
   for(resolver <- resolverArgs){
@@ -143,7 +143,8 @@ bootstrap := {
     "-f",
     "-o", "bin/mimir-api",
     "-r", "central",
-    "-M", "org.mimirdb.api.MimirAPI"
+    "-M", "org.mimirdb.api.MimirAPI",
+    "--embed-files=false"
   )++resolverArgs) ! logger match {
       case 0 =>
       case n => sys.error(s"Bootstrap failed")

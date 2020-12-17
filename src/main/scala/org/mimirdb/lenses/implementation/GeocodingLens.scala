@@ -20,6 +20,7 @@ import org.mimirdb.data.Catalog
 import org.mimirdb.util.HttpUtils
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.util.StringUtils
+import java.net.URLEncoder
 
 case class GeocoderConfig(
   houseColumn: String,
@@ -231,13 +232,23 @@ abstract class WebJsonGeocoder(
 
   def apply(house: String, street: String, city: String, state: String): Seq[Double]=
   {
-    val actualUrl = url(house, street, city, state)
+    val actualUrl = url(
+        Option(house).getOrElse(""), 
+        Option(street).getOrElse(""), 
+        Option(city).getOrElse(""), 
+        Option(state).getOrElse(""))
     try {
       val json = Json.parse(HttpUtils.get(actualUrl))
       val latitude = getLat.read[GeoValue].reads(json).get.value
       val longitude = getLon.read[GeoValue].reads(json).get.value
       return Seq( latitude, longitude )
     } catch {
+      case nse: java.util.NoSuchElementException => {
+        if(Option(house).isEmpty && Option(street).isEmpty)
+          return Seq()
+        else
+          return apply(null,null,city,state)
+      }
       case ioe: Throwable =>  {
         logger.error(s"Exception with Geocoding Request: $actualUrl", ioe)
         Seq()
@@ -265,7 +276,7 @@ class OSMGeocoder(hostURL: String, name: String = "OSM") extends WebJsonGeocoder
 )
 {
   def url(house: String, street: String, city: String, state: String) =
-    s"$hostURL/?format=json&street=$house%20$street&city=$city&state=$state"
+    s"$hostURL/?format=json&street=${URLEncoder.encode(house, "UTF-8")}%20${URLEncoder.encode(street, "UTF-8")}&city=${URLEncoder.encode(city, "UTF-8")}&state=${URLEncoder.encode(state, "UTF-8")}"
 }
 
 object TestCaseGeocoder extends Geocoder("TEST")

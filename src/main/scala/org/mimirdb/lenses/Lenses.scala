@@ -14,6 +14,7 @@ object Lenses
   val pivot         = "pivot"          
   val shred         = "shred" 
   val geocode       = "geocode"
+  val shapeWatcher  = "shape_watcher"
   val implementations = scala.collection.mutable.Map[String, Lens](
     typeInference      -> TypeInferenceLens,
     missingKey         -> MissingKeyLens,
@@ -22,7 +23,8 @@ object Lenses
     comment            -> CommentLens,
     missingValue       -> MissingValueLens,
     pivot              -> PivotLens,
-    shred              -> ShredderLens           
+    shred              -> ShredderLens,
+    shapeWatcher       -> ShapeWatcherLens
   )
 
   def supportedLenses = implementations.keys.toSeq
