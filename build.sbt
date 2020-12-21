@@ -30,7 +30,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.8" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.9" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
@@ -174,5 +174,5 @@ pomExtra := <url>http://mimirdb.info</url>
 /////// Publishing Options ////////
 // use `sbt publish` to update the package in
 // your own local ivy cache
-
-publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
+publishTo := Some(Resolver.file("file",  new File("/var/www/maven_repo/")))
+// publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
