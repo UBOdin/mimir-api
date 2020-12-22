@@ -24,7 +24,10 @@ resolvers += Resolver.mavenLocal
 
 excludeDependencies ++= Seq(
   // Hadoop brings in more logging backends.  Kill it with fire.
-  ExclusionRule("org.slf4j", "slf4j-log4j12")
+  ExclusionRule("org.slf4j", "slf4j-log4j12"),
+  // Chained jetty dependencies
+  ExclusionRule( organization = "org.mortbay.jetty"), 
+  ExclusionRule( organization = "javax.servlet") ,
 )
 
 // Custom Dependencies
@@ -59,6 +62,7 @@ libraryDependencies ++= Seq(
   "org.eclipse.jetty"             %   "jetty-servlets"           % "9.4.10.v20180503",
   "org.eclipse.jetty"             %   "jetty-util"               % "9.4.10.v20180503",
   "org.eclipse.jetty"             %   "jetty-webapp"             % "9.4.10.v20180503",
+  "javax.servlet"                 %   "javax.servlet-api"        % "3.1.0",
 
   //Data Source Support
   //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
