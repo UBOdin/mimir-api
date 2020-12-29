@@ -240,7 +240,7 @@ object ExecOnSpark
               // If we're here, we've been given a literal to interpret.  This is a wee bit tricky
               // since we need to figure out how to cast it.  Start with the column's native data
               // type.
-              println(s"$value -> ${targetColumn.dataType}")
+              // println(s"$value -> ${targetColumn.dataType}")
               val update = Cast(lit(value).expr, targetColumn.dataType).eval()
 
               // If the updated value can't be interpreted in the column's native data type, 

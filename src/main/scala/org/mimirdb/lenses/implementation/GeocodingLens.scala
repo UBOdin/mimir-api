@@ -72,11 +72,11 @@ class GeocodingLens(
   def train(input: DataFrame, rawConfig:JsValue): JsValue = 
   {
     val config = rawConfig.as[GeocoderConfig]
-    val cacheCode = config.cacheCode.getOrElse { 
-      "GEOCODE_" + (new Random().alphanumeric.take(20).mkString)
-    }
     val geocoder = config.geocoder
                           .getOrElse { geocoders.head._1 }
+    val cacheCode = config.cacheCode.getOrElse { 
+      "GEOCODE_" + geocoder + "_" + (new Random().alphanumeric.take(20).mkString)
+    }
     val geocodeFn = geocoders(geocoder).apply _
     val geocode = udf(geocodeFn)
     
@@ -91,7 +91,15 @@ class GeocodingLens(
 
     val someRequiredAddressesAreNotCachedYet = 
       (cachedAddresses.isEmpty) ||
-        (! (addresses except cachedAddresses.get).isEmpty)
+        (! (addresses except (
+          cachedAddresses.map { cache =>
+            cache.select(
+              cache(HOUSE) as HOUSE,
+              cache(STREET) as STREET,
+              cache(CITY) as CITY,
+              cache(STATE) as STATE
+            )
+          }.get)).isEmpty)
 
     if(someRequiredAddressesAreNotCachedYet){
       // This can be optimized, but let's start simple.  If the cache is 
