@@ -66,9 +66,6 @@ object Eval {
   
     def apply[A](string: String): A = {
       val toolbox = currentMirror.mkToolBox()
-      println(s"""--------------------
-        $string
-        ---------------""")
       val tree = toolbox.parse(string)
       toolbox.eval(tree).asInstanceOf[A]
     }
