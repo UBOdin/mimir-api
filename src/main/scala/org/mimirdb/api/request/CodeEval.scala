@@ -21,19 +21,22 @@ case class CodeEvalRequest (
 ) extends Request {
   def handle = {
     language match {
-      case "R"     => evalR(source)
-      case "scala" => evalScala(source)
+      case "R"     => evalR(source, input)
+      case "scala" => evalScala(source, input)
     }
   }
 
-  def evalR(source: String): CodeEvalResponse = ???
+  def evalR(source: String, input: Map[String,String]): CodeEvalResponse = ???
 
   //def evalScala(source: String): CodeEvalResponse = ???
   
-  def evalScala(source : String) : CodeEvalResponse = {
+  def evalScala(source : String, input: Map[String,String]) : CodeEvalResponse = {
     try {
+      val vizierdb = s"""
+        val vizierdb = new VizierDB(Json.parse(${"\"\"\"" + Json.stringify(Json.toJson(input)) + "\"\"\""}).as[Map[String, String]])
+      """
       val result = Eval[OutputBuffer](
-        Eval.STANDARD_PREFIX + source + Eval.STANDARD_SUFFIX
+        Eval.STANDARD_PREFIX + vizierdb + source + Eval.STANDARD_SUFFIX
       )
       CodeEvalResponse(
         result.stdout.map { _.toString }.mkString("\n"),
@@ -51,6 +54,7 @@ case class CodeEvalRequest (
 object Eval {
 
   val STANDARD_PREFIX = """
+    import play.api.libs.json.Json
     import org.mimirdb.api.request.{ VizierDB, OutputBuffer }
     val mimir_output_buffer = new OutputBuffer
     import mimir_output_buffer.{print, println}
@@ -74,19 +78,19 @@ object Eval {
   
   }
   
-object VizierDB {
+class VizierDB(val input: Map[String,String]) {
   
   def setHadoopConfig(key:String, value:String) = {
     MimirAPI.sparkSession.sparkContext.hadoopConfiguration.set(key,value)
   }
   
   def withDataset[T](dsname:String, handler: Dataset[Row] => T) : T = {
-    MimirAPI.catalog.populateSpark()
-    handler(MimirAPI.catalog.get(dsname))
+    //MimirAPI.catalog.populateSpark()
+    handler(MimirAPI.catalog.get(input.getOrElse(dsname, dsname)))
   }
       
   def outputAnnotations(dsname:String) : String = {
-    Explain(s"SELECT * FROM $dsname").map(_.toString).mkString("<br>")
+    Explain(s"SELECT * FROM ${input.getOrElse(dsname, dsname)}").map(_.toString).mkString("<br>")
   }
 }
 
