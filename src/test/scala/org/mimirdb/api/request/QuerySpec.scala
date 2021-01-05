@@ -209,7 +209,19 @@ class QuerySpec
         result.data.map { _(0) } must beEqualTo(Seq(0, null, 2, 3, 4))
         result.colTaint.map { _(0) } must beEqualTo(Seq(false, false, false, false, false))
       }
+    }
 
+    "Not explode when compiling an Outer join" >>
+    {
+      query("""
+SELECT DISTINCT a.B FROM TEST_R a
+          LEFT JOIN TEST_R b ON b.A = a.A
+        WHERE b.B IS NULL
+      """) { result => 
+        // no real test here... the regression is an exception during 
+        // caveat application
+        result.data.size must beEqualTo(2)
+      }
     }
   }
 

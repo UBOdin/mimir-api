@@ -1,5 +1,5 @@
 name := "mimir-api"
-version := "0.3"
+version := "0.4-SNAPSHOT"
 organization := "org.mimirdb"
 scalaVersion := "2.12.10"
 
@@ -33,7 +33,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.9" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.10" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API

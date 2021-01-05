@@ -205,6 +205,36 @@ case class DataContainer (
                   reasons: Seq[Seq[Caveat]],
                   properties: Map[String,JsValue]
 ) extends JsonResponse[DataContainer]
+{
+  override def toString =
+  {
+    val rows = prov.zip(data).zip(colTaint).zip(rowTaint).map { 
+      case (((rowid, row), colCaveats), rowCaveat) => 
+        s"<$rowid>${if(rowCaveat){"*"}else{""}}" +: 
+          row.map { case null => "null"; case x => x.toString }
+             .zip(colCaveats)
+             .map { 
+               case (x, true) => x+"*" 
+               case (x, false) => x
+             }
+    }
+    val header = "ROWID" +: schema.map { _.name }
+
+    val colWidth = 
+      rows.foldLeft( header.map { _.length } ) { (width, row) => 
+        width.zip(row).map { case (w, v) => math.max(w, v.length) }
+      }
+
+    val output = 
+      (header +: rows).map { colWidth.zip(_).map { case (w, v) => 
+        v.padTo(w, " ").mkString
+      }.mkString(" | ")}
+
+    (output.head +: ( 
+      colWidth.map { "-" * _ }.mkString("-+-") +: output.tail
+    )).mkString("\n")
+  }
+}
 
 object DataContainer {
   implicit val format: Format[DataContainer] = Format(

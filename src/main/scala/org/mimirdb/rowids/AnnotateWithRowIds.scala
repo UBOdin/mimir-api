@@ -169,17 +169,28 @@ class AnnotateWithRowIds(
       {
         val (leftRewrite, leftAnnotation) = recur(left)
         val (rightRewrite, rightAnnotation) = recur(right)
-        val lhs = 
+        val lhsAlias = Alias(leftAnnotation, "LHS_"+rowIdAttribute)()
+        val rhsAlias = Alias(rightAnnotation, "RHS_"+rowIdAttribute)()
+        val lhs =
           Project(
-            left.output :+ Alias(leftAnnotation, "LHS_"+rowIdAttribute)(),
+            left.output :+ lhsAlias,
             leftRewrite
           )
         val rhs = 
           Project(
-            right.output :+ Alias(rightAnnotation, "RHS_"+rowIdAttribute)(),
+            right.output :+ rhsAlias,
             rightRewrite
           )
         val newAnnotation = annotationAttribute()
+        
+        val lhsAttr = 
+          AttributeReference("LHS_"+rowIdAttribute, 
+            AnnotateWithRowIds.FIELD_TYPE.dataType
+            )(exprId = lhsAlias.exprId)
+        val rhsAttr = 
+          AttributeReference("RHS_"+rowIdAttribute, 
+            AnnotateWithRowIds.FIELD_TYPE.dataType
+            )(exprId = rhsAlias.exprId)
         
         (
           Project(
@@ -187,8 +198,10 @@ class AnnotateWithRowIds(
               annotate(
                 Join(lhs, rhs, joinType, condition, hint),
                 newAnnotation.exprId,
-                UnresolvedAttribute("LHS_"+rowIdAttribute),
-                UnresolvedAttribute("RHS_"+rowIdAttribute))
+                // If we have outer joins, we may get null rowids
+                new IfNull(lhsAttr, Literal(1l)),
+                new IfNull(rhsAttr, Literal(1l))
+              )
           ), 
           newAnnotation
         )
