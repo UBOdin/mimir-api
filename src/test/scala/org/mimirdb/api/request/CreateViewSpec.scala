@@ -6,7 +6,6 @@ import org.specs2.specification.BeforeAll
 
 import org.mimirdb.api.SharedSparkTestInstance
 import org.mimirdb.api.MimirAPI
-import org.mimirdb.spark.GetViewDependencies
 import org.mimirdb.spark.InjectedSparkSQL
 
 
@@ -22,8 +21,21 @@ class CreateViewSpec
   {
     val query = InjectedSparkSQL(spark)("SELECT * FROM TEST_R, GEO", MimirAPI.catalog.allTableConstructors)
     // query.explain(true)
-    GetViewDependencies(query).map { _.toLowerCase() } must contain(
+    val (viewDeps, fnDeps) = 
+      InjectedSparkSQL(spark).getDependencies("SELECT * FROM TEST_R, GEO")
+    
+    viewDeps must contain(
       "test_r", "geo"
     )
+  }
+
+  "Check that we are able to extract aliased views" >> 
+  {
+    val views = 
+      InjectedSparkSQL(spark)
+        .getDependencies("SELECT * FROM TEST_R foo")
+        ._1
+
+    views must contain(exactly("test_r"))
   }
 }
