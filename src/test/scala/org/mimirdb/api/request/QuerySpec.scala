@@ -129,6 +129,16 @@ class QuerySpec
       }
     }
 
+    "Perform Left Join with caveats" >> {
+      query("""
+        SELECT DISTINCT a.B FROM TEST_R a
+          LEFT JOIN TEST_R b ON b.A = a.A
+        WHERE b.B IS NULL
+      """) { result => 
+        result.data.size must beEqualTo(2)
+      }
+    }
+
     "Query a catalog table" >> 
     {
       val table = "QUERY_R"

@@ -142,7 +142,7 @@ object AnnotateWithSequenceNumber
                   Count(Seq(Literal(1))),Complete,false
                 ), COUNT_ATTR),
               ResolvedAlias(AggregateExpression(
-                  First(INTERNAL_ID,Literal(false)),Complete,false
+                  First(INTERNAL_ID,false),Complete,false
                 ),INTERNAL_ID)
             ),
           planWithPartitionedIdentifierAttributes)
