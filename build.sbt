@@ -33,7 +33,7 @@ excludeDependencies ++= Seq(
 // Custom Dependencies
 libraryDependencies ++= Seq(
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.2.10" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.3.0" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
