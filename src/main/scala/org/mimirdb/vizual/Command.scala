@@ -168,7 +168,13 @@ object RowSelection
       def reads(j: JsValue): JsResult[RowSelection] =
         j match { 
           case x: JsNumber => JsSuccess(RowsById(Set(x.as[Long].toString)))
-          case x: JsString => JsSuccess(RowsById(Set(x.as[String])))
+          case x: JsString => {
+            if(x.value.startsWith("=")){
+              JsSuccess(RowsByConstraint(x.value.substring(1)))
+            } else {
+              JsSuccess(RowsById(Set(x.as[String])))
+            }
+          }
           case x: JsArray => JsSuccess(RowsById(x.as[Seq[String]].toSet))
           case JsNull => JsSuccess(AllRows())
           case _ => JsError("Not a valid row selection")
@@ -179,6 +185,7 @@ object RowSelection
         j match { 
           case RowsById(rows) => Json.toJson(rows.toSeq)
           case AllRows() => JsNull
+          case RowsByConstraint(constraint) => Json.toJson(s"=$constraint")
         }
     }
   )
@@ -197,6 +204,10 @@ case class AllRows() extends RowSelection
   def predicate = lit(true)
   override def apply(ifTrue: Column)(ifFalse: Column): Column = ifTrue
   override def isAllRows = true
+}
+case class RowsByConstraint(constraint: String) extends RowSelection
+{
+  lazy val predicate = expr(constraint)
 }
 
 case class UpdateCell(

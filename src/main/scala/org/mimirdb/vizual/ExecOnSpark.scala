@@ -269,17 +269,17 @@ object ExecOnSpark
                 .zipWithIndex
                 .map { case (c, idx) => 
                    if(idx != column) { df(c.name) }
-                   else { expr.as(c.name) }
+                   else { Resolve(expr.as(c.name), df) }
                 }
             df.select(columns:_*)
           }
 
           selectedRows match {
-            case AllRows() => {
-              rewriteTargetColumn(input, update)
+            case _:AllRows | _:RowsByConstraint => {
+              rewriteTargetColumn(input, selectedRows { update } { base })
             }
 
-            case RowsById(rows) => {
+            case _:RowsById => {
               AnnotateWithRowIds.withRowId(input) { df => 
                 rewriteTargetColumn(df, selectedRows { update } { base })
               }
