@@ -124,7 +124,7 @@ case class QueryTableRequest (
       offset = offset,
       columns = Some(columnNames),
       computedProperties = MimirAPI.catalog.getProperties(table),
-      cacheAs = if(ExperimentalOptions.isEnabled("CACHE-TABLES")){ Some(table) } else { None },
+      cacheAs = if(ExperimentalOptions.isEnabled("NO-CACHE-TABLES")){ None } else { Some(table) },
     )
   }
 }
