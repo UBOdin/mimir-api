@@ -19,7 +19,8 @@ object Facet
     Seq[FacetDetector](
       ExpectedColumns,
       ExpectedType,
-      Nullable
+      Nullable,
+      ExpectedValues
     ).map { x => x.identity -> x }.toMap
 
   def detect(query: DataFrame): Seq[Facet] =

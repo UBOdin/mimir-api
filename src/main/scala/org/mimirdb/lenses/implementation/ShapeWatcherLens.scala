@@ -40,7 +40,7 @@ object ShapeWatcherLens
           df.select(
             df.columns.map { col =>
               if(col.equalsIgnoreCase(errorColumn)){ 
-                df(col).caveat(msg)
+                df(col).caveat(msg).as(col)
               } else { 
                 df(col)
               }
