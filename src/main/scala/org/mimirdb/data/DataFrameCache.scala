@@ -166,14 +166,14 @@ class CachedDataFrame(val df: DataFrame, table: String, fields: Seq[String])
     logger.trace(s"Rebuffering $table for $start - $end")
     val (targetStart, targetEnd) = DataFrameCache.alignRange(start, end)
     logger.trace(s"Rebuffering $table: [$start, $end) -> [$targetStart,$targetEnd)")
-    logTime(s"REBUFFER[$table/$start,$end]", df.toString()) {
+    // logTime(s"REBUFFER[$table/$start,$end]", df.toString()) {
       buffer = df.filter(
                     (df(AnnotateWithSequenceNumber.ATTRIBUTE) >= targetStart)
                       and
                     (df(AnnotateWithSequenceNumber.ATTRIBUTE) < targetEnd)
                   )
                  .collect()
-    }
+    // }
     logger.trace(s"Rebuffering: buffer for $table now has ${buffer.size} rows")
     bufferStart = targetStart
     DataFrameCache.updatePageCount(this)
