@@ -1,5 +1,5 @@
 name := "mimir-api"
-version := "0.4.2-SNAPSHOT"
+version := "0.4.2"
 organization := "org.mimirdb"
 scalaVersion := "2.12.10"
 
