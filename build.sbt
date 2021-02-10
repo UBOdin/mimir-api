@@ -1,5 +1,5 @@
 name := "mimir-api"
-version := "0.4.2"
+version := "0.5.0-SNAPSHOT"
 organization := "org.mimirdb"
 scalaVersion := "2.12.10"
 
@@ -21,19 +21,36 @@ resolvers += Resolver.typesafeRepo("releases")
 resolvers += DefaultMavenRepository
 resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 resolvers += Resolver.mavenLocal
+// resolvers += "Open Source Geospatial Foundation Repository" at "https://repo.osgeo.org/repository/release/"
+// resolvers += "Java.net repository" at "https://download.java.net/maven/2"
 
 excludeDependencies ++= Seq(
   // Hadoop brings in more logging backends.  Kill it with fire.
   ExclusionRule("org.slf4j", "slf4j-log4j12"),
   // Chained jetty dependencies
   ExclusionRule( organization = "org.mortbay.jetty"), 
-  ExclusionRule( organization = "javax.servlet") ,
 )
 
 // Custom Dependencies
 libraryDependencies ++= Seq(
+
+  // Jetty
+  "org.eclipse.jetty"             %   "jetty-http"               % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-io"                 % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-security"           % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-server"             % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-servlet"            % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-servlets"           % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-util"               % "9.4.10.v20180503",
+  "org.eclipse.jetty"             %   "jetty-webapp"             % "9.4.10.v20180503",
+  "javax.servlet"                 %   "javax.servlet-api"        % "3.1.0",
+  
   // Mimir
-  "org.mimirdb"                   %% "mimir-caveats"             % "0.3.0" excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
+  "org.mimirdb"                   %% "mimir-caveats"             % "0.3.1" excludeAll( 
+                                                                             ExclusionRule("com.fasterxml.jackson.core"), 
+                                                                             ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore"),
+                                                                             ExclusionRule(organization = "javax.servlet")
+                                                                           ),
   // "org.mimirdb"                   %% "mimir-vizual"              % "0.1-SNAPSHOT",
 
   // API
@@ -53,23 +70,16 @@ libraryDependencies ++= Seq(
   // Metadata Backends
   "org.xerial"                    %   "sqlite-jdbc"              % "3.16.1",
 
-  // Jetty
-  "org.eclipse.jetty"             %   "jetty-http"               % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-io"                 % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-security"           % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-server"             % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-servlet"            % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-servlets"           % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-util"               % "9.4.10.v20180503",
-  "org.eclipse.jetty"             %   "jetty-webapp"             % "9.4.10.v20180503",
-  "javax.servlet"                 %   "javax.servlet-api"        % "3.1.0",
-
   //Data Source Support
   //"com.amazonaws"               %   "aws-java-sdk-bundle"      % "1.11.375",
   //"org.apache.hadoop"           %   "hadoop-aws"               % "3.2.0",
   //"com.amazonaws"                 %   "aws-java-sdk-core"        % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   //"com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.10.6"   excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
-  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws"), ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore")),
+  "org.apache.hadoop"             %   "hadoop-aws"               % "2.8.3"    excludeAll( 
+                                                                                  ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="com.amazonaws"), 
+                                                                                  ExclusionRule(organization ="org.apache.httpcomponents", name="httpcore"),
+                                                                                  ExclusionRule(organization = "javax.servlet")
+                                                                                ),
   "com.amazonaws"                 %   "aws-java-sdk-core"        % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
   "com.amazonaws"                 %   "aws-java-sdk-s3"          % "1.11.199" excludeAll( ExclusionRule("com.fasterxml.jackson.core")),
 
@@ -79,9 +89,11 @@ libraryDependencies ++= Seq(
 
   //GIS Support
   //Local
-  "org.datasyslab"                %  "geospark"                  % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core")),
-  "org.datasyslab"                %  "geospark-sql_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
-  "org.datasyslab"                %  "geospark-viz_3.0"          % "1.4.1" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.apache.sedona"             %% "sedona-core-3.0"           % "1.0.0-incubating" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core")),
+  "org.apache.sedona"             %% "sedona-sql-3.0"            % "1.0.0-incubating" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.apache.sedona"             %% "sedona-viz-3.0"            % "1.0.0-incubating" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
+  "org.locationtech.jts"          %  "jts-core"                  % "1.18.0",
+  "org.wololo"                    %  "jts2geojson"               % "0.14.3",
   //Snapshot Of MB's PR
   //"org.datasyslab"                %  "geospark"                  % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet")),
   //"org.datasyslab"                %  "geospark-sql_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
@@ -94,7 +106,10 @@ libraryDependencies ++= Seq(
   "info.mimirdb"                  %% "spark-google-spreadsheets" % "0.6.4",
 
   //excel data loading
-  "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1201-SNAPSHOT"
+  "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1201-SNAPSHOT" excludeAll(
+                                                                      ExclusionRule(organization = "javax.servlet")
+                                                                    ),
+
 
 )
 

@@ -1,11 +1,10 @@
 package org.mimirdb.api
 
 import org.apache.spark.sql.SparkSession
-import org.datasyslab.geospark.serde.GeoSparkKryoRegistrator
+import org.apache.sedona.sql.utils.{Adapter, SedonaSQLRegistrator}
+import org.apache.sedona.viz.core.Serde.SedonaVizKryoRegistrator
+import org.apache.sedona.viz.sql.utils.SedonaVizRegistrator
 import org.apache.spark.serializer.KryoSerializer
-import org.datasyslab.geosparkviz.core.Serde.GeoSparkVizKryoRegistrator
-import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
-import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
 import org.mimirdb.caveats.Caveats
 
 object InitSpark
@@ -18,7 +17,7 @@ object InitSpark
       //.config("spark.eventLog.enabled", "true")
       //.config("spark.eventLog.longForm.enabled", "true")
       .config("spark.serializer", classOf[KryoSerializer].getName)
-      .config("spark.kryo.registrator", classOf[GeoSparkVizKryoRegistrator].getName)
+      .config("spark.kryo.registrator", classOf[SedonaVizKryoRegistrator].getName)
       .config("spark.kryoserializer.buffer.max", "2000m")
       .master("local[*]")
       .getOrCreate()
@@ -31,8 +30,8 @@ object InitSpark
         "com.amazonaws.auth.EnvironmentVariableCredentialsProvider,"+
         "org.apache.hadoop.fs.s3a.SharedInstanceProfileCredentialsProvider,"+
         "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
-    GeoSparkSQLRegistrator.registerAll(sparkSession)
-    GeoSparkVizRegistrator.registerAll(sparkSession)
+    SedonaSQLRegistrator.registerAll(sparkSession)
+    SedonaVizRegistrator.registerAll(sparkSession)
     System.setProperty("geospark.global.charset", "utf8")
     Caveats.registerAllUDFs(sparkSession)
   }
