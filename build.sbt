@@ -21,7 +21,7 @@ resolvers += Resolver.typesafeRepo("releases")
 resolvers += DefaultMavenRepository
 resolvers ++= Seq("snapshots", "releases").map(Resolver.sonatypeRepo)
 resolvers += Resolver.mavenLocal
-// resolvers += "Open Source Geospatial Foundation Repository" at "https://repo.osgeo.org/repository/release/"
+resolvers += "Open Source Geospatial Foundation Repository" at "https://repo.osgeo.org/repository/release/"
 // resolvers += "Java.net repository" at "https://download.java.net/maven/2"
 
 excludeDependencies ++= Seq(
@@ -94,6 +94,9 @@ libraryDependencies ++= Seq(
   "org.apache.sedona"             %% "sedona-viz-3.0"            % "1.0.0-incubating" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule("com.fasterxml.jackson.core"), ExclusionRule("org.apache.hadoop"), ExclusionRule("org.apache.http"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
   "org.locationtech.jts"          %  "jts-core"                  % "1.18.0",
   "org.wololo"                    %  "jts2geojson"               % "0.14.3",
+  "org.geotools"                  %  "gt-main"                   % "24.0",
+  "org.geotools"                  %  "gt-referencing"            % "24.0",
+  "org.geotools"                  %  "gt-epsg-hsql"              % "24.0",
   //Snapshot Of MB's PR
   //"org.datasyslab"                %  "geospark"                  % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet")),
   //"org.datasyslab"                %  "geospark-sql_3.0"          % "1.3.2-SNAPSHOT" excludeAll(ExclusionRule(organization ="javax.servlet"), ExclusionRule(organization ="org.datasyslab", name="sernetcdf")),
