@@ -11,8 +11,6 @@ import org.mimirdb.caveats.implicits._
 import org.mimirdb.lenses.LensConstructor
 import org.mimirdb.lenses.Lenses
 import play.api.libs.json.JsString
-import org.datasyslab.geosparksql.utils.GeoSparkSQLRegistrator
-import org.datasyslab.geosparkviz.sql.utils.GeoSparkVizRegistrator
 import org.mimirdb.api.CreateResponse
 
 class GeoSparkSpec 
@@ -26,9 +24,7 @@ class GeoSparkSpec
   {
     SharedSparkTestInstance.initAPI
     //Initialize GeoSpark
-    GeoSparkSQLRegistrator.registerAll(spark)
-    GeoSparkVizRegistrator.registerAll(spark)
-    System.setProperty("geospark.global.charset", "utf8")
+    System.setProperty("sedona.global.charset", "utf8")
     
     
     val request = LoadRequest(

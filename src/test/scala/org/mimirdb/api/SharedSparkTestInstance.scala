@@ -5,7 +5,8 @@ import org.mimirdb.data.{ Catalog, LoadConstructor }
 import org.mimirdb.lenses.Lenses
 import org.mimirdb.lenses.implementation.TestCaseGeocoder
 import org.apache.spark.serializer.KryoSerializer
-import org.datasyslab.geosparkviz.core.Serde.GeoSparkVizKryoRegistrator
+import org.apache.sedona.viz.core.Serde.SedonaVizKryoRegistrator
+import org.apache.sedona.viz.sql.utils.SedonaVizRegistrator
 import org.mimirdb.data.JDBCMetadataBackend
 import org.mimirdb.caveats.PrettyPrint
 
@@ -17,7 +18,7 @@ object SharedSparkTestInstance
       .appName("Mimir-Caveat-Test")
       .master("local[*]")
       .config("spark.serializer", classOf[KryoSerializer].getName)
-      .config("spark.kryo.registrator", classOf[GeoSparkVizKryoRegistrator].getName)
+      .config("spark.kryo.registrator", classOf[SedonaVizKryoRegistrator].getName)
       .getOrCreate()
   lazy val df = /* R(A int, B int, C int) */
     spark.range(0, 5)
