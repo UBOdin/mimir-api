@@ -152,7 +152,7 @@ class AnnotateWithRowIds(
           Union(
             children.zipWithIndex.map { case (child, idx) => 
               val (rewrite, annotation) = recur(child)
-              annotate(rewrite, newAnnotation.exprId, Literal(idx), annotation)
+              annotate(rewrite, newAnnotation.exprId, Literal(idx.toLong), annotation)
             }
           )
         (ret, newAnnotation)

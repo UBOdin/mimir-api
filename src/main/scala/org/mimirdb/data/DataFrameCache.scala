@@ -15,6 +15,8 @@ import org.mimirdb.util.TimerUtils.logTime
 object DataFrameCache
   extends LazyLogging
 {
+  val SEQUENCE_ATTRIBUTE = "__MIMIR_CACHE_SEQ"
+
   /**
    * The number of rows in a buffer page
    */
@@ -46,7 +48,7 @@ object DataFrameCache
   {
     cache.getOrElseUpdate(table, { 
       new CachedDataFrame(
-        AnnotateWithSequenceNumber(df),
+        AnnotateWithSequenceNumber(df, attribute = SEQUENCE_ATTRIBUTE),
         table,
         df.schema.fieldNames
       ) 
@@ -168,9 +170,9 @@ class CachedDataFrame(val df: DataFrame, table: String, fields: Seq[String])
     logger.trace(s"Rebuffering $table: [$start, $end) -> [$targetStart,$targetEnd)")
     // logTime(s"REBUFFER[$table/$start,$end]", df.toString()) {
       buffer = df.filter(
-                    (df(AnnotateWithSequenceNumber.ATTRIBUTE) >= targetStart)
+                    (df(DataFrameCache.SEQUENCE_ATTRIBUTE) >= targetStart)
                       and
-                    (df(AnnotateWithSequenceNumber.ATTRIBUTE) < targetEnd)
+                    (df(DataFrameCache.SEQUENCE_ATTRIBUTE) < targetEnd)
                   )
                  .collect()
     // }

@@ -12,6 +12,8 @@ import org.apache.spark.sql.types.UDTRegistration
 import org.apache.spark.sql.sedona_sql.UDT.GeometryUDT
 import org.locationtech.jts.geom.Geometry
 import org.apache.spark.sql.catalyst.util.GenericArrayData
+import org.apache.sedona.core.formatMapper.FormatMapper
+import org.apache.sedona.core.enums.FileDataSplitter
 
 object SparkPrimitive
 {
@@ -80,6 +82,9 @@ object SparkPrimitive
       case _ => throw new IllegalArgumentException(s"Invalid Timestamp: '$timestamp'")
     }
 
+  lazy val geometryFormatMapper = 
+    new FormatMapper(FileDataSplitter.WKT, false)
+
   def encode(k: Any, t: DataType): JsValue =
   {
     t match {
@@ -102,7 +107,8 @@ object SparkPrimitive
       case ShortType                => JsNumber(k.asInstanceOf[Short])
       case NullType                 => JsNull
       case ArrayType(element,_)     => JsArray(k.asInstanceOf[Seq[_]].map { encode(_, element) })
-      case GeometryUDT              => JsString(base64Encode(GeometryUDT.serialize(k.asInstanceOf[Geometry]).toByteArray))
+                                       // Encode Geometry as WKT
+      case GeometryUDT              => JsString(k.asInstanceOf[Geometry].toText)
       case _ if k != null           => JsString(k.toString)
       case _                        => JsNull
     }
@@ -131,7 +137,8 @@ object SparkPrimitive
       case (_, ShortType)                 => k.as[Short]
       case (_, NullType)                  => JsNull
       case (_, ArrayType(element,_))      => ArraySeq(k.as[Seq[JsValue]].map { decode(_, element) }:_*)
-      case (_, GeometryUDT)               => GeometryUDT.deserialize(new GenericArrayData(base64Decode(k.as[String])))
+                                       // Assume Geometry is a WKT
+      case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String])
       case _                    => throw new IllegalArgumentException(s"Unsupported type for decode: $t; ${t.getClass()}")
     }
   }
