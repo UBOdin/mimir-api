@@ -37,7 +37,7 @@ class ExplainSpec
           .select(df(AnnotateWithRowIds.ATTRIBUTE))
           .take(1)
           .head
-          .getInt(0)
+          .getLong(0)
   
       val request = ExplainCellRequest(
                       "SELECT * FROM TYPED_R",
@@ -80,14 +80,14 @@ class ExplainSpec
       val rows = df.select(df(AnnotateWithRowIds.ATTRIBUTE)).collect
       val firstRowid = rows
           .head
-          .getInt(0)
+          .getLong(0)
       val secondRowid = rows
           .tail
           .head
-          .getInt(0)
+          .getLong(0)
       val lastRowid = rows
           .last
-          .getInt(0)
+          .getLong(0)
 
       df.showCaveats()
 
