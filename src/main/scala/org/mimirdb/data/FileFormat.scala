@@ -15,4 +15,5 @@ object FileFormat {
   val ORC                    = "orc"
   val GOOGLE_SHEETS          = "mimir.exec.spark.datasource.google.spreadsheet"
   val CSV_WITH_ERRORCHECKING = "org.apache.spark.sql.execution.datasources.ubodin.csv"
+  val BINARY                 = "binaryFile"
 }
