@@ -23,6 +23,7 @@ object RepairKeyLens
   extends Lens
 {
   def COUNT_COLUMN(x: String) = "__MIMIR_REPAIR_KEY_COUNT_"+x
+  def COUNT_EXAMPLES(x: String) = "__MIMIR_REPAIR_KEY_EXAMPLES_"+x
 
   def train(input: DataFrame, rawConfig: JsValue): JsValue = 
   {
@@ -47,6 +48,10 @@ object RepairKeyLens
         nonKeyAttributes
           .map { attr => countDistinct(input(attr)) as COUNT_COLUMN(attr) }
 
+    val nonKeyExamples:Seq[Column] =
+        nonKeyAttributes
+          .map { attr => array_distinct(collect_list(input(attr).cast(StringType))) as COUNT_EXAMPLES(attr) }
+
     val nonKeyAggregates:Seq[Column] = 
       config.weight.map { input(_) } match {
         case None => {
@@ -66,7 +71,7 @@ object RepairKeyLens
 
     val output = 
       input.groupBy(keyAttribute)
-           .agg( nonKeyAggregates.head, (nonKeyAggregates.tail ++ nonKeyCounts) :_* )
+           .agg( nonKeyAggregates.head, (nonKeyAggregates.tail ++ nonKeyCounts ++ nonKeyExamples) :_* )
     
     val outputKeyAttribute = output(config.key)
 
@@ -77,9 +82,24 @@ object RepairKeyLens
               case field => {
                 output(field).caveatIf(
                   concat(
-                    output(COUNT_COLUMN(field)).cast(StringType),
-                    lit(s" different values for $context.$field when $context.${config.key} = "),
-                    outputKeyAttribute.cast(StringType)
+                    output(field),
+                    lit(" could be one of "),
+                    (output(COUNT_COLUMN(field)) - lit(1)).cast(StringType),
+                    lit(s" other distinct values when $context.$field when $context.${config.key} = "),
+                    outputKeyAttribute.cast(StringType),
+                    lit(", including "),
+                    concat_ws(", ",
+                      slice(
+                        filter(
+                          output(COUNT_EXAMPLES(field)),
+                          (x) => output(field) =!= x
+                        ),
+                        1, 3 // limit to 3 examples
+                      )
+                    ),
+                    // we display 4 values.  3 examples + 1 baseline.
+                    when(output(COUNT_COLUMN(field)) > lit(4), lit(", ... and more"))
+                      .otherwise("")
                   ),
                   output(COUNT_COLUMN(field)) > 1
                 ).as(field)
