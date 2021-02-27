@@ -13,10 +13,27 @@ object TypeInferenceLens
 {
   def train(input: DataFrame, rawConfig: JsValue): JsValue = 
   {
+    val givens: Map[String, DataType] = 
+      rawConfig.asOpt[Map[String, DataType]]
+               .getOrElse { Map.empty }
+
+    val isGiven = givens.keySet
+
+    val (stringCols, nonStringCols) = 
+      input.schema
+           .fields
+           .filter { col => !isGiven(col.name) }
+           .partition { _.dataType.equals(StringType) }
+
+    val targets: Set[String] = 
+      stringCols.map { _.name }.toSet -- givens.keySet
+
+    println(s"Targets: $targets")
+
     Json.toJson(
-      InferTypes(input)
+      InferTypes(input, attributes = targets.toSeq)
         .map { field => field.name -> field.dataType }
-        .toMap
+        .toMap ++ givens ++ nonStringCols.map { col => col.name -> col.dataType }
     )
   }
   def create(input: DataFrame, config: JsValue, context: String): DataFrame = 
