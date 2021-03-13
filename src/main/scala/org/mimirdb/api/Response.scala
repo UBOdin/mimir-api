@@ -9,22 +9,41 @@ import com.typesafe.scalalogging.LazyLogging
 
 abstract class Response 
 {
-  def write(output: HttpServletResponse)
+  def status: Int
+  def contentType: String
+  def headers: Seq[(String, String)]
+  def contentLength: Option[Int]
+
+  def write(output: OutputStream):Unit
+  def write(output: HttpServletResponse):Unit =
+  {
+    output.setStatus(status)
+    if(contentLength.isDefined){ output.setContentLength(contentLength.get) }
+    for((header, value) <- headers){
+      output.addHeader(header, value)
+    }
+    output.addHeader("Content-Type", contentType)
+    write(output.getOutputStream())
+  }
 }
 
 abstract class BytesResponse
   extends Response
 {
+  def status = HttpServletResponse.SC_OK
   def contentType = "text/plain"
   def getBytes: Array[Byte]
-  def write(output: HttpServletResponse)
+
+  lazy val byteBuffer = getBytes
+  def contentLength: Option[Int] = Some(byteBuffer.size)
+
+  def write(os: OutputStream)
   {
-    output.setHeader("Content-Type", contentType)
-    val os = output.getOutputStream()
-    os.write(getBytes)
+    os.write(byteBuffer)
     os.flush()
     os.close() 
   }
+  def headers = Seq.empty
 }
 
 abstract class JsonResponse[R](implicit format: Format[R])
@@ -32,11 +51,10 @@ abstract class JsonResponse[R](implicit format: Format[R])
   with LazyLogging
 {
   override def contentType = "application/json"
-  def getBytes = 
-  {
-    val response = Json.stringify(Json.toJson(this.asInstanceOf[R]))
-    logger.trace(s"RESPONSE: $response")
-    response.getBytes()
+  def getBytes = {
+    val r = Json.stringify(Json.toJson(this.asInstanceOf[R]))
+    logger.trace(s"RESPONSE: $r")
+    r.getBytes
   }
 }
 
@@ -49,14 +67,9 @@ case class ErrorResponse (
             /* throwable stack trace */
                   stackTrace: String,
             /* error code */
-                  status: Int = HttpServletResponse.SC_BAD_REQUEST
+                  override val status: Int = HttpServletResponse.SC_BAD_REQUEST
 ) extends JsonResponse[ErrorResponse]
 {
-  override def write(output: HttpServletResponse)
-  { 
-    output.setStatus(status)
-    super.write(output)
-  }
 }
 
 object ErrorResponse {
