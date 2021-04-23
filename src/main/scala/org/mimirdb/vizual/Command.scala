@@ -213,7 +213,8 @@ case class RowsByConstraint(constraint: String) extends RowSelection
 case class UpdateCell(
   column: Int,
   row: Option[RowSelection],
-  value: Option[String]
+  value: Option[String],
+  comment: Option[String]
 ) extends Command
 {
   def getRows = row.getOrElse { AllRows() }

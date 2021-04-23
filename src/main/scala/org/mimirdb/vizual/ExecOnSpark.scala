@@ -146,7 +146,7 @@ object ExecOnSpark
             }:_*
           )
         }
-      case UpdateCell(column, rows, valueMaybe) => 
+      case UpdateCell(column, rows, valueMaybe, comment) => 
         {
           val targetColumn: StructField = input.schema.fields(column)
 
@@ -154,9 +154,10 @@ object ExecOnSpark
           val selectedRows = rows.getOrElse { AllRows() }
 
           var base = col(targetColumn.name)
+          
           // If the expression is prefixed with an '=', treat it as an interpreted expression
           // If it's empty, treat it as a null
-          val update: Column = valueMaybe match {
+          var update: Column = valueMaybe match {
             /////////////////////////////////////////////
 
             case None => {
@@ -257,6 +258,13 @@ object ExecOnSpark
                 new Column(Literal(update, targetColumn.dataType))
               }
             }
+          }
+
+          logger.trace(s"   ... update before comment = $update")
+
+          // Apply the comment if provided
+          if(comment.isDefined){
+            update = update.caveat(comment.get)
           }
 
           logger.trace(s"   ... update = $update")
