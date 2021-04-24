@@ -52,15 +52,15 @@ class Catalog(
   val cache = scala.collection.concurrent.TrieMap[String, DataFrame]()
   val profilingDeduplicator = new TaskDeduplicator[Map[String, JsValue]]()
  
-  def this(sqlitedb: String, spark: SparkSession, downloads:String) = 
+  def this(sqlitedb: String, spark: SparkSession, downloads:String, downloadsIsRelativeToDataDir: Boolean) = 
     this(
       new JDBCMetadataBackend("sqlite", sqlitedb),
-      new LocalFSStagingProvider(downloads),
+      new LocalFSStagingProvider(downloads, downloadsIsRelativeToDataDir),
       spark
     )
 
   def this(sqlitedb: String, spark: SparkSession) = 
-    this(sqlitedb, spark, "vizier_downloads")
+    this(sqlitedb, spark, "vizier_downloads", true)
 
   val views = metadata.registerMap("MIMIR_VIEWS", Seq(
     InitMap(Seq(
@@ -75,25 +75,53 @@ class Catalog(
     )
   ))
 
+  /**
+   * Stage the provided URL into the local filesystem if necessary
+   * 
+   * @param url           The URL to stage into the local filesystem
+   * @param sparkOptions  Options to provide to the LoadConstructor
+   * @param format        The format to stage the provided file as (if needed)
+   * @param tableName     The name of the table to associate with the file
+   * @return              A four tuple of: (i) The staged URL, (ii) the sparkOptions
+   *                      parameter passed, (iii) The format used to stage the file
+   *                      and (iv) Whether the returned url is relative to the data
+   *                      directory.
+   *
+   * This function takes a URL and rewrites it to allow efficient local access using
+   * the Catalog's defined staging provider.  Generally, this means copying the URL
+   * into the local filesystem.
+   * 
+   * The behavior of this function is governed by the type of URL and the provided
+   * format.  Some URL protocols are exempt from staging, e.g., s3a links, since
+   * spark interacts with these directly (and presumably efficiently).  Apart from
+   * that the staging can be handled either "raw" or via spark depending on the
+   * format.  For example, a CSV file can be downloaded and its raw bytestream
+   * can just be saved on disk.  Other formats like google sheets require a level
+   * of indirection, using the corresponding spark dataloader to bring the file into
+   * spark and then dumping it out in e.g., parquet format.
+   */
   def stage(
     url: String, 
     sparkOptions: Map[String,String], 
     format: String, 
     tableName: String
-  ): (String, Map[String,String], String) =
+  ): (String, Map[String,String], String, Boolean) =
   {
     if(Catalog.stagingExemptProtocols(URI.create(url).getScheme)){
       ( 
         url,
         sparkOptions,
-        format
+        format,
+        false
       )
     } 
     else if(Catalog.safeForRawStaging(format)){
+      val (stagedUrl, relative) = staging.stage(url, Some(tableName))
       ( 
-        staging.stage(url, Some(tableName)),
+        stagedUrl,
         sparkOptions,
-        format
+        format,
+        relative
       )
     } else {
       var parser = spark.read.format(format)
@@ -101,18 +129,33 @@ class Catalog(
         parser = parser.option(option, value)
       }
       var tempDf = parser.load(url)
-      (
+      val (stagedUrl, relative) = 
         staging.stage(
           parser.load(url),
           bulkStorageFormat,
           Some(tableName)
-        ),
+        )
+      (
+        stagedUrl,
         Map(),
-        bulkStorageFormat
+        bulkStorageFormat,
+        relative
       )
     }
   }
 
+  /**
+   * Stage the provided dataframe and assign the staged version a name
+   *
+   * @param name            The name of the dataframe to create
+   * @param df              The dataframe to stage
+   * @param format          The storage format to use for the dataframe
+   * @param replaceIfExists Don't fail if a dataframe with the same name exists
+   * @param properties      The mimir metadata to attach to the created dataframe
+   * @param proposedSchema  (optional) The schema of the provided dataframe
+   * @param includeRowId    Include the dataframe's existing rowid column
+   * @param dependencies    Any tables that were used to create this dataframe
+   */
   def stageAndPut(
     name: String,
     df: DataFrame,
@@ -120,10 +163,11 @@ class Catalog(
     replaceIfExists: Boolean = true,
     properties: Map[String, JsValue] = Map.empty,
     proposedSchema: Option[Seq[StructField]] = None,
-    includeRowId: Boolean = true
+    includeRowId: Boolean = true,
+    dependencies: Set[String] = Set.empty
   )
   {
-    val url = staging.stage(
+    val (url, relative) = staging.stage(
       input = (
         if(includeRowId) { AnnotateWithRowIds(df) }
         else { df }
@@ -132,21 +176,22 @@ class Catalog(
       nameHint = Some(name)
     )
     put(
-      name, 
-      LoadConstructor(
-        url, 
-        format, 
-        Map(), 
-        Seq(), 
-        None, 
-        proposedSchema.map { _ ++ (
+      name = name, 
+      constructor = LoadConstructor(
+        url = url, 
+        format = format, 
+        sparkOptions = Map(), 
+        lenses = Seq(), 
+        contextText = None, 
+        proposedSchema = proposedSchema.map { _ ++ (
           if(includeRowId) { 
             Some(StructField(AnnotateWithRowIds.ATTRIBUTE, StringType))
           } else { None }
-        )} 
+        )} ,
+        urlIsRelativeToDataDir = relative
       ),
-      Set(),
-      replaceIfExists,
+      dependencies = dependencies,
+      replaceIfExists = replaceIfExists,
       properties = properties
     )
   }

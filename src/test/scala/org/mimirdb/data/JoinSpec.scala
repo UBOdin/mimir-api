@@ -31,16 +31,17 @@ class JoinSpec
   {
     SharedSparkTestInstance.initAPI
     val request = LoadRequest(
-                    file              = "test_data/covid.csv",
-                    format            = "csv",
-                    inferTypes        = true,
-                    detectHeaders     = true,
-                    humanReadableName = Some("covid_us_county"),
-                    backendOption     = Seq(),
-                    dependencies      = None,
-                    resultName        = Some("covid_us_county"),
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "test_data/covid.csv",
+                    format                 = "csv",
+                    inferTypes             = true,
+                    detectHeaders          = true,
+                    humanReadableName      = Some("covid_us_county"),
+                    backendOption          = Seq(),
+                    dependencies           = None,
+                    resultName             = Some("covid_us_county"),
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false), 
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
   }

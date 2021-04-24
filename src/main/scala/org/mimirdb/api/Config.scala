@@ -1,6 +1,7 @@
 package org.mimirdb.api
 
 import org.rogach.scallop._
+import java.io.File
 
 class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
 {
@@ -14,7 +15,13 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
   )
   val staging = opt[String]("staging-dir", 
     descr = "A directory to stage temporary files in.",
-    default = Some(s"${dataDir()}${java.io.File.separator}vizier_downloads")
+    default = Some("vizier_downloads")
+  )
+  val stagingIsRelativeToDataDir = toggle("staging-dir-is-relative",
+    noshort = true,
+    descrYes = "Resolve the staging directory parameter relative to the data directory",
+    descrNo = "Resolve the staging directory parameter as an absolute path",
+    default = Some(true)
   )
   val port = opt[Int]("port", 
     descr = "The port to host the API on",
@@ -35,4 +42,7 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     default = None
   )
   val experimental = opt[List[String]]("X", default = Some(List[String]()))
+
+  lazy val dataDirFile = new File(dataDir())
+  def resolveToDataDir(path: String) = new File(dataDirFile, path)
 }

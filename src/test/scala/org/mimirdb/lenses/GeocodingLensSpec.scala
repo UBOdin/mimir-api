@@ -70,16 +70,17 @@ class GeocodingLensSpec
     }
 
     val loadRequest:LoadRequest = LoadRequest(
-                    file              = "test_data/geo.csv",
-                    format            = "csv",
-                    inferTypes        = true, 
-                    detectHeaders     = true,
-                    humanReadableName = Some("STILL MORE THING TESTS"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "test_data/geo.csv",
+                    format                 = "csv",
+                    inferTypes             = true, 
+                    detectHeaders          = true,
+                    humanReadableName      = Some("STILL MORE THING TESTS"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )            
     val loadResponse = Json.toJson(loadRequest.handle).as[CreateResponse]
       

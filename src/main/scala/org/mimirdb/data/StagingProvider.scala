@@ -24,37 +24,43 @@ trait StagingProvider {
    * @param nameHint  A small string to include in the staged URL (for debugging) 
    * @return          The local URL of the staged file
    */ 
-  def stage(url: String, nameHint: Option[String]): String =
+  def stage(url: String, nameHint: Option[String]): (String, Boolean) =
   {
     var finalURL = url
     if((finalURL.length > 0) && (finalURL.charAt(0) == '/')){
       finalURL = "file://"+finalURL
     }
-    stage(new java.net.URL(finalURL), nameHint)
+    stage(
+      url = new java.net.URL(finalURL), 
+      nameHint = nameHint, 
+    )
   }
   /**
    * Stage a file by URL.
    * @param url       The URL to stage locally
    * @param nameHint  A small string to include in the staged URL (for debugging) 
-   * @return          The local URL of the staged file
+   * @return          The local URL of the staged file and a boolean indicating whether
+   *                  the url is relative to the data directory.
    */ 
-  def stage(url: java.net.URL, nameHint: Option[String]): String
+  def stage(url: java.net.URL, nameHint: Option[String]): (String, Boolean)
   /**
    * Stage a file directly from an InputStream.
    * @param input          An InputStream with the data to stage
    * @param fileExtension  The (short) extension to add to the file (e.g., csv)
    * @param nameHint       A small string to include in the staged URL (for debugging) 
-   * @return               The local URL of the staged file
+   * @return               The local URL of the staged file and a boolean indicating 
+   *                       whether the url is relative to the data directory.
    */ 
-  def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): String
+  def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): (String, Boolean)
   /**
    * Stage a file by materializing a DataFrame
    * @param input      The DataFrame to stage
    * @param format     The format to stage the file into (e.g., parquet)
    * @param nameHint   A small string to include in the staged URL (for debugging) 
-   * @return           The local URL of the staged file
+   * @return           The local URL of the staged file and a boolean indicating whether
+   *                   the url is relative to the data directory.
    */ 
-  def stage(input: DataFrame, format: String, nameHint: Option[String]): String
+  def stage(input: DataFrame, format: String, nameHint: Option[String]): (String, Boolean)
 
   /**
    * Delete a locally staged file

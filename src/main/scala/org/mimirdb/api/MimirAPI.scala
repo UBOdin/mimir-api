@@ -122,7 +122,7 @@ object MimirAPI extends LazyLogging {
         new JDBCMetadataBackend("sqlite", rest.mkString(":"))
       case _ => throw new IllegalArgumentException(s"Unknown metadata provider: ${metadataDB}")
     }
-    val staging = new LocalFSStagingProvider(conf.staging())
+    val staging = new LocalFSStagingProvider(conf.staging(), conf.stagingIsRelativeToDataDir())
     catalog = new Catalog(metadata, staging, sparkSession)
     pythonUDF = PythonUDFBuilder(
       pythonPath.orElse { 

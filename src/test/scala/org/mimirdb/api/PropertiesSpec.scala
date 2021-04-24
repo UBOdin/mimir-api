@@ -19,19 +19,20 @@ class PropertiesSpec
 
   "dataset properties" >> {
     LoadRequest(
-      file              = "test_data/r.csv",
-      format            = "csv",
-      inferTypes        = true,
-      detectHeaders     = true,
-      humanReadableName = Some("R_WITH_PROPERTIES"),
-      backendOption     = Seq.empty,
-      dependencies      = None,
-      resultName        = Some("R_WITH_PROPERTIES"),
-      properties        = Some(Map(
+      file                   = "test_data/r.csv",
+      format                 = "csv",
+      inferTypes             = true,
+      detectHeaders          = true,
+      humanReadableName      = Some("R_WITH_PROPERTIES"),
+      backendOption          = Seq.empty,
+      dependencies           = None,
+      resultName             = Some("R_WITH_PROPERTIES"),
+      properties             = Some(Map(
         "shazbot" -> JsString("frobbed"),
         "dingbat" -> Json.obj("a" -> JsNumber(123), "b" -> JsNull)
       )),
-      proposedSchema    = None
+      proposedSchema         = None,
+      urlIsRelativeToDataDir = Some(false),
     ).handle
     val result = 
       Json.toJson(QueryTableRequest("R_WITH_PROPERTIES", None, None, None, true, None)

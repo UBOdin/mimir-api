@@ -1,6 +1,7 @@
 package org.mimirdb.data
 
 import play.api.libs.json._
+import java.io.File
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.{ SparkSession, DataFrame, Dataset }
 import org.apache.spark.sql.functions._
@@ -16,6 +17,7 @@ import org.apache.spark.sql.catalyst.csv.CSVOptions
 import org.apache.spark.sql.catalyst.csv.CSVHeaderChecker
 import org.apache.spark.sql.execution.datasources.csv.CSVUtils
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
+import org.mimirdb.api.MimirAPI
 
 case class LoadConstructor(
   url: String,
@@ -23,12 +25,19 @@ case class LoadConstructor(
   sparkOptions: Map[String, String],
   lenses: Seq[(String, JsValue, String)] = Seq(),
   contextText: Option[String] = None,
-  proposedSchema: Option[Seq[StructField]] = None
+  proposedSchema: Option[Seq[StructField]] = None,
+  urlIsRelativeToDataDir: Boolean = false
 ) 
   extends DataFrameConstructor
   with LazyLogging
   with DefaultProvenance
 {
+
+  lazy val absoluteUrl: String = 
+    if(urlIsRelativeToDataDir){
+      MimirAPI.conf.resolveToDataDir(url).toString
+    } else { url }
+
   def construct(
     spark: SparkSession, 
     context: Map[String, () => DataFrame] = Map()
@@ -142,7 +151,7 @@ case class LoadConstructor(
     for((option, value) <- sparkOptions){
       parser = parser.option(option, value)
     }
-    var df = parser.load(url)
+    var df = parser.load(absoluteUrl)
     df = convertToProposedSchema(df)
     return df
   }
@@ -162,7 +171,7 @@ case class LoadConstructor(
   {
     // based largely on Apache Spark's DataFrameReader's csv(Dataset[String]) method
 
-    logger.debug(s"LOADING CSV FILE: $url")
+    logger.debug(s"LOADING CSV FILE: $url ($absoluteUrl)")
 
     import spark.implicits._
     val ERROR_COL = "__MIMIR_CSV_LOAD_ERROR"
@@ -179,7 +188,7 @@ case class LoadConstructor(
     val data: DataFrame = 
       spark.read
            .format("text")
-           .load(url)
+           .load(absoluteUrl)
     
     logger.trace(s"SCHEMA: ${data.schema}")
 

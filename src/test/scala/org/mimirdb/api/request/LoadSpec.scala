@@ -23,16 +23,17 @@ class LoadSpec
 
   "load local files" >> {
     val request = LoadRequest(
-                    file              = "test_data/r.csv",
-                    format            = "csv",
-                    inferTypes        = false,
-                    detectHeaders     = true,
-                    humanReadableName = Some("A TEST OF THE THING"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "test_data/r.csv",
+                    format                 = "csv",
+                    inferTypes             = false,
+                    detectHeaders          = true,
+                    humanReadableName      = Some("A TEST OF THE THING"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
@@ -48,16 +49,17 @@ class LoadSpec
 
   "load remote files" >> {
     val request = LoadRequest(
-                    file              = "https://odin.cse.buffalo.edu/public_data/r.csv",
-                    format            = "csv",
-                    inferTypes        = false,
-                    detectHeaders     = true,
-                    humanReadableName = Some("ANOTHER TEST OF THE THING"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "https://odin.cse.buffalo.edu/public_data/r.csv",
+                    format                 = "csv",
+                    inferTypes             = false,
+                    detectHeaders          = true,
+                    humanReadableName      = Some("ANOTHER TEST OF THE THING"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
@@ -73,16 +75,17 @@ class LoadSpec
   "load files with type inference" >> {
 
     val request = LoadRequest(
-                    file              = "test_data/r.csv",
-                    format            = "csv",
-                    inferTypes        = true, 
-                    detectHeaders     = true,
-                    humanReadableName = Some("STILL MORE THING TESTS"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "test_data/r.csv",
+                    format                 = "csv",
+                    inferTypes             = true, 
+                    detectHeaders          = true,
+                    humanReadableName      = Some("STILL MORE THING TESTS"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
@@ -129,16 +132,17 @@ class LoadSpec
   "load broken CSV files" >> {
 
     val request = LoadRequest(
-                    file              = "test_data/pd5h-92mc.csv",
-                    format            = "csv",
-                    inferTypes        = true, 
-                    detectHeaders     = true,
-                    humanReadableName = Some("Garbled CSV"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "test_data/pd5h-92mc.csv",
+                    format                 = "csv",
+                    inferTypes             = true, 
+                    detectHeaders          = true,
+                    humanReadableName      = Some("Garbled CSV"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
@@ -154,16 +158,17 @@ class LoadSpec
   "load CSV files with unquoted headers" >> {
 
     val request = LoadRequest(
-                    file              = "test_data/CPUSpeed.csv",
-                    format            = "csv",
-                    inferTypes        = true, 
-                    detectHeaders     = true,
-                    humanReadableName = Some("CPUSpeed-Unquoted"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = None
+                    file                   = "test_data/CPUSpeed.csv",
+                    format                 = "csv",
+                    inferTypes             = true, 
+                    detectHeaders          = true,
+                    humanReadableName      = Some("CPUSpeed-Unquoted"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
@@ -174,19 +179,20 @@ class LoadSpec
   "override schemas" >> {
 
     val request = LoadRequest(
-                    file              = "test_data/r.csv",
-                    format            = "csv",
-                    inferTypes        = false, 
-                    detectHeaders     = true,
-                    humanReadableName = Some("PROPOSED_SCHEMA_TEST"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = None,
-                    properties        = None,
-                    proposedSchema    = Some(Seq(
-                                          StructField("ALICE", IntegerType),
-                                          StructField("BOB", StringType)
-                                        ))
+                    file                   = "test_data/r.csv",
+                    format                 = "csv",
+                    inferTypes             = false, 
+                    detectHeaders          = true,
+                    humanReadableName      = Some("PROPOSED_SCHEMA_TEST"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = Some(Seq(
+                                               StructField("ALICE", IntegerType),
+                                               StructField("BOB", StringType)
+                                             )),
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 

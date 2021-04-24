@@ -49,7 +49,9 @@ case class LoadRequest (
             /* optional properties */
                   properties: Option[Map[String,JsValue]],
             /* proposed schema */
-                  proposedSchema: Option[Seq[StructField]]
+                  proposedSchema: Option[Seq[StructField]],
+            /* url is relative */
+                  urlIsRelativeToDataDir: Option[Boolean]
 ) extends Request {
 
   lazy val output = 
@@ -73,6 +75,7 @@ case class LoadRequest (
 
       // Some parameters may change during the loading process.  Var-ify them
       var url = file
+      var actualUrlIsRelativeToDataDir = urlIsRelativeToDataDir.getOrElse(false)
       var storageFormat = format
       var finalSparkOptions = 
         Catalog.defaultLoadOptions(format, detectHeaders) ++ sparkOptions
@@ -98,15 +101,17 @@ case class LoadRequest (
         case _ => {}
       }
 
+
       if(stagingIsMandatory) {
         // Preserve the original URL and configurations in the mimirOptions
         mimirOptions("preStagedUrl") = JsString(url)
         mimirOptions("preStagedSparkOptions") = Json.toJson(finalSparkOptions)
         mimirOptions("preStagedFormat") = JsString(storageFormat)
-        val stagedConfig  = MimirAPI.catalog.stage(url, finalSparkOptions, storageFormat, output)
-        url               = stagedConfig._1
-        finalSparkOptions = stagedConfig._2
-        storageFormat     = stagedConfig._3
+        val stagedConfig             = MimirAPI.catalog.stage(url, finalSparkOptions, storageFormat, output)
+        url                          = stagedConfig._1
+        finalSparkOptions            = stagedConfig._2
+        storageFormat                = stagedConfig._3
+        actualUrlIsRelativeToDataDir = stagedConfig._4
       }
 
       var loadConstructor = LoadConstructor(
@@ -114,7 +119,8 @@ case class LoadRequest (
         format = storageFormat,
         sparkOptions = finalSparkOptions,
         contextText = humanReadableName,
-        proposedSchema = proposedSchema
+        proposedSchema = proposedSchema,
+        urlIsRelativeToDataDir = actualUrlIsRelativeToDataDir
       )
 
       // Infer types if necessary

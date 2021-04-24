@@ -6,37 +6,52 @@ import java.sql.SQLException
 import scala.util.Random
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.DataFrame
+import org.mimirdb.api.request.VizierDB
+import org.mimirdb.api.MimirAPI
 
 /**
  * RawFileProvider backed by the local filesystem.
  * @param basePath  The path to stage files to (defaults to the current working directory)
  */
 class LocalFSStagingProvider(
-  basePath: File = new File(".")
+  basePath: File = new File("."),
+  basePathIsRelativeToDataDir: Boolean = false
 ) extends StagingProvider
     with LazyLogging
 {
-  def this(basePath: String) = this(new File(basePath))
+  def this(basePath: String, basePathIsRelativeToDataDir: Boolean) = 
+    this(new File(basePath), basePathIsRelativeToDataDir)
+
+  val absoluteBasePath: File = 
+    if(basePathIsRelativeToDataDir) {
+      MimirAPI.conf.resolveToDataDir(basePath.toString)
+    } else { basePath }
 
   /** 
    * Randomly allocate a name relative to basePath (internal only)
    * @param extension   The file extension to use for the allocated name
    * @param nameHint    A hint that will be part of the name
-   * @return            A guaranteed unique file with the specified extension.
+   * @return            The absolute path to a guaranteed unique file with the 
+   *                    specified extension and the path relative to basePath
    */
-  private def makeName(extension: String, nameHint: Option[String]): File =
+  private def makeName(extension: String, nameHint: Option[String]): (File, String) =
   {
     val rand = new Random().alphanumeric
     // Try 1000 times to create a randomly named file
     for(i <- 0 until 1000){
-      val candidate = new File(basePath,
+      val candidate =
         nameHint match { 
           case Some(hint) => s"${hint.replaceAll("[^a-zA-Z0-9]", "")}-${rand.take(10).mkString}.${extension}"
           case None => s"${rand.take(20).mkString}.${extension}"
         }
-      )
+      val absolute = new File(absoluteBasePath, candidate)
       // If the randomly named file doesn't exist, we're done.
-      if(!candidate.exists()){ return candidate }
+      if(!absolute.exists()){ 
+        return (
+          absolute, 
+          new File(basePath, candidate).toString
+        ) 
+      }
     }
     // Fail after 1000 attempts.
     throw new SQLException(s"Can't allocate name for $nameHint")
@@ -64,14 +79,14 @@ class LocalFSStagingProvider(
     if(!basePath.exists){ basePath.mkdirs }
   }
 
-  def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): String = 
+  def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): (String, Boolean) = 
   {
     ensureBasePath
-    val file = makeName(fileExtension, nameHint)
+    val (file, relative) = makeName(fileExtension, nameHint)
     transferBytes(input, new FileOutputStream(file))
-    return file.toString
+    return (relative, basePathIsRelativeToDataDir)
   }
-  def stage(url: URL, nameHint: Option[String]): String =
+  def stage(url: URL, nameHint: Option[String]): (String, Boolean) =
   {
     ensureBasePath
     val pathComponents = url.getPath.split("/")
@@ -81,17 +96,22 @@ class LocalFSStagingProvider(
       else { "data" } // default to generic 'data' if there's no extension
     stage(url.openStream(), extension, nameHint)
   }
-  def stage(input: DataFrame, format: String, nameHint:Option[String]): String =
+  def stage(input: DataFrame, format: String, nameHint:Option[String]): (String, Boolean) =
   {
     ensureBasePath
-    val targetFile = makeName(format, nameHint).toString
+    val (file, relative) = makeName(format, nameHint)
     input.write
          .format(format)
-         .save(targetFile)
-    return targetFile
+         .save(file.toString)
+    return (relative, basePathIsRelativeToDataDir)
   }
   def drop(local: String): Unit = 
   {
-    new File(local).delete()
+    val actual = if(basePathIsRelativeToDataDir){ 
+                   MimirAPI.conf.resolveToDataDir(local)
+                 } else { new File(local) }
+    if(actual.exists()){
+      actual.delete()
+    }
   }
 }

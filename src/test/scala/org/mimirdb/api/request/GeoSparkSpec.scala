@@ -28,30 +28,32 @@ class GeoSparkSpec
     
     
     val request = LoadRequest(
-                    file              = "test_data/social_dist.csv",
-                    format            = "csv",
-                    inferTypes        = true,
-                    detectHeaders     = true,
-                    humanReadableName = Some("social_dist"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = Some("social_dist"),
-                    properties        = Some(Map.empty),
-                    proposedSchema    = None
+                    file                   = "test_data/social_dist.csv",
+                    format                 = "csv",
+                    inferTypes             = true,
+                    detectHeaders          = true,
+                    humanReadableName      = Some("social_dist"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = Some("social_dist"),
+                    properties             = Some(Map.empty),
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
     
     val request2 = LoadRequest(
-                    file              = "test_data/census_geo.csv",
-                    format            = "csv",
-                    inferTypes        = true,
-                    detectHeaders     = true,
-                    humanReadableName = Some("census_geo"),
-                    backendOption     = Seq(),
-                    dependencies      = Some(Seq()),
-                    resultName        = Some("census_geo"),
-                    properties        = Some(Map.empty),
-                    proposedSchema    = None
+                    file                   = "test_data/census_geo.csv",
+                    format                 = "csv",
+                    inferTypes             = true,
+                    detectHeaders          = true,
+                    humanReadableName      = Some("census_geo"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = Some("census_geo"),
+                    properties             = Some(Map.empty),
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
                   )
     val response2 = Json.toJson(request2.handle).as[CreateResponse]
     
