@@ -188,7 +188,7 @@ class Catalog(
             Some(StructField(AnnotateWithRowIds.ATTRIBUTE, StringType))
           } else { None }
         )} ,
-        urlIsRelativeToDataDir = relative
+        urlIsRelativeToDataDir = Some(relative)
       ),
       dependencies = dependencies,
       replaceIfExists = replaceIfExists,

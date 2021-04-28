@@ -26,7 +26,7 @@ case class LoadConstructor(
   lenses: Seq[(String, JsValue, String)] = Seq(),
   contextText: Option[String] = None,
   proposedSchema: Option[Seq[StructField]] = None,
-  urlIsRelativeToDataDir: Boolean = false
+  urlIsRelativeToDataDir: Option[Boolean] = None
 ) 
   extends DataFrameConstructor
   with LazyLogging
@@ -34,7 +34,7 @@ case class LoadConstructor(
 {
 
   lazy val absoluteUrl: String = 
-    if(urlIsRelativeToDataDir){
+    if((urlIsRelativeToDataDir.getOrElse { false })){
       MimirAPI.conf.resolveToDataDir(url).toString
     } else { url }
 

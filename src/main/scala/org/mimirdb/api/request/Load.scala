@@ -120,7 +120,7 @@ case class LoadRequest (
         sparkOptions = finalSparkOptions,
         contextText = humanReadableName,
         proposedSchema = proposedSchema,
-        urlIsRelativeToDataDir = actualUrlIsRelativeToDataDir
+        urlIsRelativeToDataDir = Some(actualUrlIsRelativeToDataDir)
       )
 
       // Infer types if necessary
