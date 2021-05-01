@@ -293,7 +293,8 @@ case class LoadConstructor(
         contextText
       ),
       Some(contextText),
-      proposedSchema
+      proposedSchema,
+      urlIsRelativeToDataDir = urlIsRelativeToDataDir
     )
   }
 }
