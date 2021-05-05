@@ -28,8 +28,6 @@ object TypeInferenceLens
     val targets: Set[String] = 
       stringCols.map { _.name }.toSet -- givens.keySet
 
-    println(s"Targets: $targets")
-
     Json.toJson(
       InferTypes(input, attributes = targets.toSeq)
         .map { field => field.name -> field.dataType }
