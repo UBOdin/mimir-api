@@ -34,6 +34,17 @@ object Schema {
       case _ => t.typeName
     }
 
+  implicit val dataTypeFormat = Format[DataType](
+    new Reads[DataType] {
+      def reads(j: JsValue): JsResult[DataType] =
+        return JsSuccess(decodeType(j.as[String]))
+    },
+    new Writes[DataType] {
+      def writes(d: DataType): JsValue =
+        return JsString(encodeType(d))
+    }
+  )
+
   implicit val fieldFormat = Format[StructField](
     new Reads[StructField] { 
       def reads(j: JsValue): JsResult[StructField] = 

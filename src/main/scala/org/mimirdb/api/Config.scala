@@ -44,5 +44,5 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
   val experimental = opt[List[String]]("X", default = Some(List[String]()))
 
   lazy val dataDirFile = new File(dataDir())
-  def resolveToDataDir(path: String) = new File(dataDirFile, path)
+  def resolveToDataDir(path: String) = { new File(dataDirFile, path).getAbsoluteFile }
 }
