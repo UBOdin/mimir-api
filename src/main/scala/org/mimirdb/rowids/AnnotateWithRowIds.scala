@@ -11,6 +11,10 @@ import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.plans.JoinType
 
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.spark.sql.catalyst.plans.LeftSemi
+import org.apache.spark.sql.catalyst.plans.NaturalJoin
+import org.apache.spark.sql.catalyst.plans.Inner
+import org.mimirdb.spark.expressionLogic
 
 object AnnotateWithRowIds
 {
@@ -157,7 +161,69 @@ class AnnotateWithRowIds(
           )
         (ret, newAnnotation)
       }
+      
+      /*********************************************************/
+      case Join(
+          left: LogicalPlan,
+          right: LogicalPlan,
+          LeftSemi,
+          condition: Option[Expression],
+          hint: JoinHint
+      ) => 
+      {
+        val (leftRewrite, leftAnnotation) = recur(left)
+        val (rightRewrite, rightAnnotation) = recur(right)
+        val lhsAlias = Alias(leftAnnotation, "LHS_"+rowIdAttribute)()
+        val rhsAlias = Alias(rightAnnotation, "RHS_"+rowIdAttribute)()
+        val lhs =
+          Project(
+            left.output :+ lhsAlias,
+            leftRewrite
+          )
+        val rhsAttrs = condition match {
+              case Some(cond) => right.output.filter(oattr => 
+                expressionLogic.attributesOfExpression(cond).contains(oattr))
+              case _ => Seq.empty
+            } 
+        val rhs = 
+          Project(
+            rhsAttrs :+ rhsAlias,
+            rightRewrite
+          )
+        val newAnnotation = annotationAttribute()
+        
+        val lhsAttr = 
+          AttributeReference("LHS_"+rowIdAttribute, 
+            AnnotateWithRowIds.FIELD_TYPE.dataType
+            )(exprId = lhsAlias.exprId)
+        val rhsAttr = 
+          AttributeReference("RHS_"+rowIdAttribute, 
+            AnnotateWithRowIds.FIELD_TYPE.dataType
+            )(exprId = rhsAlias.exprId)
+        
+        (
+          Project(
+              plan.output :+ newAnnotation,
+              {val annoed = annotate(
+                Join(lhs, rhs, NaturalJoin(Inner), condition, hint),
+                newAnnotation.exprId,
+                // If we have outer joins, we may get null rowids
+                new IfNull(lhsAttr, Literal(1l)),
+                new IfNull(rhsAttr, Literal(1l))
+              )
+              val projanno = Project(
+                 annoed.asInstanceOf[Project].projectList.filterNot(projexpr => rhsAttrs.contains(projexpr.toAttribute)),
+                 annoed.children.head
+              )
+              println(s"-------------------\n${projanno}\n---------------------")
+              projanno
+              }
+          ), 
+          newAnnotation
+        )
 
+      }
+      
       /*********************************************************/
       case Join(
           left: LogicalPlan,
