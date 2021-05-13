@@ -283,8 +283,11 @@ class OSMGeocoder(hostURL: String, name: String = "OSM") extends WebJsonGeocoder
   name
 )
 {
-  def url(house: String, street: String, city: String, state: String) =
-    s"$hostURL/?format=json&street=${URLEncoder.encode(house, "UTF-8")}%20${URLEncoder.encode(street, "UTF-8")}&city=${URLEncoder.encode(city, "UTF-8")}&state=${URLEncoder.encode(state, "UTF-8")}"
+  def url(house: String, street: String, city: String, state: String) = if(house.isEmpty() && street.isEmpty() && city.isEmpty() && !state.isEmpty()) 
+      s"$hostURL/?format=json&q=${URLEncoder.encode(state, "UTF-8")}"
+    else
+      s"$hostURL/?format=json&street=${URLEncoder.encode(house, "UTF-8")}%20${URLEncoder.encode(street, "UTF-8")}&city=${URLEncoder.encode(city, "UTF-8")}&state=${URLEncoder.encode(state, "UTF-8")}"
+    
 }
 
 object TestCaseGeocoder extends Geocoder("TEST")
