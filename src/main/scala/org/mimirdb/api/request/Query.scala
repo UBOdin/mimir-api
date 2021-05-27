@@ -4,6 +4,7 @@ import org.apache.spark.sql.{ SparkSession, DataFrame, Row }
 import org.apache.spark.sql.types.{ StructType, StructField }
 import org.apache.spark.sql.execution.{ ExtendedMode => SelectedExplainMode }
 import org.apache.spark.sql.SparkSession
+import scala.util.Random
 
 import play.api.libs.json._
 
@@ -79,7 +80,8 @@ case class QueryDataFrameRequest (
       throw new UnsupportedOperationException("IncludeReasons is no longer supported")
     }
     val df = InjectedSparkSQL(MimirAPI.sparkSession)(query, MimirAPI.catalog.allTableConstructors)
-    val (port, secret) = ArrowProxy.writeToMemoryFile("/tmp/vizierdf", df)
+    val tempFile = s"/tmp/vizierdf_${new Random().alphanumeric.take(10).toString}"
+    val (port, secret) = ArrowProxy.writeToMemoryFile(tempFile, df)
     ArrowInfo(port, secret)
   }
 }

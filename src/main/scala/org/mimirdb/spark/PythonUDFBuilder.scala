@@ -60,10 +60,13 @@ class PythonUDFBuilder(val pythonPath: String)
   }
 
   def pickle(vizierFunctionScript: String): Array[Byte] = 
+  {
+    logger.debug(s"Pickling: \n$vizierFunctionScript")
     Base64.getDecoder().decode(
       python(GENERATE_PICKLE(vizierFunctionScript))
         .replaceAll("\n", "")
     )
+  }
 
   def runPickle(pickled: Array[Byte], args: String = ""): String = 
     python(RUN_PICKLE(pickled, args))
@@ -101,9 +104,10 @@ def return_type(data_type):
     return fn
   return wrap
 
+@vizierdb.export_module_decorator
 ${vizier_fn}
 
-if not hasattr(vizierdb.fn, "__return_type__"):
+if not hasattr(vizierdb.fn, "__return_type__") or vizierdb.fn.__return_type__ is None:
   vizierdb.fn.__return_type__ = StringType()
 
 assert(vizierdb.fn is not None)

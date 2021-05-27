@@ -40,11 +40,12 @@ object AggregateStats extends ProfilerModule
     Map[String, (Column, DataType) => Option[(Column, (Row, Int) => JsValue)]](
       "count"                -> AnyTypeStat[Long] { count(_) },
       "distinctValueCount"   -> AnyTypeStat[Long] { approx_count_distinct(_) },
+      "nullCount"            -> AnyTypeStat[Long] { in => sum( when(in.isNull, 1).otherwise(0) ) },
       "sum"                  -> NumericStat[Float] { in => nanvl(sum(in).cast(FloatType), lit(null)) },
       "mean"                 -> NumericStat[Float] { in => nanvl(avg(in).cast(FloatType), lit(null)) },
       "stdDev"               -> NumericStat[Float] { in => nanvl(stddev(in).cast(FloatType), lit(null)) },
       "min"                  -> NumericStat[Float] { in => nanvl(min(in).cast(FloatType), lit(null)) },
-      "max"                  -> NumericStat[Float] { in => nanvl(max(in).cast(FloatType), lit(null)) }
+      "max"                  -> NumericStat[Float] { in => nanvl(max(in).cast(FloatType), lit(null)) },
     )
 
   val depends = (Set(), Set("column"))
