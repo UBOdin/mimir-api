@@ -4,6 +4,8 @@ import play.api.libs.json._
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions._
 import org.mimirdb.rowids.AnnotateWithRowIds
+import org.apache.spark.sql.types.DataType
+import org.mimirdb.spark.Schema.dataTypeFormat
 
 sealed trait Command
 object Command
@@ -75,7 +77,8 @@ object DeleteRow
 
 case class InsertColumn(
   position: Option[Int],
-  name: String
+  name: String,
+  dataType: Option[DataType]
 ) extends Command
 object InsertColumn
 { implicit val format: Format[InsertColumn] = Json.format }
@@ -83,7 +86,8 @@ object InsertColumn
 //////////////////////////
 
 case class InsertRow(
-  position: Long
+  position: Long,
+  values: Option[Seq[JsValue]]
 ) extends Command
 object InsertRow
 { implicit val format: Format[InsertRow] = Json.format }

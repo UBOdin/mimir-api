@@ -1,5 +1,6 @@
 package org.mimirdb.vizual
 
+import play.api.libs.json._
 import org.apache.spark.sql.{ DataFrame, Column }
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ StructField, StringType }
@@ -10,6 +11,7 @@ import org.mimirdb.data.Catalog
 import org.mimirdb.rowids.AnnotateWithRowIds
 import org.mimirdb.rowids.AnnotateWithSequenceNumber
 import org.mimirdb.caveats.implicits._
+import org.mimirdb.spark.SparkPrimitive
 
 object ExecOnSpark
   extends LazyLogging
@@ -33,7 +35,7 @@ object ExecOnSpark
             df.filter(col(AnnotateWithRowIds.ATTRIBUTE) =!= lit(rowid))
           }
         }
-      case InsertColumn(position, column) => 
+      case InsertColumn(position, column, dataType) => 
         {
           val columns = 
             input.columns
@@ -42,9 +44,9 @@ object ExecOnSpark
           val (pre, post):(Seq[Column], Seq[Column]) = 
             position.map { columns.splitAt(_) }
                     .getOrElse { (columns, Seq()) }
-          input.select( ((pre :+ lit(null).cast(StringType).as(column)) ++ post):_* )
+          input.select( ((pre :+ lit(null).cast(dataType.getOrElse { StringType }).as(column)) ++ post):_* )
         }
-      case InsertRow(position) =>  
+      case InsertRow(position, values) =>  
         {
           if(position < 0){
             input.union(
@@ -64,9 +66,12 @@ object ExecOnSpark
                     .otherwise(seq)
                     .as(AnnotateWithSequenceNumber.ATTRIBUTE)
               val newRowData = 
-                input.columns
-                     .map { lit(null).as(_) } :+
-                        lit(position).as(AnnotateWithSequenceNumber.ATTRIBUTE)
+                input.schema
+                     .zip(values.getOrElse { input.columns.toSeq.map { _ => JsNull } })
+                     .map { case (field, value) => 
+                       lit(SparkPrimitive.decode(value, field.dataType))
+                          .as(field.name)
+                     } :+ lit(position).as(AnnotateWithSequenceNumber.ATTRIBUTE)
               val newRow = 
                 input.sqlContext
                      .range(1)
