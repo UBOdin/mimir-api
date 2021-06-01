@@ -25,6 +25,7 @@ import org.mimirdb.spark.InjectedSparkSQL
 import org.mimirdb.util.ExperimentalOptions
 import org.apache.spark.sql.ArrowProxy
 import org.mimirdb.caveats.lifting.ResolveLifts
+import org.mimirdb.util.FeatureSupported
 
 case class QueryMimirRequest (
             /* input for query */
@@ -72,7 +73,9 @@ case class QueryDataFrameRequest (
             /* include reasons in response */
                   includeReasons: Option[Boolean]
 ) extends Request {
-  def handle = {
+  def handle =
+  {
+    FeatureSupported.brokenByJavaVersion("Arrow Dataframes", 9)
     if(!input.getOrElse("").equals("")){
       throw new UnsupportedOperationException("Input substitutions are no longer supported")
     }
@@ -80,7 +83,7 @@ case class QueryDataFrameRequest (
       throw new UnsupportedOperationException("IncludeReasons is no longer supported")
     }
     val df = InjectedSparkSQL(MimirAPI.sparkSession)(query, MimirAPI.catalog.allTableConstructors)
-    val tempFile = s"/tmp/vizierdf_${new Random().alphanumeric.take(10).toString}"
+    val tempFile = s"./vizierdf_${new Random().alphanumeric.take(10).toString}"
     val (port, secret) = ArrowProxy.writeToMemoryFile(tempFile, df)
     ArrowInfo(port, secret)
   }
