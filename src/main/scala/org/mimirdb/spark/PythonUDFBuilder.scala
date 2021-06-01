@@ -88,7 +88,7 @@ class PythonUDFBuilder(val pythonPath: String)
 from pyspark import cloudpickle
 import sys
 import base64
-from pyspark.sql.types import StringType
+from pyspark.sql.types import DataType, NullType, StringType, BinaryType, BooleanType, DateType, TimestampType, DecimalType, DoubleType, FloatType, ByteType, IntegerType, LongType, ShortType, ArrayType, MapType, StructField, StructType
 import pyspark.sql.types as pyspark_types
 
 class VizierUDFExtractor:

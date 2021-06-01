@@ -17,8 +17,6 @@ class PythonUDFSpec
   def beforeAll = SharedSparkTestInstance.initAPI
 
   val ADD_ONE = """
-from pyspark.sql.types import StringType, IntegerType
-@vizierdb.export_module_decorator
 @return_type(IntegerType())
 def add_one(x):
   return int(x) + 1
