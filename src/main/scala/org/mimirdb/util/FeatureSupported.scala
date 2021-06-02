@@ -10,9 +10,9 @@ object FeatureSupported
        minorVersion,
        revisionVersion) = 
   {
-    println(s"########## Java Version: $javaVersion")
+    // println(s"########## Java Version: $javaVersion")
     val split = javaVersion.split("[^0-9A-Za-z]+")
-    println(s"########## Split: $javaVersion")
+    // println(s"########## Split: $javaVersion")
     (split(0).toInt, split(1).toInt, split(2).toInt)
   }
 

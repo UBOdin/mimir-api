@@ -213,7 +213,10 @@ case class DataContainer (
 {
   override def toString =
   {
-    val rows = prov.zip(data).zip(colTaint).zip(rowTaint).map { 
+    val rows = prov.zip(data)
+                   .zip( (if(colTaint.isEmpty){ data.map { _.map { _ => false } } } else { colTaint }) )
+                   .zip( (if(rowTaint.isEmpty){ data.map { _ => false } } else { rowTaint }) )
+                   .map { 
       case (((rowid, row), colCaveats), rowCaveat) => 
         s"<$rowid>${if(rowCaveat){"*"}else{""}}" +: 
           row.map { case null => "null"; case x => x.toString }

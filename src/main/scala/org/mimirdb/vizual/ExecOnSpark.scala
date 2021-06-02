@@ -46,16 +46,21 @@ object ExecOnSpark
                     .getOrElse { (columns, Seq()) }
           input.select( ((pre :+ lit(null).cast(dataType.getOrElse { StringType }).as(column)) ++ post):_* )
         }
-      case InsertRow(position, values) =>  
+      case InsertRow(positionMaybe, values) =>  
         {
+          val position = positionMaybe.getOrElse { -1l }
+          val newRowData = 
+            input.schema
+                 .zip(values.getOrElse { input.columns.toSeq.map { _ => JsNull } })
+                 .map { case (field, value) => 
+                   lit(SparkPrimitive.decode(value, field.dataType))
+                      .as(field.name)
+                 }
           if(position < 0){
             input.union(
               input.sqlContext
                    .range(1)
-                   .select(
-                      input.columns
-                           .map { lit(null).as(_) }:_*
-                   )
+                   .select(newRowData:_*)
             )
           } else {
             AnnotateWithSequenceNumber.withSequenceNumber(input){ df =>
@@ -65,17 +70,12 @@ object ExecOnSpark
                   when(seq >= position, seq + 1)
                     .otherwise(seq)
                     .as(AnnotateWithSequenceNumber.ATTRIBUTE)
-              val newRowData = 
-                input.schema
-                     .zip(values.getOrElse { input.columns.toSeq.map { _ => JsNull } })
-                     .map { case (field, value) => 
-                       lit(SparkPrimitive.decode(value, field.dataType))
-                          .as(field.name)
-                     } :+ lit(position).as(AnnotateWithSequenceNumber.ATTRIBUTE)
+              val newRowDataWithAttribute = 
+                newRowData :+ lit(position).as(AnnotateWithSequenceNumber.ATTRIBUTE)
               val newRow = 
                 input.sqlContext
                      .range(1)
-                     .select(newRowData:_*)
+                     .select(newRowDataWithAttribute:_*)
 
               df.select(oldRowData:_*)
                 .union(newRow)
@@ -169,7 +169,7 @@ object ExecOnSpark
               lit(null)
             }
 
-            case Some("") => {
+            case Some(JsString("")) => {
               // We interpret blanks depending on the type of the column.  If the column is
               // string-typed, we treat it as a string.  If the column is not, we treat it as
               // a null.
@@ -178,7 +178,7 @@ object ExecOnSpark
 
             /////////////////////////////////////////////
 
-            case Some(value) if value(0) == '=' => {
+            case Some(JsString(value)) if value(0) == '=' => {
               // If the user gives us a formula, we have a bit more information about their intent.
               // If we can safely cast the expression type to the column type, we do that.
               // If not, maybe we can safely cast the column type to the expression type.  
@@ -247,7 +247,11 @@ object ExecOnSpark
               // since we need to figure out how to cast it.  Start with the column's native data
               // type.
               // println(s"$value -> ${targetColumn.dataType}")
-              val update = Cast(lit(value).expr, targetColumn.dataType).eval()
+              val update = lit(SparkPrimitive.decode(
+                                      value, 
+                                      targetColumn.dataType, 
+                                      castStrings = true
+                            )).expr.eval()
 
               // If the updated value can't be interpreted in the column's native data type, 
               // make everything a string.  (eventually, maybe we try some inference to figure
@@ -256,7 +260,7 @@ object ExecOnSpark
               if(update == null) {
                 base = base.cast(StringType)
                            .caveat(s"Couldn't interpret '$value' in ${targetColumn.name}'s native type (${targetColumn.dataType}), so I made the entire column a string.  Add an explicit .cast() to fix this error.")
-                lit(value) // and return the update string
+                lit(SparkPrimitive.decode(value, StringType).toString) // and return the update string
 
               // If the updated value casts successfully, great
               } else {

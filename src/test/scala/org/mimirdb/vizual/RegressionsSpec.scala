@@ -27,7 +27,7 @@ class RegressionsSpec
     df.schema.fields.map { _.dataType }.toSeq should beEqualTo(Seq(StringType, StringType, StringType))
 
     // actually check if insertion breaks types
-    val result = ExecOnSpark.apply(df, InsertRow(2))
+    val result = ExecOnSpark.apply(df, InsertRow(position = Some(2), values = None))
 
     result.schema.fields.map { _.dataType }.toSeq should beEqualTo(Seq(StringType, StringType, StringType))
 

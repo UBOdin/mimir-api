@@ -86,7 +86,7 @@ object InsertColumn
 //////////////////////////
 
 case class InsertRow(
-  position: Long,
+  position: Option[Long],
   values: Option[Seq[JsValue]]
 ) extends Command
 object InsertRow
@@ -217,7 +217,7 @@ case class RowsByConstraint(constraint: String) extends RowSelection
 case class UpdateCell(
   column: Int,
   row: Option[RowSelection],
-  value: Option[String],
+  value: Option[JsValue],
   comment: Option[String]
 ) extends Command
 {
