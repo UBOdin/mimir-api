@@ -90,6 +90,7 @@ object PivotLens
 
     val safePivots = 
       config.pivots.toSeq.flatten
+        .filter { _ != null }
         .map { p => p -> p.replaceAll("[^0-9a-zA-Z_]+", "_") }
 
     val target = input(config.target)

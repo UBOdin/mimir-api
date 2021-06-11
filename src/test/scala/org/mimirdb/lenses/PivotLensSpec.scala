@@ -90,4 +90,19 @@ class PivotLensSpec
       annotations.getAs[Boolean]("B_4") must beFalse
     }
   }
+
+  "Pivot in the presence of NULL values" >> {
+    test(target = "B", values = Seq("C")) { df => 
+      df.columns.toSeq must contain(exactly("C_2", "C_3", "C_4"))
+      df.count must beEqualTo(1)
+      df.take(1)(0).getAs[String]("C_4") must beEqualTo("2")
+    }
+    test(target = "B", keys = Seq("C"), values = Seq("A")) { df => 
+      df.columns.toSeq must contain(exactly("C", "A_2", "A_3", "A_4"))
+      df.count must beEqualTo(5)
+      df.collect
+        .map { _.getAs[String]("A_4") }
+        .toSeq must contain("1")
+    }
+  }
 }
