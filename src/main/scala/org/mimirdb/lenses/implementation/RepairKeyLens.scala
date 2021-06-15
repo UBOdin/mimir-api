@@ -85,7 +85,7 @@ object RepairKeyLens
                     output(field),
                     lit(" could be one of "),
                     (output(COUNT_COLUMN(field)) - lit(1)).cast(StringType),
-                    lit(s" other distinct values when $context.$field when $context.${config.key} = "),
+                    lit(s" other distinct values for $context.$field when $context.${config.key} = "),
                     outputKeyAttribute.cast(StringType),
                     lit(", including "),
                     concat_ws(", ",

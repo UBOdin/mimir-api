@@ -215,7 +215,7 @@ class AnnotateWithRowIds(
                  annoed.asInstanceOf[Project].projectList.filterNot(projexpr => rhsAttrs.contains(projexpr.toAttribute)),
                  annoed.children.head
               )
-              println(s"-------------------\n${projanno}\n---------------------")
+              // println(s"-------------------\n${projanno}\n---------------------")
               projanno
               }
           ), 
@@ -258,6 +258,10 @@ class AnnotateWithRowIds(
             AnnotateWithRowIds.FIELD_TYPE.dataType
             )(exprId = rhsAlias.exprId)
         
+        // println(s"LHSATTR: $lhsAttr")
+        // println(s"RHSATTR: $rhsAttr")
+        // println(s"In:\n$plan")
+
         (
           Project(
               plan.output :+ newAnnotation,

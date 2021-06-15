@@ -11,6 +11,7 @@ import org.mimirdb.api.CaveatFormat._
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.rowids.AnnotateWithRowIds
 import org.mimirdb.spark.InjectedSparkSQL
+import com.typesafe.scalalogging.LazyLogging
 
 case class ExplainCellRequest (
             /* query to explain */
@@ -59,6 +60,7 @@ object ExplainResponse {
 
 
 object Explain
+  extends LazyLogging
 {
   def apply(
     query: String, 
@@ -73,6 +75,7 @@ object Explain
     caveatSets.par
                .flatMap { caveatSet =>
                   val caveats = caveatSet.take(spark, reasonCap+1)
+                  logger.trace(s"Expanding CaveatSet: \n${caveatSet}")
                   if(caveats.size > reasonCap){
                     caveats.slice(0, reasonCap) :+
                       Caveat(
@@ -100,6 +103,7 @@ object Explain
       Option(cols).getOrElse { df.schema.fieldNames.toSeq }.toSet
     if(rows != null){
       df = AnnotateWithRowIds(df)
+      // println(s"EXPLAIN PLAN: \n${df.queryExecution.logical}")
       df = df.filter { df(AnnotateWithRowIds.ATTRIBUTE).isin(rows:_*) }
     }
     df.listCaveatSets(row = true, attributes = selectedCols)
