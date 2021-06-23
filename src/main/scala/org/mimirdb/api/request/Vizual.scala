@@ -10,7 +10,7 @@ import org.mimirdb.spark.Schema
 import org.mimirdb.spark.Schema.fieldFormat
 
 case class VizualRequest (
-  input: String,
+  input: Option[String],
   script: Seq[Command],
   resultName: Option[String],
   compile: Option[Boolean]
@@ -37,7 +37,7 @@ case class VizualRequest (
     val df = MimirAPI.catalog.put(
       output,
       VizualScriptConstructor(simplified, input),
-      Set(input),
+      input.toSet,
       true
     )
     VizualResponse(output, simplified, Schema(df), Map.empty)

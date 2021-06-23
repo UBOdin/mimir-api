@@ -6,13 +6,17 @@ import org.mimirdb.data.{ DataFrameConstructor, DataFrameConstructorCodec, Defau
 
 case class VizualScriptConstructor(
   script: Seq[Command],
-  input: String
+  input: Option[String]
 )
   extends DataFrameConstructor
   with DefaultProvenance
 {
   def construct(spark: SparkSession, context: Map[String, () => DataFrame]): DataFrame =
-    ExecOnSpark(context(input)(), script)
+    ExecOnSpark(
+      input.map { context(_)() }
+           .getOrElse { spark.emptyDataFrame },
+      script
+    )
 }
 
 object VizualScriptConstructor 
