@@ -13,6 +13,7 @@ import org.apache.spark.sql.sedona_sql.UDT.GeometryUDT
 import org.locationtech.jts.geom.Geometry
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.Row
 import org.apache.sedona.core.formatMapper.FormatMapper
 import org.apache.sedona.core.enums.FileDataSplitter
 
@@ -93,6 +94,10 @@ object SparkPrimitive
         case row: InternalRow => 
           t.fields.zipWithIndex.map { case (field, idx) => 
             field.name -> encode(row.get(idx, field.dataType), field.dataType)
+          }.toMap
+        case row: Row => 
+          t.fields.zipWithIndex.map { case (field, idx) => 
+            field.name -> encode(row.get(idx), field.dataType)
           }.toMap
         case _ => throw new IllegalArgumentException(s"Invalid struct value of class ${k.getClass.getName} for struct $t")
       }
