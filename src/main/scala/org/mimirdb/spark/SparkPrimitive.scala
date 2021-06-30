@@ -174,8 +174,9 @@ object SparkPrimitive
     }
   }
 
-  implicit def dataTypeFormat: Format[DataType] = Format(
-    new Reads[DataType] { def reads(j: JsValue) = JsSuccess(DataType.fromJson(j.toString)) },
-    new Writes[DataType] { def writes(t: DataType) = JsString(t.typeName) }
-  )
+  implicit val dataTypeFormat = Schema.dataTypeFormat
+  // implicit def dataTypeFormat: Format[DataType] = Format(
+  //   new Reads[DataType] { def reads(j: JsValue) = JsSuccess(DataType.fromJson(j.toString)) },
+  //   new Writes[DataType] { def writes(t: DataType) = JsString(t.typeName) }
+  // )
 }
