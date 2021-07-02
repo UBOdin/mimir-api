@@ -34,11 +34,15 @@ class MimirConfig(arguments: Seq[String]) extends ScallopConf(arguments)
     descr = "Your Open Street Maps server (for Geocoding)"
   )
   val sparkHost = opt[String]("spark-host",
-    descr = "spark master.",
+    descr = "Spark master node",
     default = Some("local")
   )
   val pythonPath = opt[String]("python", 
     descr = "Path to python binary",
+    default = None
+  )
+  val workingDirectory = opt[String]("working-directory",
+    descr = "Override the current working directory for relative file paths",
     default = None
   )
   val experimental = opt[List[String]]("X", default = Some(List[String]()))

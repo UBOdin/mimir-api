@@ -36,6 +36,9 @@ case class LoadConstructor(
   lazy val absoluteUrl: String = 
     if((urlIsRelativeToDataDir.getOrElse { false })){
       MimirAPI.conf.resolveToDataDir(url).toString
+    } else if( (url.charAt(0) != '/') && !url.contains(":/") 
+                && MimirAPI.conf.workingDirectory.isDefined) {
+      MimirAPI.conf.workingDirectory() + File.separator + url
     } else { url }
 
   def construct(
