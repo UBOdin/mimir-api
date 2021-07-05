@@ -12,7 +12,7 @@ import org.mimirdb.api.CreateResponse
 import org.mimirdb.caveats.implicits._
 import org.mimirdb.api.Tuple
 
-class LoadSpec 
+class LoadSpec
   extends Specification
   with SharedSparkTestInstance
   with BeforeAll
@@ -77,7 +77,7 @@ class LoadSpec
     val request = LoadRequest(
                     file                   = "test_data/r.csv",
                     format                 = "csv",
-                    inferTypes             = true, 
+                    inferTypes             = true,
                     detectHeaders          = true,
                     humanReadableName      = Some("STILL MORE THING TESTS"),
                     backendOption          = Seq(),
@@ -89,9 +89,9 @@ class LoadSpec
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
-    val allRows = 
+    val allRows =
       MimirAPI.catalog.get(response.name).collect()
-    val dataRow = 
+    val dataRow =
       allRows(0)
     dataRow.schema.fieldNames.toSet must contain("A")
     dataRow.fieldIndex("A") must be greaterThanOrEqualTo(0)
@@ -120,7 +120,7 @@ class LoadSpec
     val response = Json.toJson(Json.toJson(request).as[LoadInlineRequest].handle).as[CreateResponse]
     response.name must beEqualTo("INLINED_LOAD_TEST")
 
-    val allRows = 
+    val allRows =
       MimirAPI.catalog.get(response.name).collect()
     val dataRow =
       allRows(0)
@@ -134,7 +134,7 @@ class LoadSpec
     val request = LoadRequest(
                     file                   = "test_data/pd5h-92mc.csv",
                     format                 = "csv",
-                    inferTypes             = true, 
+                    inferTypes             = true,
                     detectHeaders          = true,
                     humanReadableName      = Some("Garbled CSV"),
                     backendOption          = Seq(),
@@ -146,7 +146,7 @@ class LoadSpec
                   )
     val response = Json.toJson(request.handle).as[CreateResponse]
 
-    val df = 
+    val df =
       MimirAPI.catalog.get(response.name)
     df.count() must beEqualTo(63l)
     df.collect().size must beEqualTo(63)
@@ -160,7 +160,7 @@ class LoadSpec
     val request = LoadRequest(
                     file                   = "test_data/CPUSpeed.csv",
                     format                 = "csv",
-                    inferTypes             = true, 
+                    inferTypes             = true,
                     detectHeaders          = true,
                     humanReadableName      = Some("CPUSpeed-Unquoted"),
                     backendOption          = Seq(),
@@ -176,12 +176,55 @@ class LoadSpec
 
   }
 
+  "Load CSV files from socrata data portal" >> {
+
+    val request = LoadRequest(
+                    file                   = "https://data.cityofchicago.org/resource/we8h-apcf.csv",
+                    format                 = "csv",
+                    inferTypes             = true,
+                    detectHeaders          = true,
+                    humanReadableName      = Some("ChicagoMurals"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
+                  )
+    val response = Json.toJson(request.handle).as[CreateResponse]
+
+    val df = MimirAPI.catalog.get(response.name)
+    df.schema must haveSize(16)
+    df.schema.fields(0) must beEqualTo(StructField("mural_registration_id", ShortType))
+  }
+
+  "Load JSON files from socrata data portal" >> {
+
+    val request = LoadRequest(
+                    file                   = "https://data.cityofchicago.org/resource/we8h-apcf.json",
+                    format                 = "csv",
+                    inferTypes             = false,
+                    detectHeaders          = false,
+                    humanReadableName      = Some("ChicagoMuralsJSON"),
+                    backendOption          = Seq(),
+                    dependencies           = Some(Seq()),
+                    resultName             = None,
+                    properties             = None,
+                    proposedSchema         = None,
+                    urlIsRelativeToDataDir = Some(false),
+                  )
+    val response = Json.toJson(request.handle).as[CreateResponse]
+
+    val df = MimirAPI.catalog.get(response.name)
+    df.schema must haveSize(20)
+  }
+
   "override schemas" >> {
 
     val request = LoadRequest(
                     file                   = "test_data/r.csv",
                     format                 = "csv",
-                    inferTypes             = false, 
+                    inferTypes             = false,
                     detectHeaders          = true,
                     humanReadableName      = Some("PROPOSED_SCHEMA_TEST"),
                     backendOption          = Seq(),
@@ -202,7 +245,7 @@ class LoadSpec
     df.schema.fields(1) must beEqualTo(StructField("BOB", StringType))
     df.schema.fields(2) must beEqualTo(StructField("C", StringType))
   }
-  
+
   /*"load files from s3" >> {
     val request = LoadRequest(
                     file              = "s3a://mimir-test-data/test/data/mv.csv",
@@ -226,7 +269,7 @@ class LoadSpec
     MimirAPI.catalog.get(response.name)
                     .count() must be equalTo(8)
   }
-  
+
   "load excel files" >> {
     val request = LoadRequest(
                     file              = "test_data/excel.xlsx",
