@@ -76,10 +76,10 @@ class LocalFSStagingProvider(
 
   def ensureBasePath
   {
-    if(!basePath.exists){ basePath.mkdirs }
+    if(!absoluteBasePath.exists){ absoluteBasePath.mkdirs }
   }
 
-  def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): (String, Boolean) = 
+  def stage(input: InputStream, fileExtension: String, nameHint: Option[String]): (String, Boolean) =
   {
     ensureBasePath
     val (file, relative) = makeName(fileExtension, nameHint)
