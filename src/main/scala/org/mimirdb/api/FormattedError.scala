@@ -1,6 +1,6 @@
 package org.mimirdb.api
 
-case class FormattedError(response: ErrorResponse) extends Exception
+case class FormattedError(response: ErrorResponse) extends Exception(response.errorMessage)
 
 object FormattedError
 {
