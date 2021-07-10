@@ -69,7 +69,7 @@ object SparkPrimitive
     timestamp match {
       case TimestampString(y, m, d, hr, min, sec) => {
         val cal = Calendar.getInstance()
-        val secWithMsec = sec.toFloat
+        val secWithMsec = sec.toDouble
         cal.set(
           y.toInt, 
           m.toInt, 
@@ -78,8 +78,10 @@ object SparkPrimitive
           min.toInt,
           secWithMsec.toInt
         )
-        cal.set(((secWithMsec - secWithMsec.toInt) * 1000).toInt, Calendar.MILLISECOND)
-        new Timestamp(cal.getTimeInMillis)
+        // Technically Timestamp gets more than millisecond precision, but Spark's internal
+        // timestamps don't support nanosecond precision.
+        val extraMilliseconds = ((secWithMsec - secWithMsec.toInt.toDouble) * 1000).toInt
+        new Timestamp(cal.getTimeInMillis + extraMilliseconds)
       }
       case _ => throw new IllegalArgumentException(s"Invalid Timestamp: '$timestamp'")
     }
