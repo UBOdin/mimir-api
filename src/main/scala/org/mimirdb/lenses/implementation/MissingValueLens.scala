@@ -39,6 +39,7 @@ import org.apache.spark.ml.param.Param
 import org.apache.spark.sql.Dataset
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.mimirdb.api.MimirAPI
+import org.mimirdb.caveats.implicits._
 
 case class MissingValueLensConfig(
   columns: Seq[MissingValueImputerConfig],
@@ -102,6 +103,7 @@ object MissingValueLens
     val config = rawConfig.as[MissingValueLensConfig]
     logger.trace(s"Creating missing value lens with config: $config")
     val fieldNames = input.schema.fieldNames
+    logger.trace(s"Before Imputing\n${input.queryExecution.logical.toString}")
     val completedf = 
       config.columns.foldLeft(input)((inputdf, imputerConfig) => {
         logger.trace(s"Imputing with $imputerConfig")
@@ -120,15 +122,17 @@ object MissingValueLens
           } else {
             col(ccol)
           }):_*)
-        logger.trace("Imputing")
+        logger.trace(s"Imputing '${imputerConfig.imputeCol}'")
         val model = modelFile(config.uuid.get, imputerConfig.imputeCol)
         val outdf = imputerConfig.imputer.impute(caveatedDf, model);
+        logger.trace(s"After Imputing '${imputerConfig.imputeCol}'\n${outdf.queryExecution.logical.toString}")
         outdf
       }).select(fieldNames.map(ocol =>
         config.columns.find(_.imputeCol.equals(ocol)) match {
           case Some(cs) => col(ocol).cast(input.schema(ocol).dataType)
           case None => col(ocol)
       }):_*)
+    logger.trace(s"Imputed Plan: \n${completedf.queryExecution.logical.toString}")
     completedf
   }
 
