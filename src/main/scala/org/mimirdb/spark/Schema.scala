@@ -19,6 +19,8 @@ object Schema {
       case "int" => IntegerType
       case "real" => DoubleType
       case "geometry" => GeometryUDT
+      case "binary" => BinaryType
+      case "image/png" => ImageUDT
       case _ if t.startsWith("array:") => 
         ArrayType(decodeType(t.substring(6)))
       case _ => 
@@ -31,6 +33,8 @@ object Schema {
       case DoubleType => "real"
       case IntegerType => "int"
       case GeometryUDT => "geometry"
+      case BinaryType => "binary"
+      case ImageUDT => "image/png"
       case _ => t.typeName
     }
 

@@ -2,6 +2,7 @@ package org.mimirdb.spark
 
 import play.api.libs.json._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.ImageUDT
 import org.apache.spark.unsafe.types.CalendarInterval
 import org.apache.spark.sql.catalyst.expressions.{ Literal, Cast }
 import java.util.{ Base64, Calendar }
@@ -14,6 +15,8 @@ import org.locationtech.jts.geom.Geometry
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.sedona.core.formatMapper.FormatMapper
 import org.apache.sedona.core.enums.FileDataSplitter
+import java.awt.image.BufferedImage
+import java.nio.charset.StandardCharsets
 
 object SparkPrimitive
 {
@@ -91,6 +94,7 @@ object SparkPrimitive
       case _ if k == null           => JsNull
       case StringType               => JsString(k.toString)
       case BinaryType               => JsString(base64Encode(k.asInstanceOf[Array[Byte]]))
+      case ImageUDT                 => JsString(ImageUDT.serialize(k.asInstanceOf[BufferedImage]).asInstanceOf[String])
       case BooleanType              => JsBoolean(k.asInstanceOf[Boolean])
       case DateType                 => JsString(formatDate(k.asInstanceOf[Date]))
       case TimestampType            => JsString(formatTimestamp(k.asInstanceOf[Timestamp]))
@@ -109,6 +113,7 @@ object SparkPrimitive
       case ArrayType(element,_)     => JsArray(k.asInstanceOf[Seq[_]].map { encode(_, element) })
                                        // Encode Geometry as WKT
       case GeometryUDT              => JsString(k.asInstanceOf[Geometry].toText)
+
       case _ if k != null           => JsString(k.toString)
       case _                        => JsNull
     }
@@ -122,6 +127,7 @@ object SparkPrimitive
       case (JsBoolean(b), StringType)     => b.toString()
       case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
       case (_, BinaryType)                => base64Decode(k.as[String])
+      case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
       case (_, BooleanType)               => k.as[Boolean]
       case (_, DateType)                  => decodeDate(k.as[String])
       case (_, TimestampType)             => decodeTimestamp(k.as[String])
