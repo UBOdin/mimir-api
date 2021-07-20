@@ -52,10 +52,12 @@ abstract class JsonResponse[R](implicit format: Format[R])
 {
   override def contentType = "application/json"
   def getBytes = {
-    val r = Json.stringify(Json.toJson(this.asInstanceOf[R]))
+    val r = Json.stringify(json)
     logger.trace(s"RESPONSE: $r")
     r.getBytes
   }
+  def json = 
+    Json.toJson(this.asInstanceOf[R])
 }
 
 

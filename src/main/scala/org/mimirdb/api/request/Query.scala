@@ -438,7 +438,7 @@ object Query
                                  .getOrElse { cache.size }
           
           // Do our standard sanity check to avoid implosions
-          if(end-start >= RESULT_THRESHOLD){ 
+          if(end-start > RESULT_THRESHOLD){ 
             throw new ResultTooBig()
           }
 

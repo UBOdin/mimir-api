@@ -13,6 +13,8 @@ import org.apache.spark.sql.types.UDTRegistration
 import org.apache.spark.sql.sedona_sql.UDT.GeometryUDT
 import org.locationtech.jts.geom.Geometry
 import org.apache.spark.sql.catalyst.util.GenericArrayData
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.Row
 import org.apache.sedona.core.formatMapper.FormatMapper
 import org.apache.sedona.core.enums.FileDataSplitter
 import java.awt.image.BufferedImage
@@ -70,7 +72,7 @@ object SparkPrimitive
     timestamp match {
       case TimestampString(y, m, d, hr, min, sec) => {
         val cal = Calendar.getInstance()
-        val secWithMsec = sec.toFloat
+        val secWithMsec = sec.toDouble
         cal.set(
           y.toInt, 
           m.toInt, 
@@ -79,14 +81,33 @@ object SparkPrimitive
           min.toInt,
           secWithMsec.toInt
         )
-        cal.set(((secWithMsec - secWithMsec.toInt) * 1000).toInt, Calendar.MILLISECOND)
-        new Timestamp(cal.getTimeInMillis)
+        // Technically Timestamp gets more than millisecond precision, but Spark's internal
+        // timestamps don't support nanosecond precision.
+        val extraMilliseconds = ((secWithMsec - secWithMsec.toInt.toDouble) * 1000).toInt
+        new Timestamp(cal.getTimeInMillis + extraMilliseconds)
       }
       case _ => throw new IllegalArgumentException(s"Invalid Timestamp: '$timestamp'")
     }
 
   lazy val geometryFormatMapper = 
     new FormatMapper(FileDataSplitter.WKT, false)
+
+  def encodeStruct(k: Any, t: StructType): JsObject =
+  {
+    JsObject(
+      k match {
+        case row: InternalRow => 
+          t.fields.zipWithIndex.map { case (field, idx) => 
+            field.name -> encode(row.get(idx, field.dataType), field.dataType)
+          }.toMap
+        case row: Row => 
+          t.fields.zipWithIndex.map { case (field, idx) => 
+            field.name -> encode(row.get(idx), field.dataType)
+          }.toMap
+        case _ => throw new IllegalArgumentException(s"Invalid struct value of class ${k.getClass.getName} for struct $t")
+      }
+    )
+  }
 
   def encode(k: Any, t: DataType): JsValue =
   {
@@ -112,6 +133,7 @@ object SparkPrimitive
       case ShortType                => JsNumber(k.asInstanceOf[Short])
       case NullType                 => JsNull
       case ArrayType(element,_)     => JsArray(k.asInstanceOf[Seq[_]].map { encode(_, element) })
+      case s:StructType             => encodeStruct(k, s)
                                        // Encode Geometry as WKT
       case GeometryUDT              => JsString(k.asInstanceOf[Geometry].toText)
 
@@ -119,19 +141,45 @@ object SparkPrimitive
       case _                        => JsNull
     }
   }
+
+  def decodeStruct(k: JsValue, t: StructType, castStrings: Boolean = false): Any =
+    InternalRow.fromSeq(
+      t.fields.map { field => 
+        (k \ field.name).asOpt[JsValue]
+                        .map { decode(_, field.dataType, castStrings = castStrings) }
+                        .getOrElse { null }
+      }
+    )
+
   def decode(k: JsValue, t: DataType, castStrings: Boolean = false): Any = 
   {
+
+    // The following matching order is important
+
     (k, t) match {  
+      // Check for null first to avoid null pointer errors
       case (JsNull, _)                    => null
+
+      // Check for string-based parsing before the cast-strings fallback
       case (JsString(str), StringType)    => str
       case (JsNumber(num), StringType)    => num.toString()
       case (JsBoolean(b), StringType)     => b.toString()
       case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
       case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
-      case (_, BinaryType)                => base64Decode(k.as[String])
-      case (_, BooleanType)               => k.as[Boolean]
+
+      // Formats that are encoded as strings, but use a non-string internal
+      // representation need to come next, before the cast-strings fallback
       case (_, DateType)                  => decodeDate(k.as[String])
       case (_, TimestampType)             => decodeTimestamp(k.as[String])
+      case (_, BinaryType)                => base64Decode(k.as[String])
+      case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String]) // parse as WKT
+
+      // Now that we've gotten through all String types, check if we still have
+      // a string and fall back to string parsing if so.
+      case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
+
+      // Finally, types with native Json parsers.  These can come in any order
+      case (_, BooleanType)               => k.as[Boolean]
       case (_, CalendarIntervalType)      => {
         val fields = k.as[Map[String,JsValue]]
         new CalendarInterval(fields("months").as[Int], fields("days").as[Int], fields("microseconds").as[Int])
@@ -144,14 +192,14 @@ object SparkPrimitive
       case (_, ShortType)                 => k.as[Short]
       case (_, NullType)                  => JsNull
       case (_, ArrayType(element,_))      => ArraySeq(k.as[Seq[JsValue]].map { decode(_, element) }:_*)
-                                       // Assume Geometry is a WKT
-      case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String])
+      case (_, s:StructType)              => decodeStruct(k, s, castStrings = castStrings)
       case _                    => throw new IllegalArgumentException(s"Unsupported type for decode: $t; ${t.getClass()}")
     }
   }
 
-  implicit def dataTypeFormat: Format[DataType] = Format(
-    new Reads[DataType] { def reads(j: JsValue) = JsSuccess(DataType.fromJson(j.toString)) },
-    new Writes[DataType] { def writes(t: DataType) = JsString(t.typeName) }
-  )
+  implicit val dataTypeFormat = Schema.dataTypeFormat
+  // implicit def dataTypeFormat: Format[DataType] = Format(
+  //   new Reads[DataType] { def reads(j: JsValue) = JsSuccess(DataType.fromJson(j.toString)) },
+  //   new Writes[DataType] { def writes(t: DataType) = JsString(t.typeName) }
+  // )
 }
