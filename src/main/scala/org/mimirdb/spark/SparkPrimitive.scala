@@ -147,16 +147,31 @@ object SparkPrimitive
 
   def decode(k: JsValue, t: DataType, castStrings: Boolean = false): Any = 
   {
+
+    // The following matching order is important
+
     (k, t) match {  
+      // Check for null first to avoid null pointer errors
       case (JsNull, _)                    => null
+
+      // Check for string-based parsing before the cast-strings fallback
       case (JsString(str), StringType)    => str
       case (JsNumber(num), StringType)    => num.toString()
       case (JsBoolean(b), StringType)     => b.toString()
-      case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
-      case (_, BinaryType)                => base64Decode(k.as[String])
-      case (_, BooleanType)               => k.as[Boolean]
+
+      // Formats that are encoded as strings, but use a non-string internal
+      // representation need to come next, before the cast-strings fallback
       case (_, DateType)                  => decodeDate(k.as[String])
       case (_, TimestampType)             => decodeTimestamp(k.as[String])
+      case (_, BinaryType)                => base64Decode(k.as[String])
+      case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String]) // parse as WKT
+
+      // Now that we've gotten through all String types, check if we still have
+      // a string and fall back to string parsing if so.
+      case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
+
+      // Finally, types with native Json parsers.  These can come in any order
+      case (_, BooleanType)               => k.as[Boolean]
       case (_, CalendarIntervalType)      => {
         val fields = k.as[Map[String,JsValue]]
         new CalendarInterval(fields("months").as[Int], fields("days").as[Int], fields("microseconds").as[Int])
@@ -170,8 +185,6 @@ object SparkPrimitive
       case (_, NullType)                  => JsNull
       case (_, ArrayType(element,_))      => ArraySeq(k.as[Seq[JsValue]].map { decode(_, element) }:_*)
       case (_, s:StructType)              => decodeStruct(k, s, castStrings = castStrings)
-                                       // Assume Geometry is a WKT
-      case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String])
       case _                    => throw new IllegalArgumentException(s"Unsupported type for decode: $t; ${t.getClass()}")
     }
   }
