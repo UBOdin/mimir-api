@@ -90,11 +90,12 @@ object SparkPrimitive
 
   def encode(k: Any, t: DataType): JsValue =
   {
+    print(k, t)
     t match {
       case _ if k == null           => JsNull
       case StringType               => JsString(k.toString)
       case BinaryType               => JsString(base64Encode(k.asInstanceOf[Array[Byte]]))
-      case ImageUDT                 => JsString(ImageUDT.serialize(k.asInstanceOf[BufferedImage]).asInstanceOf[String])
+      case ImageUDT                 => JsString(base64Encode(ImageUDT.serialize(k.asInstanceOf[BufferedImage]).asInstanceOf[Array[Byte]]))
       case BooleanType              => JsBoolean(k.asInstanceOf[Boolean])
       case DateType                 => JsString(formatDate(k.asInstanceOf[Date]))
       case TimestampType            => JsString(formatTimestamp(k.asInstanceOf[Timestamp]))
@@ -125,9 +126,9 @@ object SparkPrimitive
       case (JsString(str), StringType)    => str
       case (JsNumber(num), StringType)    => num.toString()
       case (JsBoolean(b), StringType)     => b.toString()
+      case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
       case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
       case (_, BinaryType)                => base64Decode(k.as[String])
-      case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
       case (_, BooleanType)               => k.as[Boolean]
       case (_, DateType)                  => decodeDate(k.as[String])
       case (_, TimestampType)             => decodeTimestamp(k.as[String])
