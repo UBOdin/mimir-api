@@ -48,7 +48,7 @@ object SparkPrimitive
   }
 
   val DateString = "([0-9]{4})-([0-9]{2})-([0-9]{2})".r
-  val TimestampString = "([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9.]+)".r
+  val TimestampString = "([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{2}):([0-9]{2}):([0-9.]+)".r
 
   def decodeDate(date: String): Date = 
     date match {
