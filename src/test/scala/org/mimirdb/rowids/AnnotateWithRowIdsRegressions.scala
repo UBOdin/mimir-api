@@ -33,7 +33,8 @@ class AnnotateWithRowIdsRegressions
     }
   }
 
-  "Left Outer Join Caveat Expansion" >> {
+  "Left Outer Join Caveat Expansion" >> 
+  {
 
     SharedSparkTestInstance.loadCSV("ROWID_REGRESSION_R", "test_data/r.csv", typeInference = false)
     SharedSparkTestInstance.loadCSV("ROWID_S", "test_data/s.csv", typeInference = false)
