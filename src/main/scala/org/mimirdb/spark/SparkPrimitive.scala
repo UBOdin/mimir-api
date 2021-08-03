@@ -51,7 +51,7 @@ object SparkPrimitive
   }
 
   val DateString = "([0-9]{4})-([0-9]{2})-([0-9]{2})".r
-  val TimestampString = "([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9.]+)".r
+  val TimestampString = "([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{2}):([0-9]{2}):([0-9.]+)".r
 
   def decodeDate(date: String): Date = 
     date match {
@@ -164,8 +164,6 @@ object SparkPrimitive
       case (JsString(str), StringType)    => str
       case (JsNumber(num), StringType)    => num.toString()
       case (JsBoolean(b), StringType)     => b.toString()
-      case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
-      case (_:JsString, _) if castStrings => Cast(Literal(k.as[String]), t).eval()
 
       // Formats that are encoded as strings, but use a non-string internal
       // representation need to come next, before the cast-strings fallback
@@ -173,6 +171,7 @@ object SparkPrimitive
       case (_, TimestampType)             => decodeTimestamp(k.as[String])
       case (_, BinaryType)                => base64Decode(k.as[String])
       case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String]) // parse as WKT
+      case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
 
       // Now that we've gotten through all String types, check if we still have
       // a string and fall back to string parsing if so.
