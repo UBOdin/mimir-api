@@ -131,6 +131,7 @@ object SparkPrimitive
       case s:StructType             => encodeStruct(k, s)
                                        // Encode Geometry as WKT
       case GeometryUDT              => JsString(k.asInstanceOf[Geometry].toText)
+      case DecimalType()            => JsNumber(k.asInstanceOf[Decimal].toBigDecimal)
       case _ if k != null           => JsString(k.toString)
       case _                        => JsNull
     }
@@ -182,6 +183,7 @@ object SparkPrimitive
       case (_, IntegerType)               => k.as[Int]:Integer
       case (_, LongType)                  => k.as[Long]
       case (_, ShortType)                 => k.as[Short]
+      case (_, DecimalType())             => Decimal(k.as[BigDecimal])
       case (_, NullType)                  => JsNull
       case (_, ArrayType(element,_))      => ArraySeq(k.as[Seq[JsValue]].map { decode(_, element) }:_*)
       case (_, s:StructType)              => decodeStruct(k, s, castStrings = castStrings)
