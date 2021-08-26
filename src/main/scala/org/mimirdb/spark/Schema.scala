@@ -53,6 +53,8 @@ object Schema {
       case "int" => IntegerType
       case "real" => DoubleType
       case "geometry" => GeometryUDT
+      case "binary" => BinaryType
+      case "image/png" => ImageUDT
       case _ if t.startsWith("[") || t.startsWith("{") => 
         Json.parse(t).as[DataType]
       case _ if t.startsWith("array:") => 
@@ -67,6 +69,8 @@ object Schema {
       case DoubleType => "real"
       case IntegerType => "int"
       case GeometryUDT => "geometry"
+      case BinaryType => "binary"
+      case ImageUDT => "image/png"
       case _ => t.typeName
     }
 

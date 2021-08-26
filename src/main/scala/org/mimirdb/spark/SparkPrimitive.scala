@@ -2,6 +2,7 @@ package org.mimirdb.spark
 
 import play.api.libs.json._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.ImageUDT
 import org.apache.spark.unsafe.types.CalendarInterval
 import org.apache.spark.sql.catalyst.expressions.{ Literal, Cast }
 import java.util.{ Base64, Calendar }
@@ -16,6 +17,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.Row
 import org.apache.sedona.core.formatMapper.FormatMapper
 import org.apache.sedona.core.enums.FileDataSplitter
+import java.awt.image.BufferedImage
+import java.nio.charset.StandardCharsets
 
 object SparkPrimitive
 {
@@ -108,10 +111,12 @@ object SparkPrimitive
 
   def encode(k: Any, t: DataType): JsValue =
   {
+    print(k, t)
     t match {
       case _ if k == null           => JsNull
       case StringType               => JsString(k.toString)
       case BinaryType               => JsString(base64Encode(k.asInstanceOf[Array[Byte]]))
+      case ImageUDT                 => JsString(base64Encode(ImageUDT.serialize(k.asInstanceOf[BufferedImage]).asInstanceOf[Array[Byte]]))
       case BooleanType              => JsBoolean(k.asInstanceOf[Boolean])
       case DateType                 => JsString(formatDate(k.asInstanceOf[Date]))
       case TimestampType            => JsString(formatTimestamp(k.asInstanceOf[Timestamp]))
@@ -166,6 +171,7 @@ object SparkPrimitive
       case (_, TimestampType)             => decodeTimestamp(k.as[String])
       case (_, BinaryType)                => base64Decode(k.as[String])
       case (_, GeometryUDT)               => geometryFormatMapper.readGeometry(k.as[String]) // parse as WKT
+      case (_, ImageUDT)                  => ImageUDT.deserialize(base64Decode(k.as[String]))
 
       // Now that we've gotten through all String types, check if we still have
       // a string and fall back to string parsing if so.
