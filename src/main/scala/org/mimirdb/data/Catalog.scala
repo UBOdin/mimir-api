@@ -309,13 +309,26 @@ class Catalog(
     name: String
   ): (DataFrameConstructor, Seq[String]) =
   {
-    val (_, components) = views.get(name).getOrElse {
-      throw new UnresolvedException(
-        UnresolvedRelation(Seq(name)),
-        "lookup"
-      )
+    return buildConstructor(
+      views.get(name).getOrElse {
+        throw new UnresolvedException(
+          UnresolvedRelation(Seq(name)),
+          "lookup"
+        )
+      }
+    )
+  }
 
-    }
+  /**
+   * Assemble the table constructor from a MapResource
+   * @param   resource    The MapResource (from the catalog) to assemble a constructor from
+   * @return              A 2-tuple of the constructor, and its dependencies
+   */
+  def buildConstructor(
+    resource: Metadata.MapResource
+  ): (DataFrameConstructor, Seq[String]) =
+  {
+    val (_, components) = resource
     val deserializerClassName = 
       components(0).asInstanceOf[String]
     val constructorJson = 
@@ -338,6 +351,11 @@ class Catalog(
     return (constructor, dependencies)
   }
 
+  /**
+   * Retrieve the dataframe for the table with the specified name.
+   * @param     name      The name of a table
+   * @return              The [[DataFrame]] for the specified table
+   */
   def get(name: String): DataFrame = 
   {
     if(cache contains name){
@@ -421,6 +439,37 @@ class Catalog(
         }
       }
     }
+  }
+
+  /**
+   * Replace references to the source file with the replacement file
+   * @param    source       The file/url to replace
+   * @param    replacement  The file/url to replace the source with
+   * 
+   * If any file/urls are replaced, this function will clear the cache.
+   */
+  def replaceFile(source: String, replacement: String): Unit =
+  {
+    var didReplace = false
+    logger.trace(s"Checking to replace $source with $replacement")
+    for((name, (view, deps)) <- views.all.map { res => res._1 -> buildConstructor(res) }){
+      view match {
+        case l:LoadConstructor if l.url.equals(source) =>
+          logger.debug(s"Found view that needs replacement: $name: $source -> $replacement")
+          put(
+            name = name, 
+            constructor = l.copy(url = replacement), 
+            dependencies = deps.toSet, 
+            replaceIfExists = true,
+            getProperties(name)
+          )
+          didReplace = true
+        case l:LoadConstructor if l.url.equals(source) =>
+          logger.trace(s"View $name does not need replacement (${l.url} != $source")
+        case _ => ()
+      }
+    }
+    if(didReplace){ cache.clear() }
   }
 }
 
