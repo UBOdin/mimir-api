@@ -1,6 +1,7 @@
 package org.mimirdb.util
 
 import scala.collection.GenTraversableOnce
+import scala.collection.mutable
 
 /**
  * Utilities for globally enabling or disabling experimental
@@ -19,6 +20,10 @@ object ExperimentalOptions {
       case "" => Set.empty
       case x => x.split(",").toSet
     }
+
+  val locallyEnabled = new ThreadLocal[Set[String]](){
+                          override def initialValue(): Set[String] = Set[String]()
+                        }
 
   /**
    * Enable one experimental option
@@ -41,6 +46,19 @@ object ExperimentalOptions {
    */
   def disable(options: GenTraversableOnce[String]): Unit =
     { enabled = (enabled -- options) }
+
+
+  /**
+   * For unit tests ONLY: Execute a block of code with options enabled **in the running thread only**
+   */
+  def withEnabledInLocalThread[A](options: GenTraversableOnce[String], cmd: (() => A)): A =
+  {
+    val optionStack = locallyEnabled.get
+    locallyEnabled.set(optionStack ++ options.toSet)
+    val ret = cmd()
+    locallyEnabled.set(optionStack)
+    ret
+  }
 
   /**
    * For unit tests ONLY: Execute a block of code with options enabled

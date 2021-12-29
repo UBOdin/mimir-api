@@ -109,7 +109,7 @@ libraryDependencies ++= Seq(
   "info.mimirdb"                  %% "spark-google-spreadsheets" % "0.6.4",
 
   //excel data loading
-  "com.crealytics"                %%  "spark-excel"              % "0.13.3+17-b51cc0ac+20200722-1201-SNAPSHOT" excludeAll(
+  "com.crealytics"                %%  "spark-excel"              % "3.1.2_0.15.1" excludeAll(
                                                                       ExclusionRule(organization = "javax.servlet")
                                                                     ),
 

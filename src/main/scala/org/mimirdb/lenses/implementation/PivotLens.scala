@@ -45,7 +45,7 @@ case class PivotLensConfig(
 )
 {
   def withPivots(newPivots: Seq[String]) = 
-    PivotLensConfig(target, keys, values, Some(newPivots))
+    PivotLensConfig(target, keys, values, Some(newPivots.filterNot { _ == null }))
 }
 
 object PivotLensConfig
@@ -84,9 +84,29 @@ object PivotLens
     Json.toJson(config.withPivots(pivots))
   }
 
+  def cleanConfig(elems: JsValue) = 
+  {
+    JsObject(
+      elems.as[Map[String, JsValue]]++
+      Map(
+        "pivots" -> 
+          JsArray(
+            (elems \ "pivots").asOpt[Seq[JsValue]]
+                              .toSeq.flatten
+                              .filterNot { _ == JsNull }
+          )
+      )
+    )
+  }
+
   def create(input: DataFrame, rawConfig: JsValue, context: String): DataFrame = 
   {
-    val config = rawConfig.as[PivotLensConfig]
+    val config = try {
+      cleanConfig(rawConfig).as[PivotLensConfig]
+    } catch {
+      case j:JsResultException => 
+        throw new Exception(s"Error Parsing: $rawConfig", j)
+    }
 
     val safePivots = 
       config.pivots.toSeq.flatten

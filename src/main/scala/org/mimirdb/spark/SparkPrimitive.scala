@@ -111,7 +111,7 @@ object SparkPrimitive
 
   def encode(k: Any, t: DataType): JsValue =
   {
-    print(k, t)
+    // print(k, t)
     t match {
       case _ if k == null           => JsNull
       case StringType               => JsString(k.toString)
